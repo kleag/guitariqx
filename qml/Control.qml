@@ -8,8 +8,10 @@ Item {
     property var node: ({})
     readonly property string widget: node.widget || ""
     readonly property Parameter param: Gx.ready && node.id ? Gx.param(node.id) : null
-    readonly property string label: node.label !== undefined && node.label !== "" ? node.label.trim()
-                                                                                   : (param ? param.name : "")
+    // noLabel: a Glade layout labels the control with a separate label
+    readonly property string label: node.noLabel ? ""
+                                  : node.label !== undefined && node.label !== "" ? node.label.trim()
+                                  : (param ? param.name : "")
 
     implicitWidth: loader.item ? loader.item.implicitWidth : 0
     implicitHeight: loader.item ? loader.item.implicitHeight : 0
@@ -34,7 +36,10 @@ Item {
     }
     Component {
         id: toggle
-        ParamSwitch { param: root.param; label: root.node.label || "" }
+        ParamSwitch {
+            param: root.param
+            label: root.node.nameLabel && root.param ? root.param.name : (root.node.label || "")
+        }
     }
     Component {
         id: selector
@@ -46,7 +51,13 @@ Item {
     }
     Component {
         id: meter
-        LevelMeter { paramId: root.node.id || ""; vertical: true; implicitHeight: 90; thickness: 10 }
+        LevelMeter {
+            paramId: root.node.id || ""
+            vertical: !root.node.horizontal
+            implicitHeight: vertical ? 90 : 10
+            implicitWidth: vertical ? 10 : 120
+            thickness: 10
+        }
     }
     // create_simple_c_meter: level meter next to a gain slider
     Component {

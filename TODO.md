@@ -36,8 +36,12 @@ Roughly in order of importance for live use. See README.md for what works.
 
 ## Rack and plugin panels
 
-- [ ] Glade layouts (`UI_FORM_GLADE`): translate the gxw widget subset to
-      QML so that the 114 units with a Glade file look like in gx_head
+- [x] Glade layouts (`UI_FORM_GLADE`) of the 114 units with a Glade file
+- [ ] Glade layouts: wide units (Graphic EQ, Zita Rev1 in the stereo rack)
+      scroll sideways on small screens; a compact layout for 800x480 would
+      be better. Packing expand/fill, alignment and margins are ignored
+- [ ] gx_head look: skins, knob images, GxPaintBox backgrounds, icons of
+      the looper switches (named by their parameter for now)
 - [ ] Special widgets: looper (dubber) transport, drum sequencer, oscilloscope,
       jconv gain line, IR wave view
 - [ ] Tall stacks of meters (e.g. Multi Band Compressor "Analyze")

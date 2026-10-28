@@ -29,6 +29,10 @@ class Parameter;
  *   control: {type: "control", widget: "knob"|"slider"|"switch"|"selector"|"spin"|
  *             "meter"|"display"|"wheel", size: "small"|"mid"|"big", id, label, ...}
  *   spacer:  {type: "spacer"}
+ *   label:   {type: "label", text}
+ *
+ * The children of a box with orientation "grid" have row, column, rowSpan
+ * and columnSpan.
  *
  * A unit layout is {mini: <box>, main: <box>}: the mini box is the
  * compact view of a collapsed rack unit.
@@ -38,6 +42,12 @@ namespace uitree {
 // Build from the result of plugin_load_ui(id, UI_FORM_STACK), which is a
 // flat list of UiBuilder calls (see UiBuilderVirt in jsonrpc.cpp).
 QVariantMap fromStackOps(const QJsonArray& ops);
+
+// Build from a Glade (GtkBuilder) description, the result of
+// plugin_load_ui(id, UI_FORM_GLADE): the objects "rackbox" and "minibox"
+// with GTK containers and gxw widgets (see glade.cpp). Returns an empty
+// map when there is no rackbox.
+QVariantMap fromGlade(const QString& xml);
 
 // Fallback when the engine has no usable stack description: one control
 // per parameter of the unit.
@@ -51,5 +61,8 @@ void fixIds(QVariantMap& ui, const std::function<QString(const QString&)>& fix);
 
 // add a control at the top of the main view of a unit layout
 void prependControl(QVariantMap& ui, const QString& widget, const QString& id);
+
+// true when the layout has a control of this widget type
+bool hasWidget(const QVariantMap& node, const QString& widget);
 
 } // namespace uitree

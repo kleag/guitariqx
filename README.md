@@ -140,9 +140,14 @@ Working:
   path; the arrows next to the file step through its folder. Files are those
   of the engine's computer: when it runs elsewhere, the engine lists them
 - mono and stereo racks: on/off, add, remove, reorder, collapse
-- rack unit panels from the engine's stack layout (`plugin_load_ui` with
-  `UI_FORM_STACK`), and a generic panel built from the unit's parameters
-  for units without one
+- rack unit panels with gx_head's arrangement: the Glade layout of the
+  unit when it has one (`plugin_load_ui` with `UI_FORM_GLADE`, translated
+  by src/glade.cpp: boxes, grids, frames, notebooks, labels and the gxw
+  knobs, sliders, switches, selectors, meters and displays, file buttons
+  from the signal handlers), else its stack layout (`UI_FORM_STACK`), else
+  a generic panel built from the unit's parameters.
+  `QT_HEAD_FORM_STACK=1` uses the stack layouts, like
+  `GUITARIX_FORM_STACK` for gx_head
 - main amplifier panel
 - tuner: full window, note, deviation needle, frequency, string tunings of
   gx_head, temperaments, reference pitch, mute while tuning. It follows the
@@ -157,10 +162,8 @@ Working:
 
 Not yet:
 
-- Glade layouts (`UI_FORM_GLADE`): 114 rack units have one, which gx_head
-  prefers to the stack layout; translating the gxw widget subset to QML
-  would give the same look as gx_head
-- choosing files when the engine runs on another computer, the looper
-  and sequencer special widgets, LV2/LADSPA plugin management
+- gx_head's skins and images (the Glade layouts keep the arrangement, the
+  widgets are qt_head's), the oscilloscope, drum sequencer and IR wave
+  view, LV2/LADSPA plugin management
 
 The full list is in [TODO.md](TODO.md).

@@ -308,6 +308,18 @@ void fixIds(QVariantMap& ui, const std::function<QString(const QString&)>& fix) 
     }
 }
 
+bool hasWidget(const QVariantMap& node, const QString& widget) {
+    if (node.value(QStringLiteral("type")) == QLatin1String("control")) {
+        return node.value(QStringLiteral("widget")).toString() == widget;
+    }
+    for (const QVariant& c : node.value(QStringLiteral("children")).toList()) {
+        if (hasWidget(c.toMap(), widget)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void prependControl(QVariantMap& ui, const QString& widget, const QString& id) {
     QVariantMap root = box(QStringLiteral("v"));
     root.insert(QStringLiteral("children"), QVariantList{

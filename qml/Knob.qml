@@ -20,6 +20,7 @@ Item {
     Text {
         id: labelText
         anchors.horizontalCenter: parent.horizontalCenter
+        height: text === "" ? 0 : implicitHeight
         text: root.label
         color: Theme.textDim
         font.pixelSize: Theme.fontSmall

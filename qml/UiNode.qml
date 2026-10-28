@@ -20,14 +20,32 @@ Item {
         id: childDelegate
         Loader {
             required property var modelData
+            // used by grid boxes only
+            Layout.row: modelData.row !== undefined ? modelData.row : 0
+            Layout.column: modelData.column !== undefined ? modelData.column : 0
+            Layout.rowSpan: modelData.rowSpan || 1
+            Layout.columnSpan: modelData.columnSpan || 1
+            Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
             Component.onCompleted: {
                 if (modelData.type === "box")
                     setSource("UiNode.qml", { node: modelData, maxWidth: Qt.binding(() => root.maxWidth) })
                 else if (modelData.type === "control")
                     setSource("Control.qml", { node: modelData })
+                else if (modelData.type === "label")
+                    setSource("RackLabel.qml", { text: modelData.text })
                 else if (modelData.type === "spacer")
                     setSource("Spacer.qml")
             }
+        }
+    }
+
+    // GtkGrid of Glade layouts
+    Component {
+        id: grid
+        GridLayout {
+            columnSpacing: Theme.spacing
+            rowSpacing: 4
+            Repeater { model: root.children_; delegate: childDelegate }
         }
     }
 
@@ -147,6 +165,8 @@ Item {
                 return frame
             if (root.node.orientation === "flow")
                 return flow
+            if (root.node.orientation === "grid")
+                return grid
             return root.node.orientation === "v" ? vbox : hbox
         }
     }

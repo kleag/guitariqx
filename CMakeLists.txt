@@ -31,6 +31,7 @@ qt_add_executable(qt_head
     src/machine.h
     src/uitree.cpp
     src/uitree.h
+    src/glade.cpp
     src/tuner.cpp
     src/tuner.h
     src/midimap.cpp
@@ -60,6 +61,7 @@ qt_add_qml_module(qt_head
         qml/AmpPanel.qml
         qml/UiNode.qml
         qml/Spacer.qml
+        qml/RackLabel.qml
         qml/Control.qml
         qml/Knob.qml
         qml/ParamSwitch.qml

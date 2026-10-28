@@ -30,6 +30,7 @@ const int interfaceMajor = 1;
 
 // UiBuilder form flags (gx_plugin.h)
 const int UI_FORM_STACK = 0x01;
+const int UI_FORM_GLADE = 0x02;
 
 // PluginDef::flags (gx_plugin.h)
 const int PGN_STEREO = 0x0001;
@@ -376,12 +377,32 @@ QVariantMap Machine::unitUi(const QString& id) {
         return QVariantMap();
     }
     m_unitUiPending.insert(id);
-    m_rpc.call(QStringLiteral("plugin_load_ui"), {id, UI_FORM_STACK}, [this, id](const QJsonValue& r) {
-        m_unitUiPending.remove(id);
-        QVariantMap ui;
-        if (r.isArray()) {
-            ui = uitree::fromStackOps(r.toArray());
+    // like gx_head: the Glade layout when the unit has one, else the stack
+    // layout (QT_HEAD_FORM_STACK=1 forces it, like GUITARIX_FORM_STACK)
+    const bool glade = !qEnvironmentVariableIntValue("QT_HEAD_FORM_STACK");
+    m_rpc.call(QStringLiteral("plugin_load_ui"), {id, glade ? UI_FORM_GLADE | UI_FORM_STACK : UI_FORM_STACK},
+               [this, id](const QJsonValue& r) {
+        const QJsonArray ops = r.toArray();
+        if (!ops.isEmpty() && ops.at(0).toArray().at(0).toString() == QLatin1String("load_glade")) {
+            QVariantMap ui = uitree::fromGlade(ops.at(0).toArray().at(1).toString());
+            if (uitree::hasControls(ui.value(QStringLiteral("main")).toMap())) {
+                finishUnitUi(id, ui);
+                return;
+            }
+            // unusable Glade layout: try the stack layout
+            m_rpc.call(QStringLiteral("plugin_load_ui"), {id, UI_FORM_STACK}, [this, id](const QJsonValue& r) {
+                finishUnitUi(id, r.isArray() ? uitree::fromStackOps(r.toArray()) : QVariantMap());
+            });
+            return;
         }
+        finishUnitUi(id, r.isArray() ? uitree::fromStackOps(ops) : QVariantMap());
+    });
+    return QVariantMap();
+}
+
+void Machine::finishUnitUi(const QString& id, QVariantMap ui) {
+    m_unitUiPending.remove(id);
+    {
         if (!uitree::hasControls(ui.value(QStringLiteral("main")).toMap())) {
             ui = uitree::generic(unitParameters(id));
         }
@@ -397,13 +418,13 @@ QVariantMap Machine::unitUi(const QString& id) {
         });
         // the convolvers choose their impulse response in a separate
         // window in gx_head; here it is a control of the unit
-        if (m_params.contains(prefix + QStringLiteral("convolver"))) {
+        if (m_params.contains(prefix + QStringLiteral("convolver"))
+            && !uitree::hasWidget(ui.value(QStringLiteral("main")).toMap(), QStringLiteral("ir"))) {
             uitree::prependControl(ui, QStringLiteral("ir"), prefix + QStringLiteral("convolver"));
         }
         m_unitUi.insert(id, ui);
         emit unitUiReady(id);
-    });
-    return QVariantMap();
+    }
 }
 
 void Machine::setPreset(const QString& bank, const QString& preset) {

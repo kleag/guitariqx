@@ -207,6 +207,7 @@ private:
     void requestRack();
     void pollOutputs();
     QList<Parameter*> unitParameters(const QString& id) const;
+    void finishUnitUi(const QString& id, QVariantMap ui);
 
     static Machine *s_instance;
 
