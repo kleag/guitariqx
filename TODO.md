@@ -24,6 +24,13 @@ Roughly in order of importance for live use. See README.md for what works.
 - [x] Remote file choosing when the engine runs on another computer
       (list_directory and get_file_places RPC, interface 1.2)
 - [ ] Propose the engine side (jsonrpc.cpp, interface 1.2) upstream
+- [ ] Loading an IR fetches all its samples (read_audio) to compute the
+      normalized gain: 0.12 s for greathall.wav (112561 frames, stereo), more
+      for long reverbs, and other messages wait meanwhile. Better: an engine
+      call that loads an IR with normalized gain
+- [ ] The neural units list at most 127 models of a folder and rescan it
+      only when the folder changes: a model beyond that, or added since,
+      is refused with "the engine does not list ..."
 - [ ] IR editing of the convolvers (offset, length, delay, gain line, like
       gx_head's IR window); qt_head loads the whole file with normalized gain
 
