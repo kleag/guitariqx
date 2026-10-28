@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2026 Guitarix developers
+ * Copyright (C) 2026 Gaël de Chalendar
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,11 +35,11 @@ const int PGN_GUI = 0x0008;
 const int PGN_FIXED_GUI = 0x0800;
 
 // notification classes requested with "listen" (token_range in
-// jsonrpc.cpp); "freq" and "display" are left out, they are only
-// needed for the tuner
+// jsonrpc.cpp); "display" and "tuner" are only used by the tuner
+// switcher (MIDI controlled tuner display), which is not supported yet
 const char *listenTokens[] = {
     "preset", "state", "param", "plugins_changed", "presetlist_changed",
-    "logger", "units_changed", "misc",
+    "logger", "units_changed", "misc", "freq", "midi",
 };
 
 } // anonymous namespace
@@ -47,7 +47,11 @@ const char *listenTokens[] = {
 Machine *Machine::s_instance = nullptr;
 
 Machine::Machine(QObject *parent)
-    : QObject(parent) {
+    : QObject(parent),
+      m_tuner(*this, m_rpc),
+      m_midi(*this, m_rpc) {
+    QQmlEngine::setObjectOwnership(&m_tuner, QQmlEngine::CppOwnership);
+    QQmlEngine::setObjectOwnership(&m_midi, QQmlEngine::CppOwnership);
     connect(&m_rpc, &RpcClient::connected, this, &Machine::onConnected);
     connect(&m_rpc, &RpcClient::disconnected, this, &Machine::onDisconnected);
     connect(&m_rpc, &RpcClient::notification, this, &Machine::onNotification);
@@ -124,6 +128,8 @@ void Machine::onConnected() {
                     m_engineState = r.toString();
                     emit engineStateChanged();
                     m_ready = true;
+                    m_tuner.engineReady();
+                    m_midi.engineReady();
                     emit readyChanged();
                     setStatus(tr("Connected to guitarix %1 on %2:%3")
                               .arg(m_serverVersion, m_rpc.host()).arg(m_rpc.port()));
@@ -142,6 +148,8 @@ void Machine::onDisconnected() {
     m_cpuTimer.stop();
     // requests in flight are lost
     m_unitUiPending.clear();
+    m_tuner.engineLost();
+    m_midi.engineLost();
     if (m_ready) {
         m_ready = false;
         emit readyChanged();
@@ -289,6 +297,10 @@ void Machine::onNotification(const QString& method, const QJsonArray& params) {
         }
         m_rack[stereo] = l;
         emit rackChanged();
+    } else if (method == QLatin1String("tuner_changed")) {
+        m_tuner.tunerChanged(params);
+    } else if (method == QLatin1String("midi_changed")) {
+        m_midi.midiChanged(params);
     } else if (method == QLatin1String("presetlist_changed")) {
         requestBanks();
     } else if (method == QLatin1String("plugins_changed")) {

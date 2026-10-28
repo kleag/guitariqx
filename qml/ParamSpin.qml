@@ -37,4 +37,6 @@ Item {
         valueFromText: (text, locale) => Math.round(Number.fromLocaleString(locale, text) * root.scale)
         onValueModified: if (root.param) root.param.value = value / root.scale
     }
+
+    MidiLearnArea { paramId: root.param ? root.param.id : "" }
 }

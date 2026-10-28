@@ -31,6 +31,10 @@ qt_add_executable(qt_head
     src/machine.h
     src/uitree.cpp
     src/uitree.h
+    src/tuner.cpp
+    src/tuner.h
+    src/midimap.cpp
+    src/midimap.h
 )
 
 # must be set before qt_add_qml_module
@@ -60,6 +64,10 @@ qt_add_qml_module(qt_head
         qml/LevelMeter.qml
         qml/AddUnitDialog.qml
         qml/ConnectDialog.qml
+        qml/MidiLearnArea.qml
+        qml/MidiLearnDialog.qml
+        qml/MidiMapDialog.qml
+        qml/TunerView.qml
 )
 
 target_include_directories(qt_head PRIVATE src)

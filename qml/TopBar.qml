@@ -9,6 +9,7 @@ Rectangle {
     id: root
     signal presetsRequested()
     signal connectRequested()
+    signal midiMapRequested()
     property bool compact: false
 
     implicitHeight: Theme.touch + 20
@@ -32,6 +33,7 @@ Rectangle {
             text: "◀"
             enabled: Gx.ready
             onClicked: Gx.stepPreset(-1)
+            MidiLearnArea { paramId: "engine.previus_preset" }
         }
 
         Column {
@@ -59,6 +61,7 @@ Rectangle {
             text: "▶"
             enabled: Gx.ready
             onClicked: Gx.stepPreset(1)
+            MidiLearnArea { paramId: "engine.next_preset" }
         }
 
         // engine state: stopped is shown as mute
@@ -66,9 +69,9 @@ Rectangle {
             spacing: 2
             Repeater {
                 model: [
-                    { state: "running", label: qsTr("On") },
-                    { state: "bypassed", label: qsTr("Bypass") },
-                    { state: "stopped", label: qsTr("Mute") },
+                    { state: "running", label: qsTr("On"), param: "" },
+                    { state: "bypassed", label: qsTr("Bypass"), param: "engine.bypass" },
+                    { state: "stopped", label: qsTr("Mute"), param: "engine.mute" },
                 ]
                 Button {
                     required property var modelData
@@ -79,8 +82,30 @@ Rectangle {
                     Material.background: checked ? (modelData.state === "running" ? Theme.accentDim : Theme.ledOff)
                                                  : Theme.panelRaised
                     onClicked: Gx.setEngineState(modelData.state)
+                    MidiLearnArea { paramId: parent.modelData.param }
                 }
             }
+        }
+
+        // the tuner view follows system.show_tuner (see TunerView.qml)
+        Button {
+            readonly property Parameter show: Gx.ready ? Gx.param("system.show_tuner") : null
+            text: qsTr("Tuner")
+            enabled: show !== null
+            onClicked: show.value = true
+            MidiLearnArea { paramId: "system.show_tuner" }
+        }
+
+        Button {
+            text: qsTr("MIDI")
+            checkable: true
+            checked: Gx.midi.learnMode
+            enabled: Gx.ready
+            Material.background: checked ? Theme.accentDim : Theme.panelRaised
+            onToggled: Gx.midi.learnMode = checked
+            ToolTip.visible: hovered
+            ToolTip.text: checked ? qsTr("MIDI learn: tap a control to assign a controller")
+                                  : qsTr("MIDI learn mode")
         }
 
         Column {
@@ -93,6 +118,25 @@ Rectangle {
                 text: qsTr("DSP %1 %").arg(Gx.cpuLoad.toFixed(1))
                 color: Theme.textDim
                 font.pixelSize: Theme.fontSmall
+            }
+        }
+
+        ToolButton {
+            text: "\u22EE"
+            font.pixelSize: Theme.fontLarge
+            onClicked: menu.open()
+            Menu {
+                id: menu
+                y: parent.height
+                MenuItem {
+                    text: qsTr("MIDI controllers ...")
+                    enabled: Gx.ready
+                    onTriggered: root.midiMapRequested()
+                }
+                MenuItem {
+                    text: qsTr("Connect to engine ...")
+                    onTriggered: root.connectRequested()
+                }
             }
         }
 

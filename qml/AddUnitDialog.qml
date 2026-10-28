@@ -11,6 +11,12 @@ Dialog {
 
     title: stereo ? qsTr("Add stereo effect") : qsTr("Add mono effect")
     modal: true
+    // plain background: Material's elevation layer is costly on small GPUs
+    background: Rectangle {
+        color: Theme.panel
+        radius: Theme.radius * 2
+        border.color: Theme.panelBorder
+    }
     anchors.centerIn: Overlay.overlay
     width: Math.min(480, Overlay.overlay ? Overlay.overlay.width - 32 : 480)
     height: Math.min(640, Overlay.overlay ? Overlay.overlay.height - 32 : 640)

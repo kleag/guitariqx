@@ -33,4 +33,6 @@ Item {
                 root.param.value = index + root.param.lower
         }
     }
+
+    MidiLearnArea { paramId: root.param ? root.param.id : "" }
 }

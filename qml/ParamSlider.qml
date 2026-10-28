@@ -35,4 +35,6 @@ Item {
         value: root.param ? root.param.normalized : 0
         onMoved: if (root.param) root.param.normalized = value
     }
+
+    MidiLearnArea { paramId: root.param ? root.param.id : "" }
 }

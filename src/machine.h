@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2026 Guitarix developers
+ * Copyright (C) 2026 Gaël de Chalendar
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,8 +14,10 @@
 
 #pragma once
 
+#include "midimap.h"
 #include "parameter.h"
 #include "rpcclient.h"
+#include "tuner.h"
 
 #include <QHash>
 #include <QObject>
@@ -54,6 +56,8 @@ class Machine : public QObject {
     Q_PROPERTY(QStringList stereoRack READ stereoRack NOTIFY rackChanged)
     Q_PROPERTY(QVariantList plugins READ plugins NOTIFY pluginsChanged)
     Q_PROPERTY(QString lastMessage READ lastMessage NOTIFY messageReceived)
+    Q_PROPERTY(Tuner *tuner READ tuner CONSTANT)
+    Q_PROPERTY(MidiMap *midi READ midi CONSTANT)
 public:
     // no default argument: a default constructible class would be
     // instantiated by the QML engine instead of calling create()
@@ -80,6 +84,8 @@ public:
     QVariantList plugins() const { return m_pluginList; }
     QString lastMessage() const { return m_lastMessage; }
     int parameterCount() const { return m_params.size(); }
+    Tuner *tuner() { return &m_tuner; }
+    MidiMap *midi() { return &m_midi; }
 
     Q_INVOKABLE void connectTo(const QString& host, int port);
 
@@ -131,6 +137,8 @@ private:
     static Machine *s_instance;
 
     RpcClient m_rpc;
+    Tuner m_tuner;
+    MidiMap m_midi;
     QHash<QString, Parameter*> m_params;
     QHash<QString, QVariantMap> m_pluginInfo;
     QVariantList m_pluginList;

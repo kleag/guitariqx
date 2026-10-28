@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2026 Guitarix developers
+ * Copyright (C) 2026 Gaël de Chalendar
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -57,6 +57,7 @@ Parameter *Parameter::fromJson(const QString& tag, const QJsonObject& entry, QOb
     p->m_maxlevel = base.value(QStringLiteral("maxlevel")).toInt();
     p->m_controllable = !base.value(QStringLiteral("non_controllable")).toInt();
     const int ctype = base.value(QStringLiteral("c_type")).toInt();
+    p->m_ctype = ctype;
 
     if (tag == QLatin1String("Float")) {
         p->m_kind = Float;

@@ -48,6 +48,7 @@ tablet. Options:
 | `--size WxH` | initial window size |
 | `--dump` | print connection, preset and rack changes on the terminal |
 | `--screenshot FILE` | save a screenshot after `--screenshot-delay` ms and quit (testing) |
+| `--debug-state LIST` | testing without instrument or MIDI device: `tuner:HZ`, `learnmode`, `learn:PARAM`, `midimap` |
 
 The connection indicator at the right of the top bar opens the connect
 dialog. qt_head reconnects automatically when the engine restarts.
@@ -78,6 +79,9 @@ src/machine.*     engine proxy exposed to QML as the singleton "Gx"
                   (counterpart of GxMachineRemote in gx_head/gui/machine.cpp)
 src/uitree.*      rack unit layouts: converts the UiBuilder call list
                   returned by plugin_load_ui into a tree for QML
+src/tuner.*       tuner display: note, cents and target string from the
+                  engine's frequency (Gx.tuner)
+src/midimap.*     MIDI controller assignments and MIDI learn (Gx.midi)
 qml/              views and controls
 ```
 
@@ -92,6 +96,11 @@ Notes on the protocol, as used by qt_head:
 - The server's JSON parser has no `true`/`false`: booleans are sent as 0/1.
 - Meters flagged `[log]` report linear amplitudes; their range is the dB range
   to display.
+- The tuner reports the frequency in `tuner_changed` notifications once
+  `tuner_used_for_display` is on; note names, cents and strings are computed
+  by the client from the reference pitch and temperament parameters.
+- `midi_modifyCurrent` only works in MIDI config mode, which must be left
+  again with `midi_set_config_mode`; `midi_changed` carries the whole map.
 
 ## Status
 
@@ -108,12 +117,24 @@ Working:
   `UI_FORM_STACK`), and a generic panel built from the unit's parameters
   for units without one
 - main amplifier panel
+- tuner: full window, note, deviation needle, frequency, string tunings of
+  gx_head, temperaments, reference pitch, mute while tuning. It follows the
+  engine parameter `system.show_tuner`, so a MIDI foot switch assigned to
+  the Tuner button opens and closes it
+- MIDI learn: the MIDI button switches learn mode on, then a tap on any
+  control (knobs, sliders, switches, selectors, unit power, preset
+  previous/next, bypass, mute, tuner) opens the learn dialog; right click
+  opens it at any time. Move a controller or type its number, set the range
+  or toggle behaviour, connect or remove. The MIDI controllers dialog (menu)
+  lists all assignments and sets the MIDI channel
 
 Not yet:
 
 - Glade layouts (`UI_FORM_GLADE`): 114 rack units have one, which gx_head
   prefers to the stack layout; translating the gxw widget subset to QML
   would give the same look as gx_head
-- tuner, MIDI learn, preset editing (save, rename, new bank), file choosers
-  for impulse responses and NAM/RTNeural models, the looper and sequencer
-  special widgets, LV2/LADSPA plugin management
+- preset editing (save, rename, new bank), file choosers for impulse
+  responses and NAM/RTNeural models, the looper and sequencer special
+  widgets, LV2/LADSPA plugin management
+
+The full list is in [TODO.md](TODO.md).

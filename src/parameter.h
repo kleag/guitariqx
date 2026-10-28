@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2026 Guitarix developers
+ * Copyright (C) 2026 Gaël de Chalendar
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -66,6 +66,8 @@ public:
     bool isOutput() const { return m_output; }
     bool isMaxlevel() const { return m_maxlevel; }
     bool isControllable() const { return m_controllable; }
+    // gx_engine::Parameter::ctrl_type: 0 none, 1 continuous, 2 switch, 3 enum
+    int controlType() const { return m_ctype; }
     QStringList valueLabels() const { return m_valueLabels; }
 
     QVariant value() const { return m_value; }
@@ -102,6 +104,7 @@ private:
     bool m_output = false;
     bool m_maxlevel = false;
     bool m_controllable = true;
+    int m_ctype = 0;
     QStringList m_valueIds;
     QStringList m_valueLabels;
     QVariant m_value;

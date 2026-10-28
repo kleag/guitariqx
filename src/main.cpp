@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2026 Guitarix developers
+ * Copyright (C) 2026 Gaël de Chalendar
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -54,7 +54,11 @@ int main(int argc, char *argv[]) {
                                QStringLiteral("size"), QStringLiteral("1280x800"));
     QCommandLineOption dumpOpt(QStringLiteral("dump"),
                                QStringLiteral("Print engine state on the terminal (debugging)."));
-    parser.addOptions({hostOpt, portOpt, fullOpt, shotOpt, delayOpt, sizeOpt, dumpOpt});
+    QCommandLineOption debugOpt(QStringLiteral("debug-state"),
+                                QStringLiteral("Comma separated UI states for testing without instrument or "
+                                               "MIDI device: tuner:HZ, learnmode, learn:PARAM, midimap."),
+                                QStringLiteral("states"));
+    parser.addOptions({hostOpt, portOpt, fullOpt, shotOpt, delayOpt, sizeOpt, dumpOpt, debugOpt});
     parser.process(app);
 
     if (qEnvironmentVariableIsEmpty("QT_QUICK_CONTROLS_STYLE")) {
@@ -98,8 +102,10 @@ int main(int argc, char *argv[]) {
     if (wh.size() == 2) {
         size = QSize(wh.at(0).toInt(), wh.at(1).toInt());
     }
+    const QStringList debugStates = parser.value(debugOpt).split(QLatin1Char(','), Qt::SkipEmptyParts);
     engine.setInitialProperties({
         {QStringLiteral("startFullScreen"), parser.isSet(fullOpt)},
+        {QStringLiteral("openMidiMap"), debugStates.contains(QStringLiteral("midimap"))},
         {QStringLiteral("width"), size.width()},
         {QStringLiteral("height"), size.height()},
     });
@@ -110,6 +116,28 @@ int main(int argc, char *argv[]) {
     }
 
     machine.connectTo(parser.value(hostOpt), parser.value(portOpt).toInt());
+
+    if (!debugStates.isEmpty()) {
+        QObject::connect(&machine, &Machine::readyChanged, &machine, [&machine, debugStates]() {
+            if (!machine.ready()) {
+                return;
+            }
+            for (const QString& st : debugStates) {
+                const QString arg = st.section(QLatin1Char(':'), 1);
+                if (st.startsWith(QLatin1String("tuner:"))) {
+                    // show the tuner with a fixed pitch instead of the engine's
+                    machine.param(QStringLiteral("system.show_tuner"))->setValue(true);
+                    QTimer::singleShot(500, &machine, [&machine, arg]() {
+                        machine.tuner()->setFrequency(arg.toDouble());
+                    });
+                } else if (st == QLatin1String("learnmode")) {
+                    machine.midi()->setLearnMode(true);
+                } else if (st.startsWith(QLatin1String("learn:"))) {
+                    machine.midi()->startLearn(arg);
+                }
+            }
+        });
+    }
 
     if (parser.isSet(shotOpt)) {
         auto *window = qobject_cast<QQuickWindow*>(engine.rootObjects().first());

@@ -7,6 +7,8 @@ import QtHead
 ApplicationWindow {
     id: window
     property bool startFullScreen: false
+    // --debug-state midimap
+    property bool openMidiMap: false
     // side by side racks and a docked preset list need room; small
     // touch screens (800x480) get tabs and a drawer
     readonly property bool wide: width >= 1100
@@ -29,6 +31,7 @@ ApplicationWindow {
                 presetDrawer.open()
         }
         onConnectRequested: connectDialog.open()
+        onMidiMapRequested: midiMapDialog.open()
     }
 
     footer: Rectangle {
@@ -114,6 +117,29 @@ ApplicationWindow {
 
     ConnectDialog {
         id: connectDialog
+    }
+
+    TunerView {}
+
+    MidiMapDialog {
+        id: midiMapDialog
+        readonly property bool debugOpen: window.openMidiMap && Gx.ready
+        onDebugOpenChanged: if (debugOpen) open()
+    }
+
+    MidiLearnDialog {
+        id: midiLearnDialog
+    }
+
+    // the learn dialog is open while the engine is in MIDI config mode
+    Connections {
+        target: Gx.midi
+        function onLearnChanged() {
+            if (Gx.midi.learning && !midiLearnDialog.visible)
+                midiLearnDialog.open()
+            else if (!Gx.midi.learning && midiLearnDialog.visible)
+                midiLearnDialog.close()
+        }
     }
 
     // the engine was not found: offer to change host/port

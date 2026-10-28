@@ -65,6 +65,7 @@ Rectangle {
                     anchors.fill: parent
                     onClicked: root.onOff.value = !root.on
                 }
+                MidiLearnArea { paramId: root.unitId + ".on_off" }
             }
 
             Text {

@@ -46,4 +46,6 @@ Item {
             onClicked: if (root.param) root.param.value = !root.on
         }
     }
+
+    MidiLearnArea { paramId: root.param ? root.param.id : "" }
 }

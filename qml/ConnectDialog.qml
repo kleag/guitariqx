@@ -8,6 +8,12 @@ Dialog {
     id: root
     title: qsTr("Connect to guitarix engine")
     modal: true
+    // plain background: Material's elevation layer is costly on small GPUs
+    background: Rectangle {
+        color: Theme.panel
+        radius: Theme.radius * 2
+        border.color: Theme.panelBorder
+    }
     anchors.centerIn: Overlay.overlay
     standardButtons: Dialog.Ok | Dialog.Cancel
 

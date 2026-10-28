@@ -120,4 +120,6 @@ Item {
             p.normalized = p.normalized + steps * Math.max(inc, 0.005)
         }
     }
+
+    MidiLearnArea { paramId: root.param ? root.param.id : "" }
 }
