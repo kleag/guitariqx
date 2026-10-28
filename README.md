@@ -112,6 +112,10 @@ Working:
 
 - connection, engine state (on / bypass / mute), DSP load, output meters
 - preset banks and presets, previous/next preset
+- preset editing in the preset list: Save, Save as (to any writable bank,
+  with an explicit replace), and per preset (⋮) save here, rename, copy to
+  bank, move up/down, delete; per bank new, rename, move up/down, delete.
+  Factory banks are read only, their presets can be copied
 - mono and stereo racks: on/off, add, remove, reorder, collapse
 - rack unit panels from the engine's stack layout (`plugin_load_ui` with
   `UI_FORM_STACK`), and a generic panel built from the unit's parameters
@@ -133,8 +137,7 @@ Not yet:
 - Glade layouts (`UI_FORM_GLADE`): 114 rack units have one, which gx_head
   prefers to the stack layout; translating the gxw widget subset to QML
   would give the same look as gx_head
-- preset editing (save, rename, new bank), file choosers for impulse
-  responses and NAM/RTNeural models, the looper and sequencer special
-  widgets, LV2/LADSPA plugin management
+- file choosers for impulse responses and NAM/RTNeural models, the looper
+  and sequencer special widgets, LV2/LADSPA plugin management
 
 The full list is in [TODO.md](TODO.md).

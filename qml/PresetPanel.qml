@@ -1,8 +1,10 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Layouts
 import QtHead
 
-// Preset banks with their presets; tap a preset to load it
+// Preset banks with their presets; tap a preset to load it. The toolbar
+// saves the current settings; the ⋮ buttons of banks and presets edit them.
 Rectangle {
     id: root
     signal presetSelected()
@@ -10,6 +12,7 @@ Rectangle {
 
     // banks the user expanded, by name; the current bank is always open
     property var openBanks: ({})
+    readonly property bool canSave: (Gx.banks, Gx.ready && Gx.currentPreset !== "" && Gx.bankMutable(Gx.currentBank))
 
     function isOpen(name) {
         return name === Gx.currentBank || !!openBanks[name]
@@ -19,65 +22,224 @@ Rectangle {
         o[name] = !isOpen(name)
         openBanks = o
     }
+    function report(error) {
+        if (error)
+            errorText.show(error)
+    }
 
-    ListView {
-        id: banks
+    TextInputDialog { id: textDialog }
+    ConfirmDialog { id: confirmDialog }
+    SavePresetDialog { id: saveDialog }
+
+    // --debug-state saveas
+    readonly property bool debugSaveAs: Gx.ready && Gx.banks.length > 0 && visible
+                                        && Qt.application.arguments.join(" ").indexOf("saveas") >= 0
+    onDebugSaveAsChanged: if (debugSaveAs) saveDialog.saveAs(Gx.currentBank, Gx.currentPreset)
+
+    ColumnLayout {
         anchors.fill: parent
         anchors.margins: 4
-        clip: true
-        model: Gx.banks
-        spacing: 2
-        ScrollBar.vertical: ScrollBar {}
+        spacing: 4
 
-        delegate: Column {
-            id: bank
-            required property var modelData
-            readonly property bool open: root.isOpen(modelData.name)
-            width: ListView.view.width
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 2
+            Button {
+                Layout.fillWidth: true
+                text: qsTr("Save")
+                enabled: root.canSave
+                onClicked: root.report(Gx.saveCurrent())
+                ToolTip.visible: hovered
+                ToolTip.text: qsTr("Save the current settings to \"%1\"").arg(Gx.currentPreset)
+            }
+            Button {
+                Layout.fillWidth: true
+                text: qsTr("Save as ...")
+                enabled: Gx.ready
+                onClicked: saveDialog.saveAs(Gx.bankMutable(Gx.currentBank) ? Gx.currentBank : "",
+                                             Gx.currentPreset)
+            }
+            ToolButton {
+                text: "+"
+                font.pixelSize: Theme.fontLarge
+                enabled: Gx.ready
+                onClicked: textDialog.ask(qsTr("New bank"), qsTr("Bank name"), "", qsTr("Create"),
+                                          (name) => Gx.newBank(name))
+                ToolTip.visible: hovered
+                ToolTip.text: qsTr("New bank")
+            }
+        }
 
-            ItemDelegate {
-                width: parent.width
-                height: Theme.touch + 4
-                contentItem: Row {
-                    spacing: Theme.spacing
-                    Text {
-                        text: bank.open ? "▾" : "▸"
-                        color: Theme.textDim
-                        font.pixelSize: Theme.fontNormal
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-                    Text {
-                        text: bank.modelData.name
-                        color: bank.modelData.name === Gx.currentBank ? Theme.accent : Theme.text
-                        font.pixelSize: Theme.fontNormal
-                        font.bold: true
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-                    Text {
-                        text: bank.modelData.type === "factory" ? qsTr("factory") : ""
-                        color: Theme.textDim
-                        font.pixelSize: Theme.fontSmall
-                        anchors.verticalCenter: parent.verticalCenter
+        Label {
+            id: errorText
+            Layout.fillWidth: true
+            visible: false
+            color: Theme.meterHigh
+            wrapMode: Text.WordWrap
+            font.pixelSize: Theme.fontSmall
+            function show(t) {
+                text = t
+                visible = true
+                hideTimer.restart()
+            }
+            Timer {
+                id: hideTimer
+                interval: 5000
+                onTriggered: errorText.visible = false
+            }
+        }
+
+        ListView {
+            id: banks
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            clip: true
+            model: Gx.banks
+            spacing: 2
+            ScrollBar.vertical: ScrollBar {}
+
+            delegate: Column {
+                id: bank
+                required property var modelData
+                required property int index
+                readonly property string name: modelData.name
+                readonly property bool open: root.isOpen(name)
+                readonly property bool writable: !!modelData.mutable
+                readonly property bool userBank: modelData.type === "file"
+                width: ListView.view.width
+
+                ItemDelegate {
+                    width: parent.width
+                    height: Theme.touch + 4
+                    onClicked: root.toggle(bank.name)
+                    contentItem: RowLayout {
+                        spacing: Theme.spacing
+                        Text {
+                            text: bank.open ? "▾" : "▸"
+                            color: Theme.textDim
+                            font.pixelSize: Theme.fontNormal
+                        }
+                        Text {
+                            Layout.fillWidth: true
+                            text: bank.name
+                            color: bank.name === Gx.currentBank ? Theme.accent : Theme.text
+                            font.pixelSize: Theme.fontNormal
+                            font.bold: true
+                            elide: Text.ElideRight
+                        }
+                        Text {
+                            text: bank.modelData.type === "factory" ? qsTr("factory")
+                                : !bank.writable ? qsTr("read only") : ""
+                            color: Theme.textDim
+                            font.pixelSize: Theme.fontSmall
+                        }
+                        ToolButton {
+                            text: "⋮"
+                            onClicked: bankMenu.open()
+                            Menu {
+                                id: bankMenu
+                                MenuItem {
+                                    text: qsTr("Rename ...")
+                                    enabled: bank.writable
+                                    onTriggered: textDialog.ask(qsTr("Rename bank"), qsTr("New name"), bank.name,
+                                                                qsTr("Rename"),
+                                                                (n) => Gx.renameBank(bank.name, n))
+                                }
+                                MenuItem {
+                                    text: qsTr("Move up")
+                                    enabled: bank.index > 0
+                                    onTriggered: root.report(Gx.moveBank(bank.name, -1))
+                                }
+                                MenuItem {
+                                    text: qsTr("Move down")
+                                    enabled: bank.index < Gx.banks.length - 1
+                                    onTriggered: root.report(Gx.moveBank(bank.name, 1))
+                                }
+                                MenuItem {
+                                    text: qsTr("Delete ...")
+                                    enabled: bank.userBank
+                                    onTriggered: confirmDialog.ask(
+                                        qsTr("Delete bank"),
+                                        qsTr("Delete the bank \"%1\" and its %2 presets?")
+                                            .arg(bank.name).arg(bank.modelData.presets.length),
+                                        qsTr("Delete"), () => root.report(Gx.removeBank(bank.name)))
+                                }
+                            }
+                        }
                     }
                 }
-                onClicked: root.toggle(bank.modelData.name)
-            }
 
-            Repeater {
-                model: bank.open ? bank.modelData.presets : []
-                ItemDelegate {
-                    required property string modelData
-                    readonly property bool current: bank.modelData.name === Gx.currentBank
-                                                    && modelData === Gx.currentPreset
-                    width: bank.width
-                    height: Theme.touch + 4
-                    leftPadding: 32
-                    highlighted: current
-                    text: modelData
-                    font.pixelSize: Theme.fontNormal
-                    onClicked: {
-                        Gx.setPreset(bank.modelData.name, modelData)
-                        root.presetSelected()
+                Repeater {
+                    model: bank.open ? bank.modelData.presets : []
+                    ItemDelegate {
+                        id: preset
+                        required property string modelData
+                        required property int index
+                        readonly property bool current: bank.name === Gx.currentBank
+                                                        && modelData === Gx.currentPreset
+                        width: bank.width
+                        height: Theme.touch + 4
+                        leftPadding: 32
+                        highlighted: current
+                        onClicked: {
+                            Gx.setPreset(bank.name, modelData)
+                            root.presetSelected()
+                        }
+                        contentItem: RowLayout {
+                            Text {
+                                Layout.fillWidth: true
+                                text: preset.modelData
+                                color: Theme.text
+                                font.pixelSize: Theme.fontNormal
+                                elide: Text.ElideRight
+                            }
+                            ToolButton {
+                                text: "⋮"
+                                onClicked: presetMenu.open()
+                                Menu {
+                                    id: presetMenu
+                                    MenuItem {
+                                        text: qsTr("Save current settings here")
+                                        enabled: bank.writable
+                                        onTriggered: confirmDialog.ask(
+                                            qsTr("Replace preset"),
+                                            qsTr("Replace \"%1\" with the current settings?").arg(preset.modelData),
+                                            qsTr("Replace"),
+                                            () => root.report(Gx.savePreset(bank.name, preset.modelData)))
+                                    }
+                                    MenuItem {
+                                        text: qsTr("Rename ...")
+                                        enabled: bank.writable
+                                        onTriggered: textDialog.ask(qsTr("Rename preset"), qsTr("New name"),
+                                                                    preset.modelData, qsTr("Rename"),
+                                                                    (n) => Gx.renamePreset(bank.name, preset.modelData, n))
+                                    }
+                                    MenuItem {
+                                        text: qsTr("Copy to bank ...")
+                                        onTriggered: saveDialog.copy(bank.name, preset.modelData)
+                                    }
+                                    MenuItem {
+                                        text: qsTr("Move up")
+                                        enabled: bank.writable && preset.index > 0
+                                        onTriggered: root.report(Gx.movePreset(bank.name, preset.modelData, -1))
+                                    }
+                                    MenuItem {
+                                        text: qsTr("Move down")
+                                        enabled: bank.writable && preset.index < bank.modelData.presets.length - 1
+                                        onTriggered: root.report(Gx.movePreset(bank.name, preset.modelData, 1))
+                                    }
+                                    MenuItem {
+                                        text: qsTr("Delete ...")
+                                        enabled: bank.writable
+                                        onTriggered: confirmDialog.ask(
+                                            qsTr("Delete preset"),
+                                            qsTr("Delete the preset \"%1\" from \"%2\"?").arg(preset.modelData).arg(bank.name),
+                                            qsTr("Delete"),
+                                            () => root.report(Gx.erasePreset(bank.name, preset.modelData)))
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

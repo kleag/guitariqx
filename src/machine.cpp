@@ -148,6 +148,8 @@ void Machine::onDisconnected() {
     m_cpuTimer.stop();
     // requests in flight are lost
     m_unitUiPending.clear();
+    m_editQueue.clear();
+    m_editRunning = false;
     m_tuner.engineLost();
     m_midi.engineLost();
     if (m_ready) {

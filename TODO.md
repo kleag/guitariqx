@@ -11,9 +11,11 @@ Roughly in order of importance for live use. See README.md for what works.
 - [ ] Test MIDI learn with real hardware (tested by setting the controller
       number from a second connection, which is what the engine does when a
       controller moves)
-- [ ] Preset editing: save, save as, rename, delete presets; new, rename,
-      delete banks (RPC: save_preset, rename_preset, erase_preset,
-      bank_insert_new, rename_bank, bank_remove, reorder_preset)
+- [x] Preset editing: save, save as, rename, delete, reorder, copy presets;
+      new, rename, delete, reorder banks
+- [ ] Preset editing: drag and drop reordering, import/export of bank files
+      (bank_insert_content, bank_get_contents), flags of banks with an old
+      file version (convert_preset)
 - [ ] File choosers for impulse responses (cab, jconv), NAM and RTNeural
       models (`create_fload_switch`, RPC get_file_list, load_impresp_dirs);
       without them the NAM/RTNeural units cannot load a model
@@ -51,6 +53,14 @@ Roughly in order of importance for live use. See README.md for what works.
   engine for unknown parameter ids (`ParamMap::operator[]` does not check);
   qt_head only sends known ids
 - The server's JSON parser has no `true`/`false` tokens
+- The bank and preset procedures (erase_preset, reorder_preset, pf_append,
+  rename_preset, ...) crash the engine for unknown bank names
+  (`banks.get_file()` is not checked); `rename_preset` accepts an existing
+  name, and a later `reorder_preset` then aborts the engine. qt_head checks
+  names against a fresh bank list and serializes edits
+- Preset and bank edits are not broadcast (only `bank_insert_new` sends
+  `presetlist_changed`), nor are the changes of the current preset they
+  cause: other connected UIs do not see them until they reload
 
 ## Packaging
 

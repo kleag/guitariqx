@@ -27,6 +27,7 @@
 #include <QVariantList>
 #include <QVariantMap>
 #include <QtQml/qqmlregistration.h>
+#include <functional>
 
 class QQmlEngine;
 class QJSEngine;
@@ -98,6 +99,28 @@ public:
 
     Q_INVOKABLE void setPreset(const QString& bank, const QString& preset);
     Q_INVOKABLE void stepPreset(int delta);
+
+    // Preset and bank editing. The engine does not check bank names (an
+    // unknown one crashes it) nor duplicate preset names, so all names are
+    // validated here first. The methods return an error text, or an empty
+    // string when the request was sent; bank and current preset state is
+    // fetched again afterwards since the engine does not broadcast it.
+    Q_INVOKABLE QVariantMap bank(const QString& name) const;
+    Q_INVOKABLE bool bankMutable(const QString& name) const;
+    // banks presets can be saved to
+    Q_INVOKABLE QStringList writableBanks() const;
+    Q_INVOKABLE bool presetExists(const QString& bank, const QString& preset) const;
+    Q_INVOKABLE QString saveCurrent();
+    Q_INVOKABLE QString savePreset(const QString& bank, const QString& name);
+    Q_INVOKABLE QString renamePreset(const QString& bank, const QString& oldName, const QString& newName);
+    Q_INVOKABLE QString erasePreset(const QString& bank, const QString& name);
+    Q_INVOKABLE QString movePreset(const QString& bank, const QString& name, int delta);
+    Q_INVOKABLE QString copyPreset(const QString& fromBank, const QString& preset,
+                                   const QString& toBank, const QString& newName);
+    Q_INVOKABLE QString newBank(const QString& name);
+    Q_INVOKABLE QString renameBank(const QString& oldName, const QString& newName);
+    Q_INVOKABLE QString removeBank(const QString& name);
+    Q_INVOKABLE QString moveBank(const QString& name, int delta);
     Q_INVOKABLE void setEngineState(const QString& state);
 
     Q_INVOKABLE void insertUnit(const QString& id, const QString& before, bool stereo);
@@ -116,6 +139,8 @@ signals:
     void cpuLoadChanged();
     void banksChanged();
     void presetChanged();
+    // a bank was created by newBank(), with the name the engine gave it
+    void bankCreated(const QString& name);
     void rackChanged();
     void pluginsChanged();
     void unitUiReady(const QString& id);
@@ -130,6 +155,12 @@ private:
     void loadParameters(const QJsonArray& list);
     void loadPlugins(const QJsonArray& list);
     void requestBanks();
+    void refreshPresetState();
+    // edits run one after the other: a move reads the list, then reorders
+    // it, and must not miss an edit sent in between
+    using EditDone = std::function<void()>;
+    void enqueueEdit(std::function<void(EditDone)> op);
+    void runNextEdit();
     void requestRack();
     void pollOutputs();
     QList<Parameter*> unitParameters(const QString& id) const;
@@ -158,4 +189,6 @@ private:
     QString m_lastMessage;
     double m_cpuLoad = 0;
     bool m_ready = false;
+    QList<std::function<void(EditDone)>> m_editQueue;
+    bool m_editRunning = false;
 };

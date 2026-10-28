@@ -35,6 +35,7 @@ qt_add_executable(qt_head
     src/tuner.h
     src/midimap.cpp
     src/midimap.h
+    src/presets.cpp
 )
 
 # must be set before qt_add_qml_module
@@ -68,6 +69,9 @@ qt_add_qml_module(qt_head
         qml/MidiLearnDialog.qml
         qml/MidiMapDialog.qml
         qml/TunerView.qml
+        qml/TextInputDialog.qml
+        qml/ConfirmDialog.qml
+        qml/SavePresetDialog.qml
 )
 
 target_include_directories(qt_head PRIVATE src)
