@@ -80,6 +80,9 @@ public:
     // path of the first n parts of the current path (breadcrumb)
     Q_INVOKABLE QString partPath(int n) const;
     Q_INVOKABLE void refresh();
+    // go to a folder and read it again, also when it is the current one:
+    // a dialog opened again must show the files written since
+    Q_INVOKABLE void openAt(const QString& path);
     // the current folder has an entry with this name (filters ignored)
     Q_INVOKABLE bool contains(const QString& name) const;
     // remember the folder of a chosen file

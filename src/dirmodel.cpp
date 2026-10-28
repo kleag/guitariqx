@@ -188,6 +188,17 @@ void DirModel::refresh() {
     list();
 }
 
+void DirModel::openAt(const QString& p) {
+    // recent folders may have been added by another chooser of this kind
+    updatePlaces();
+    const QString np = QDir::cleanPath(p.isEmpty() ? QStringLiteral("/") : p);
+    if (np != m_path) {
+        m_path = np;
+        emit pathChanged();
+    }
+    list();
+}
+
 bool DirModel::contains(const QString& name) const {
     for (const Entry& e : m_all) {
         if (e.name == name) {

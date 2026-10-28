@@ -34,7 +34,7 @@ Dialog {
     function choose(title_, startPath, name) {
         title = title_
         dir.showAll = false
-        dir.path = startPath || (dir.places.length ? dir.places[0].path : "/")
+        dir.openAt(startPath || (dir.places.length ? dir.places[0].path : "/"))
         nameField.text = name || ""
         confirmReplace = false
         open()
