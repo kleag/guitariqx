@@ -24,12 +24,70 @@ Rectangle {
     }
     function report(error) {
         if (error)
-            errorText.show(error)
+            errorText.show(error, true)
     }
 
     TextInputDialog { id: textDialog }
     ConfirmDialog { id: confirmDialog }
     SavePresetDialog { id: saveDialog }
+
+    // bank files are read and written on this computer: the contents are
+    // sent to / received from the engine
+    FileChooserDialog {
+        id: loadBankDialog
+        local: true
+        kind: "bank"
+        suffixes: ["gx"]
+        filterName: qsTr("Bank files (*.gx)")
+        onChosen: (path) => root.report(Gx.importBank(path))
+    }
+    FileChooserDialog {
+        id: saveBankDialog
+        property string bank: ""
+        local: true
+        kind: "bank"
+        suffixes: ["gx"]
+        filterName: qsTr("Bank files (*.gx)")
+        saveMode: true
+        defaultSuffix: "gx"
+        onChosen: (path) => root.report(Gx.exportBank(bank, path))
+    }
+    function saveBank(name) {
+        saveBankDialog.bank = name
+        saveBankDialog.choose(Gx.engineLocal ? qsTr("Save bank \"%1\"").arg(name)
+                                             : qsTr("Save bank \"%1\" on this computer").arg(name),
+                              "", Gx.bankFileName(name))
+    }
+    Connections {
+        target: Gx
+        function onBankImported(file, name, error) {
+            if (error) {
+                errorText.show(error, true)
+            } else {
+                errorText.show(qsTr("Bank \"%1\" loaded").arg(name), false)
+                const o = Object.assign({}, root.openBanks)
+                o[name] = true
+                root.openBanks = o
+            }
+        }
+        function onBankExported(name, file, error) {
+            errorText.show(error ? error : qsTr("Bank \"%1\" saved to %2").arg(name).arg(file), !!error)
+        }
+    }
+
+    // --debug-state bankload, banksave:BANK
+    readonly property string debugArgs: Qt.application.arguments.join(" ")
+    readonly property bool debugBankFiles: Gx.ready && Gx.banks.length > 0 && visible
+                                           && debugArgs.indexOf("bank") >= 0
+    onDebugBankFilesChanged: {
+        if (!debugBankFiles)
+            return
+        const m = debugArgs.match(/banksave:([^, ]+)/)
+        if (m)
+            saveBank(m[1])
+        else if (debugArgs.indexOf("bankload") >= 0)
+            loadBankDialog.choose(qsTr("Load a bank file"), "/usr/share/gx_head/factorysettings")
+    }
 
     // --debug-state saveas
     readonly property bool debugSaveAs: Gx.ready && Gx.banks.length > 0 && visible
@@ -60,13 +118,23 @@ Rectangle {
                                              Gx.currentPreset)
             }
             ToolButton {
-                text: "+"
+                text: "⋮"
                 font.pixelSize: Theme.fontLarge
                 enabled: Gx.ready
-                onClicked: textDialog.ask(qsTr("New bank"), qsTr("Bank name"), "", qsTr("Create"),
-                                          (name) => Gx.newBank(name))
-                ToolTip.visible: hovered
-                ToolTip.text: qsTr("New bank")
+                onClicked: banksMenu.open()
+                Menu {
+                    id: banksMenu
+                    MenuItem {
+                        text: qsTr("New bank ...")
+                        onTriggered: textDialog.ask(qsTr("New bank"), qsTr("Bank name"), "", qsTr("Create"),
+                                                    (name) => Gx.newBank(name))
+                    }
+                    MenuItem {
+                        text: qsTr("Load bank file ...")
+                        onTriggered: loadBankDialog.choose(
+                            Gx.engineLocal ? qsTr("Load a bank file") : qsTr("Load a bank file from this computer"), "")
+                    }
+                }
             }
         }
 
@@ -77,8 +145,9 @@ Rectangle {
             color: Theme.meterHigh
             wrapMode: Text.WordWrap
             font.pixelSize: Theme.fontSmall
-            function show(t) {
+            function show(t, isError) {
                 text = t
+                color = isError ? Theme.meterHigh : Theme.text
                 visible = true
                 hideTimer.restart()
             }
@@ -138,6 +207,10 @@ Rectangle {
                             onClicked: bankMenu.open()
                             Menu {
                                 id: bankMenu
+                                MenuItem {
+                                    text: qsTr("Save to file ...")
+                                    onTriggered: root.saveBank(bank.name)
+                                }
                                 MenuItem {
                                     text: qsTr("Rename ...")
                                     enabled: bank.writable

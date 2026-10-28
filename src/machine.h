@@ -126,6 +126,13 @@ public:
     Q_INVOKABLE QString renameBank(const QString& oldName, const QString& newName);
     Q_INVOKABLE QString removeBank(const QString& name);
     Q_INVOKABLE QString moveBank(const QString& name, int delta);
+    // Bank files (.gx) of this computer: the contents are sent to or read
+    // from the engine, which can run elsewhere. Results: bankImported(),
+    // bankExported().
+    Q_INVOKABLE QString importBank(const QString& file);
+    Q_INVOKABLE QString exportBank(const QString& name, const QString& file);
+    // file name proposed when saving a bank
+    Q_INVOKABLE QString bankFileName(const QString& name) const;
     Q_INVOKABLE void setEngineState(const QString& state);
 
     Q_INVOKABLE void insertUnit(const QString& id, const QString& before, bool stereo);
@@ -168,6 +175,9 @@ signals:
     void presetChanged();
     // a bank was created by newBank(), with the name the engine gave it
     void bankCreated(const QString& name);
+    // name is the bank the engine created (empty on error)
+    void bankImported(const QString& file, const QString& name, const QString& error);
+    void bankExported(const QString& name, const QString& file, const QString& error);
     void rackChanged();
     void pluginsChanged();
     void unitUiReady(const QString& id);

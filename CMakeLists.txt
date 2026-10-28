@@ -36,6 +36,7 @@ qt_add_executable(qt_head
     src/midimap.cpp
     src/midimap.h
     src/presets.cpp
+    src/bankfiles.cpp
     src/files.cpp
     src/dirmodel.cpp
     src/dirmodel.h

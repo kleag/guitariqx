@@ -5,23 +5,41 @@ import QtHead
 
 // File chooser in the spirit of KDE's single click mode: one click on a
 // folder opens it, one click on a file chooses it. Places on the left,
-// clickable path on top. Files are those of the engine's computer.
+// clickable path on top. Files are those of the engine's computer, or of
+// this one with local. In save mode a click on a file takes its name, and
+// the file is written with the Save button.
 Dialog {
     id: root
     // file name suffixes of the files offered, e.g. ["nam"]
     property alias suffixes: dir.suffixes
     // remembers recent folders per kind
     property alias kind: dir.kind
+    property alias local: dir.local
     property string filterName: ""
     // the file currently in use, highlighted
     property string current: ""
+    property bool saveMode: false
+    // appended to a file name without suffix in save mode, e.g. "gx"
+    property string defaultSuffix: ""
+    readonly property string saveName: {
+        const n = nameField.text.trim()
+        if (n === "" || defaultSuffix === "" || n.indexOf(".") > 0)
+            return n
+        return n + "." + defaultSuffix
+    }
+    readonly property bool saveExists: saveMode && saveName !== "" && (dir.count, dir.contains(saveName))
+    property bool confirmReplace: false
     signal chosen(string path)
 
-    function choose(title_, startPath) {
+    function choose(title_, startPath, name) {
         title = title_
         dir.showAll = false
         dir.path = startPath || (dir.places.length ? dir.places[0].path : "/")
+        nameField.text = name || ""
+        confirmReplace = false
         open()
+        if (saveMode)
+            nameField.forceActiveFocus()
     }
 
     function select(path, isDir) {
@@ -29,6 +47,25 @@ Dialog {
             dir.path = path
             return
         }
+        if (saveMode) {
+            nameField.text = dir.fileName(path)
+            return
+        }
+        finish(path)
+    }
+
+    function save() {
+        if (saveName === "")
+            return
+        // replacing a file needs a second click
+        if (saveExists && !confirmReplace) {
+            confirmReplace = true
+            return
+        }
+        finish(dir.path === "/" ? "/" + saveName : dir.path + "/" + saveName)
+    }
+
+    function finish(path) {
         dir.addRecent(path)
         close()
         chosen(path)
@@ -267,7 +304,40 @@ Dialog {
         }
     }
 
-    footer: RowLayout {
+    footer: ColumnLayout {
+    spacing: 0
+    // save mode: name of the file to write
+    RowLayout {
+        visible: root.saveMode
+        Layout.fillWidth: true
+        Layout.leftMargin: Theme.spacing * 1.5
+        Layout.rightMargin: Theme.spacing * 1.5
+        Layout.topMargin: Theme.spacing
+        spacing: Theme.spacing
+        Label { text: qsTr("Name") }
+        TextField {
+            id: nameField
+            Layout.fillWidth: true
+            onTextEdited: root.confirmReplace = false
+            onAccepted: root.save()
+        }
+        Button {
+            text: root.saveExists ? (root.confirmReplace ? qsTr("Replace") : qsTr("Save ...")) : qsTr("Save")
+            highlighted: true
+            enabled: root.saveName !== ""
+            onClicked: root.save()
+        }
+    }
+    Label {
+        visible: root.saveMode && root.saveExists
+        Layout.leftMargin: Theme.spacing * 1.5
+        text: root.confirmReplace ? qsTr("\"%1\" exists: click Replace to overwrite it").arg(root.saveName)
+                                  : qsTr("\"%1\" exists").arg(root.saveName)
+        color: root.confirmReplace ? Theme.meterHigh : Theme.textDim
+        font.pixelSize: Theme.fontSmall
+    }
+    RowLayout {
+        Layout.fillWidth: true
         spacing: Theme.spacing
         Item { Layout.preferredWidth: Theme.spacing }
         Label {
@@ -293,5 +363,6 @@ Dialog {
             onClicked: root.close()
         }
         Item { Layout.preferredWidth: Theme.spacing }
+    }
     }
 }

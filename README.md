@@ -128,7 +128,11 @@ Working:
 - preset editing in the preset list: Save, Save as (to any writable bank,
   with an explicit replace), and per preset (⋮) save here, rename, copy to
   bank, move up/down, delete; per bank new, rename, move up/down, delete.
-  Factory banks are read only, their presets can be copied
+  Factory banks are read only, their presets can be copied.
+  Bank files: "Load bank file" (⋮ of the preset list) imports a `.gx`
+  file as a new bank, "Save to file" (⋮ of a bank) writes a bank to a
+  `.gx` file; these files are on the computer qt_head runs on, also when
+  the engine runs elsewhere
 - files: NAM and RTNeural models, convolver impulse responses and looper
   imports are chosen with a file chooser in KDE's single click style
   (a click on a folder opens it, a click on a file loads it) with places

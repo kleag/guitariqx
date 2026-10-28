@@ -13,9 +13,9 @@ Roughly in order of importance for live use. See README.md for what works.
       controller moves)
 - [x] Preset editing: save, save as, rename, delete, reorder, copy presets;
       new, rename, delete, reorder banks
-- [ ] Preset editing: drag and drop reordering, import/export of bank files
-      (bank_insert_content, bank_get_contents), flags of banks with an old
-      file version (convert_preset)
+- [x] Bank files: load (.gx import) and save (export) on the UI's computer
+- [ ] Preset editing: flags of banks with an old file version
+      (convert_preset), online presets (musical-artifacts.com) like gx_head
 - [x] File chooser (KDE style single click) for NAM and RTNeural models,
       convolver impulse responses and looper imports
 - [ ] Check that a model chosen in qt_head is heard (the engine receives

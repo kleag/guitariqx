@@ -38,6 +38,9 @@ class DirModel : public QAbstractListModel {
     Q_PROPERTY(bool showHidden READ showHidden WRITE setShowHidden NOTIFY filterChanged)
     // remembers recent folders under this name ("nam", "ir", ...)
     Q_PROPERTY(QString kind READ kind WRITE setKind NOTIFY kindChanged)
+    // files of this computer instead of the engine's (bank import/export:
+    // the contents are sent over the connection)
+    Q_PROPERTY(bool local READ local WRITE setLocal NOTIFY kindChanged)
     Q_PROPERTY(QStringList pathParts READ pathParts NOTIFY pathChanged)
     Q_PROPERTY(bool canGoUp READ canGoUp NOTIFY pathChanged)
     Q_PROPERTY(bool busy READ busy NOTIFY busyChanged)
@@ -64,6 +67,8 @@ public:
     void setShowHidden(bool on);
     QString kind() const { return m_kind; }
     void setKind(const QString& k);
+    bool local() const { return m_local; }
+    void setLocal(bool on);
     QStringList pathParts() const;
     bool canGoUp() const;
     bool busy() const { return m_busy; }
@@ -75,6 +80,8 @@ public:
     // path of the first n parts of the current path (breadcrumb)
     Q_INVOKABLE QString partPath(int n) const;
     Q_INVOKABLE void refresh();
+    // the current folder has an entry with this name (filters ignored)
+    Q_INVOKABLE bool contains(const QString& name) const;
     // remember the folder of a chosen file
     Q_INVOKABLE void addRecent(const QString& file);
     Q_INVOKABLE static QString fileName(const QString& path);
@@ -108,6 +115,7 @@ private:
     bool m_showAll = false;
     bool m_showHidden = false;
     QString m_kind;
+    bool m_local = false;
     QVector<Entry> m_all;
     QVector<Entry> m_entries;
     QString m_error;

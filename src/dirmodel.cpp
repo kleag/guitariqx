@@ -81,7 +81,7 @@ QHash<int, QByteArray> DirModel::roleNames() const {
 
 bool DirModel::available() const {
     Machine *m = Machine::instance();
-    return m && (m->engineLocal() || (m->ready() && m->remoteFiles()));
+    return m_local || !m || m->engineLocal() || (m->ready() && m->remoteFiles());
 }
 
 void DirModel::setPath(const QString& p) {
@@ -134,6 +134,18 @@ void DirModel::setKind(const QString& k) {
     updatePlaces();
 }
 
+void DirModel::setLocal(bool on) {
+    if (on == m_local) {
+        return;
+    }
+    m_local = on;
+    emit kindChanged();
+    updatePlaces();
+    if (!m_path.isEmpty()) {
+        list();
+    }
+}
+
 QStringList DirModel::pathParts() const {
     return m_path.split(QLatin1Char('/'), Qt::SkipEmptyParts);
 }
@@ -176,10 +188,19 @@ void DirModel::refresh() {
     list();
 }
 
+bool DirModel::contains(const QString& name) const {
+    for (const Entry& e : m_all) {
+        if (e.name == name) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void DirModel::list() {
     Machine *m = Machine::instance();
     const int request = ++m_request;
-    if (m && !m->engineLocal()) {
+    if (m && !m->engineLocal() && !m_local) {
         if (!m->ready() || !m->remoteFiles()) {
             setEntries({}, tr("The engine runs on another computer and is too old to list its files "
                               "(it needs JSON-RPC interface 1.2)."));
@@ -280,7 +301,7 @@ void DirModel::updatePlaces() {
         });
     };
     Machine *m = Machine::instance();
-    const bool local = !m || m->engineLocal();
+    const bool local = m_local || !m || m->engineLocal();
     const QString placesSection = tr("Places");
     const QString devicesSection = tr("Devices");
     const QString recentSection = tr("Recent");
@@ -297,7 +318,7 @@ void DirModel::updatePlaces() {
         }
     }
     // folders the engine knows (guitarix config, IR folders, model folders)
-    if (m) {
+    if (m && (!m_local || m->engineLocal())) {
         for (const QVariant& v : m->filePlaces()) {
             const QVariantMap p = v.toMap();
             add(placesSection, p.value(QStringLiteral("name")).toString(), p.value(QStringLiteral("path")).toString());
