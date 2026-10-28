@@ -56,7 +56,7 @@ int main(int argc, char *argv[]) {
                                QStringLiteral("Print engine state on the terminal (debugging)."));
     QCommandLineOption debugOpt(QStringLiteral("debug-state"),
                                 QStringLiteral("Comma separated UI states for testing without instrument or "
-                                               "MIDI device: tuner:HZ, learnmode, learn:PARAM, midimap, saveas."),
+                                               "MIDI device: tuner:HZ, learnmode, learn:PARAM, midimap, saveas, files:UNIT (open the file chooser of UNIT)."),
                                 QStringLiteral("states"));
     parser.addOptions({hostOpt, portOpt, fullOpt, shotOpt, delayOpt, sizeOpt, dumpOpt, debugOpt});
     parser.process(app);

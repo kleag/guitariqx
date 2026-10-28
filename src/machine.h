@@ -14,6 +14,7 @@
 
 #pragma once
 
+#include "dirmodel.h"
 #include "midimap.h"
 #include "parameter.h"
 #include "rpcclient.h"
@@ -59,6 +60,9 @@ class Machine : public QObject {
     Q_PROPERTY(QString lastMessage READ lastMessage NOTIFY messageReceived)
     Q_PROPERTY(Tuner *tuner READ tuner CONSTANT)
     Q_PROPERTY(MidiMap *midi READ midi CONSTANT)
+    // the engine runs on this computer: its files can be read directly
+    Q_PROPERTY(bool engineLocal READ engineLocal NOTIFY connectedChanged)
+    Q_PROPERTY(QVariantList filePlaces READ filePlaces NOTIFY filePlacesChanged)
 public:
     // no default argument: a default constructible class would be
     // instantiated by the QML engine instead of calling create()
@@ -68,6 +72,7 @@ public:
     // used by the QML engine to get the instance created in main()
     static Machine *create(QQmlEngine *, QJSEngine *);
     static void setInstance(Machine *m) { s_instance = m; }
+    static Machine *instance() { return s_instance; }
 
     bool connected() const { return m_rpc.isConnected(); }
     bool ready() const { return m_ready; }
@@ -131,6 +136,28 @@ public:
     Q_INVOKABLE void watchOutput(const QString& id);
     Q_INVOKABLE void unwatchOutput(const QString& id);
 
+    // Files on the engine's computer (see DirModel). The engine lists
+    // remote directories from JSON-RPC interface 1.2 on.
+    bool engineLocal() const { return m_engineLocal; }
+    bool remoteFiles() const { return m_interfaceMinor >= 2; }
+    using ListHandler = std::function<void(const QString& path, const QVector<DirModel::Entry>& entries,
+                                           const QString& error)>;
+    void listDirectory(const QString& path, ListHandler handler);
+    // {name, path} of folders the engine uses (IR folders, model folders)
+    QVariantList filePlaces() const { return m_filePlaces; }
+    // IR settings store the factory folder as "%S"
+    Q_INVOKABLE QString resolveIrDir(const QString& dir) const {
+        return dir.startsWith(QLatin1String("%S")) && !m_irFactoryDir.isEmpty()
+            ? m_irFactoryDir + dir.mid(2) : dir;
+    }
+    // load an impulse response file into a convolver unit (jconv,
+    // jconv_mono): like "reset" in gx_head's IR window, the whole file
+    // with normalized gain
+    Q_INVOKABLE void loadImpulseResponse(const QString& unit, const QString& file);
+    // load a model into a NAM or RTNeural unit; fileParam is the
+    // *.loadfile (or loadafile/loadbfile) parameter
+    Q_INVOKABLE void loadModel(const QString& fileParam, const QString& file);
+
 signals:
     void connectedChanged();
     void readyChanged();
@@ -144,6 +171,11 @@ signals:
     void rackChanged();
     void pluginsChanged();
     void unitUiReady(const QString& id);
+    void filePlacesChanged();
+    // result of loadImpulseResponse()
+    void impulseResponseLoaded(const QString& unit, const QString& file, const QString& error);
+    // result of loadModel()
+    void modelLoaded(const QString& fileParam, const QString& file, const QString& error);
     void messageReceived(const QString& level, const QString& text);
 
 private:
@@ -156,6 +188,7 @@ private:
     void loadPlugins(const QJsonArray& list);
     void requestBanks();
     void refreshPresetState();
+    void requestFilePlaces();
     // edits run one after the other: a move reads the list, then reorders
     // it, and must not miss an edit sent in between
     using EditDone = std::function<void()>;
@@ -185,6 +218,10 @@ private:
     QString m_currentPreset;
     QString m_engineState;
     QString m_serverVersion;
+    int m_interfaceMinor = 0;
+    bool m_engineLocal = true;
+    QVariantList m_filePlaces;
+    QString m_irFactoryDir;
     QString m_status;
     QString m_lastMessage;
     double m_cpuLoad = 0;

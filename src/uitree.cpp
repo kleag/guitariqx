@@ -70,7 +70,9 @@ const QHash<QString, OpDef>& controlOps() {
         {QStringLiteral("create_switch_no_caption"),  {"switch",   "small", 2, -1, 1, -1, -1}},
         {QStringLiteral("create_feedback_switch"),    {"switch",   "small", 2, -1, 1, -1, -1}},
         {QStringLiteral("create_switch"),             {"switch",   "small", 2, 3, 1, -1, -1}},
-        {QStringLiteral("create_fload_switch"),       {"switch",   "small", 2, -1, 1, 3, -1}},
+        // (sw_type, id, file_id): id is unused, the button chooses a file
+        // for the string parameter file_id
+        {QStringLiteral("create_fload_switch"),       {"file",     "small", 3, -1, 1, -1, -1}},
         {QStringLiteral("create_spin_value"),         {"spin",     "small", 1, 2, -1, -1, -1}},
         {QStringLiteral("create_simple_spin_value"),  {"spin",     "small", 1, -1, -1, -1, -1}},
         {QStringLiteral("create_port_display"),       {"display",  "small", 1, 2, -1, -1, -1}},
@@ -280,6 +282,39 @@ bool hasControls(const QVariantMap& node) {
         }
     }
     return false;
+}
+
+namespace {
+
+QVariantMap fixNode(const QVariantMap& node, const std::function<QString(const QString&)>& fix) {
+    QVariantMap out = node;
+    if (node.value(QStringLiteral("type")) == QLatin1String("control")) {
+        out.insert(QStringLiteral("id"), fix(node.value(QStringLiteral("id")).toString()));
+        return out;
+    }
+    QVariantList children;
+    for (const QVariant& c : node.value(QStringLiteral("children")).toList()) {
+        children.append(fixNode(c.toMap(), fix));
+    }
+    out.insert(QStringLiteral("children"), children);
+    return out;
+}
+
+} // anonymous namespace
+
+void fixIds(QVariantMap& ui, const std::function<QString(const QString&)>& fix) {
+    for (const QString& view : {QStringLiteral("mini"), QStringLiteral("main")}) {
+        ui.insert(view, fixNode(ui.value(view).toMap(), fix));
+    }
+}
+
+void prependControl(QVariantMap& ui, const QString& widget, const QString& id) {
+    QVariantMap root = box(QStringLiteral("v"));
+    root.insert(QStringLiteral("children"), QVariantList{
+        control(widget, id),
+        ui.value(QStringLiteral("main")).toMap(),
+    });
+    ui.insert(QStringLiteral("main"), root);
 }
 
 } // namespace uitree

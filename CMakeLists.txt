@@ -36,6 +36,9 @@ qt_add_executable(qt_head
     src/midimap.cpp
     src/midimap.h
     src/presets.cpp
+    src/files.cpp
+    src/dirmodel.cpp
+    src/dirmodel.h
 )
 
 # must be set before qt_add_qml_module
@@ -72,6 +75,9 @@ qt_add_qml_module(qt_head
         qml/TextInputDialog.qml
         qml/ConfirmDialog.qml
         qml/SavePresetDialog.qml
+        qml/FileIcon.qml
+        qml/FileChooserDialog.qml
+        qml/FileButton.qml
 )
 
 target_include_directories(qt_head PRIVATE src)

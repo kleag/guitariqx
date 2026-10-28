@@ -116,6 +116,12 @@ Working:
   with an explicit replace), and per preset (⋮) save here, rename, copy to
   bank, move up/down, delete; per bank new, rename, move up/down, delete.
   Factory banks are read only, their presets can be copied
+- files: NAM and RTNeural models, convolver impulse responses and looper
+  imports are chosen with a file chooser in KDE's single click style
+  (a click on a folder opens it, a click on a file loads it) with places
+  (home, model and IR folders, USB drives, recent folders) and a clickable
+  path; the arrows next to the file step through its folder. Files are those
+  of the engine's computer: when it runs elsewhere, the engine lists them
 - mono and stereo racks: on/off, add, remove, reorder, collapse
 - rack unit panels from the engine's stack layout (`plugin_load_ui` with
   `UI_FORM_STACK`), and a generic panel built from the unit's parameters
@@ -137,7 +143,7 @@ Not yet:
 - Glade layouts (`UI_FORM_GLADE`): 114 rack units have one, which gx_head
   prefers to the stack layout; translating the gxw widget subset to QML
   would give the same look as gx_head
-- file choosers for impulse responses and NAM/RTNeural models, the looper
+- choosing files when the engine runs on another computer, the looper
   and sequencer special widgets, LV2/LADSPA plugin management
 
 The full list is in [TODO.md](TODO.md).

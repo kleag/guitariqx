@@ -19,6 +19,11 @@ Item {
         id: knob
         Knob { param: root.param; label: root.label; size: root.node.size || "small" }
     }
+    // create_fload_switch, and the impulse response of convolvers
+    Component {
+        id: fileButton
+        FileButton { paramId: root.node.id || "" }
+    }
     Component {
         id: slider
         ParamSlider {
@@ -101,6 +106,9 @@ Item {
                 return spin
             case "meter":
                 return root.node.id2 ? cmeter : meter
+            case "file":
+            case "ir":
+                return fileButton
             case "display":
                 return display
             }

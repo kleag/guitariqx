@@ -17,8 +17,10 @@
 
 #include <QDebug>
 #include <QJsonObject>
+#include <QNetworkInterface>
 #include <QQmlEngine>
 #include <algorithm>
+#include <cmath>
 
 namespace {
 
@@ -101,6 +103,9 @@ void Machine::connectTo(const QString& host, int port) {
 }
 
 void Machine::onConnected() {
+    // the engine's files can be read directly when it runs on this computer
+    const QHostAddress peer = m_rpc.peerAddress();
+    m_engineLocal = peer.isLoopback() || QNetworkInterface::allAddresses().contains(peer);
     emit connectedChanged();
     setStatus(tr("Connected, loading ..."));
     m_rpc.call(QStringLiteral("getversion"), {}, [this](const QJsonValue& r) {
@@ -108,6 +113,7 @@ void Machine::onConnected() {
         if (v.size() >= 3) {
             m_serverVersion = v.at(2).toString();
         }
+        m_interfaceMinor = v.at(1).toInt();
         if (v.isEmpty() || v.at(0).toInt() != interfaceMajor) {
             setStatus(tr("Unsupported engine interface version %1").arg(v.at(0).toInt()));
             m_rpc.disconnectFromServer();
@@ -130,6 +136,7 @@ void Machine::onConnected() {
                     m_ready = true;
                     m_tuner.engineReady();
                     m_midi.engineReady();
+                    requestFilePlaces();
                     emit readyChanged();
                     setStatus(tr("Connected to guitarix %1 on %2:%3")
                               .arg(m_serverVersion, m_rpc.host()).arg(m_rpc.port()));
@@ -373,6 +380,21 @@ QVariantMap Machine::unitUi(const QString& id) {
         }
         if (!uitree::hasControls(ui.value(QStringLiteral("main")).toMap())) {
             ui = uitree::generic(unitParameters(id));
+        }
+        // some layouts name parameters wrongly ("rtneuralloadfile" for
+        // rtneural.loadfile); gx_head then shows no control either
+        const QString prefix = id + QLatin1Char('.');
+        uitree::fixIds(ui, [this, &id, &prefix](const QString& pid) {
+            if (m_params.contains(pid) || !pid.startsWith(id)) {
+                return pid;
+            }
+            const QString fixed = prefix + pid.mid(id.size());
+            return m_params.contains(fixed) ? fixed : pid;
+        });
+        // the convolvers choose their impulse response in a separate
+        // window in gx_head; here it is a control of the unit
+        if (m_params.contains(prefix + QStringLiteral("convolver"))) {
+            uitree::prependControl(ui, QStringLiteral("ir"), prefix + QStringLiteral("convolver"));
         }
         m_unitUi.insert(id, ui);
         emit unitUiReady(id);

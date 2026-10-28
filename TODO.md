@@ -16,9 +16,15 @@ Roughly in order of importance for live use. See README.md for what works.
 - [ ] Preset editing: drag and drop reordering, import/export of bank files
       (bank_insert_content, bank_get_contents), flags of banks with an old
       file version (convert_preset)
-- [ ] File choosers for impulse responses (cab, jconv), NAM and RTNeural
-      models (`create_fload_switch`, RPC get_file_list, load_impresp_dirs);
-      without them the NAM/RTNeural units cannot load a model
+- [x] File chooser (KDE style single click) for NAM and RTNeural models,
+      convolver impulse responses and looper imports
+- [ ] Check that a model chosen in qt_head is heard (the engine receives
+      the same loadpath/flist sequence as from gx_head, the audio was not
+      tested)
+- [ ] Remote file choosing when the engine runs on another computer
+      (needs the list_directory RPC, see below)
+- [ ] IR editing of the convolvers (offset, length, delay, gain line, like
+      gx_head's IR window); qt_head loads the whole file with normalized gain
 
 ## Rack and plugin panels
 
@@ -58,6 +64,9 @@ Roughly in order of importance for live use. See README.md for what works.
   (`banks.get_file()` is not checked); `rename_preset` accepts an existing
   name, and a later `reorder_preset` then aborts the engine. qt_head checks
   names against a fresh bank list and serializes edits
+- The RTNeural stack layout names its file parameter `rtneuralloadfile`
+  instead of `rtneural.loadfile` (qt_head fixes the id, gx_head shows no
+  file button in the stack layout)
 - Preset and bank edits are not broadcast (only `bank_insert_new` sends
   `presetlist_changed`), nor are the changes of the current preset they
   cause: other connected UIs do not see them until they reload

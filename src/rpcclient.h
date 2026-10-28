@@ -45,6 +45,7 @@ public:
     void disconnectFromServer();
     bool isConnected() const;
     QString host() const { return m_host; }
+    QHostAddress peerAddress() const { return m_socket.peerAddress(); }
     quint16 port() const { return m_port; }
     void setAutoReconnect(bool on) { m_autoReconnect = on; }
 

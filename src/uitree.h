@@ -17,6 +17,7 @@
 #include <QJsonArray>
 #include <QList>
 #include <QVariantMap>
+#include <functional>
 
 class Parameter;
 
@@ -44,5 +45,11 @@ QVariantMap generic(const QList<Parameter*>& params);
 
 // true when the layout contains at least one control
 bool hasControls(const QVariantMap& node);
+
+// replace the parameter id of every control of a unit layout by fix(id)
+void fixIds(QVariantMap& ui, const std::function<QString(const QString&)>& fix);
+
+// add a control at the top of the main view of a unit layout
+void prependControl(QVariantMap& ui, const QString& widget, const QString& id);
 
 } // namespace uitree
