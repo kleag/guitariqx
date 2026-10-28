@@ -21,8 +21,9 @@ Roughly in order of importance for live use. See README.md for what works.
 - [ ] Check that a model chosen in qt_head is heard (the engine receives
       the same loadpath/flist sequence as from gx_head, the audio was not
       tested)
-- [ ] Remote file choosing when the engine runs on another computer
-      (needs the list_directory RPC, see below)
+- [x] Remote file choosing when the engine runs on another computer
+      (list_directory and get_file_places RPC, interface 1.2)
+- [ ] Propose the engine side (jsonrpc.cpp, interface 1.2) upstream
 - [ ] IR editing of the convolvers (offset, length, delay, gain line, like
       gx_head's IR window); qt_head loads the whole file with normalized gain
 
@@ -59,6 +60,7 @@ Roughly in order of importance for live use. See README.md for what works.
   engine for unknown parameter ids (`ParamMap::operator[]` does not check);
   qt_head only sends known ids
 - The server's JSON parser has no `true`/`false` tokens
+- `tools/check_rpc` is still Python 2 and does not run
 - The bank and preset procedures (erase_preset, reorder_preset, pf_append,
   rename_preset, ...) crash the engine for unknown bank names
   (`banks.get_file()` is not checked); `rename_preset` accepts an existing

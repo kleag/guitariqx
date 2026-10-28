@@ -48,10 +48,23 @@ tablet. Options:
 | `--size WxH` | initial window size |
 | `--dump` | print connection, preset and rack changes on the terminal |
 | `--screenshot FILE` | save a screenshot after `--screenshot-delay` ms and quit (testing) |
-| `--debug-state LIST` | testing without instrument or MIDI device: `tuner:HZ`, `learnmode`, `learn:PARAM`, `midimap` |
+| `--debug-state LIST` | testing without instrument or MIDI device: `tuner:HZ`, `learnmode`, `learn:PARAM`, `midimap`, `saveas`, `files:UNIT` |
 
 The connection indicator at the right of the top bar opens the connect
 dialog. qt_head reconnects automatically when the engine restarts.
+
+### Files on a remote engine
+
+Models and impulse responses are files of the computer the engine runs
+on. qt_head reads them directly when it runs on that computer too; for a
+remote engine it needs an engine with JSON-RPC interface 1.2, which adds
+the `list_directory` and `get_file_places` methods (older engines can be
+used for everything else). `QT_HEAD_REMOTE_FILES=1` makes qt_head use the
+engine's listing even when the engine is local, for testing.
+
+The JSON-RPC port has no authentication: whoever can reach it can control
+the engine, list directories and read audio files of its computer. Do not
+make it reachable from untrusted networks.
 
 ### Raspberry Pi
 

@@ -106,6 +106,10 @@ void Machine::onConnected() {
     // the engine's files can be read directly when it runs on this computer
     const QHostAddress peer = m_rpc.peerAddress();
     m_engineLocal = peer.isLoopback() || QNetworkInterface::allAddresses().contains(peer);
+    // testing the remote file listing with a local engine
+    if (qEnvironmentVariableIntValue("QT_HEAD_REMOTE_FILES")) {
+        m_engineLocal = false;
+    }
     emit connectedChanged();
     setStatus(tr("Connected, loading ..."));
     m_rpc.call(QStringLiteral("getversion"), {}, [this](const QJsonValue& r) {
