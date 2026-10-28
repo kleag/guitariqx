@@ -1,0 +1,110 @@
+import QtQuick
+import QtHead
+
+// A leaf of a rack unit layout (see uitree.h): picks the widget for the
+// control type and binds it to the parameter
+Item {
+    id: root
+    property var node: ({})
+    readonly property string widget: node.widget || ""
+    readonly property Parameter param: Gx.ready && node.id ? Gx.param(node.id) : null
+    readonly property string label: node.label !== undefined && node.label !== "" ? node.label.trim()
+                                                                                   : (param ? param.name : "")
+
+    implicitWidth: loader.item ? loader.item.implicitWidth : 0
+    implicitHeight: loader.item ? loader.item.implicitHeight : 0
+    visible: param !== null || widget === "meter"
+
+    Component {
+        id: knob
+        Knob { param: root.param; label: root.label; size: root.node.size || "small" }
+    }
+    Component {
+        id: slider
+        ParamSlider {
+            param: root.param
+            label: root.node.size === "eq" ? "" : root.label
+            vertical: root.node.size === "eq"
+        }
+    }
+    Component {
+        id: toggle
+        ParamSwitch { param: root.param; label: root.node.label || "" }
+    }
+    Component {
+        id: selector
+        ParamSelector { param: root.param; label: root.node.label || "" }
+    }
+    Component {
+        id: spin
+        ParamSpin { param: root.param; label: root.label }
+    }
+    Component {
+        id: meter
+        LevelMeter { paramId: root.node.id || ""; vertical: true; implicitHeight: 90; thickness: 10 }
+    }
+    // create_simple_c_meter: level meter next to a gain slider
+    Component {
+        id: cmeter
+        Column {
+            id: cm
+            spacing: 2
+            readonly property Parameter gain: Gx.ready ? Gx.param(root.node.id2) : null
+            Row {
+                spacing: 2
+                anchors.horizontalCenter: parent.horizontalCenter
+                LevelMeter { paramId: root.node.id || ""; vertical: true; height: 130; thickness: 6 }
+                ParamSlider { param: cm.gain; vertical: true; label: ""; implicitHeight: 130 }
+            }
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: root.node.label || ""
+                color: Theme.textDim
+                font.pixelSize: Theme.fontSmall
+            }
+        }
+    }
+    Component {
+        id: display
+        Column {
+            spacing: 2
+            Text {
+                text: root.label
+                color: Theme.textDim
+                font.pixelSize: Theme.fontSmall
+                anchors.horizontalCenter: parent.horizontalCenter
+            }
+            Text {
+                text: root.param ? root.param.displayValue : ""
+                color: Theme.accent
+                font.pixelSize: Theme.fontNormal
+                anchors.horizontalCenter: parent.horizontalCenter
+            }
+        }
+    }
+
+    Loader {
+        id: loader
+        sourceComponent: {
+            switch (root.widget) {
+            case "knob":
+            case "wheel":
+                return root.param && root.param.kind === Parameter.Enum ? selector
+                     : root.param && root.param.kind === Parameter.Bool ? toggle : knob
+            case "slider":
+                return slider
+            case "switch":
+                return toggle
+            case "selector":
+                return selector
+            case "spin":
+                return spin
+            case "meter":
+                return root.node.id2 ? cmeter : meter
+            case "display":
+                return display
+            }
+            return null
+        }
+    }
+}

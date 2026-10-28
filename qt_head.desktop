@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Guitarix (Qt)
+GenericName=Virtual guitar amplifier
+Comment=Qt Quick user interface for the guitarix engine
+Exec=qt_head
+Icon=guitarix
+Terminal=false
+Categories=AudioVideo;Audio;
