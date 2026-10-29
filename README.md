@@ -65,8 +65,9 @@ dialog. guitariqx reconnects automatically when the engine restarts.
 Models and impulse responses are files of the computer the engine runs
 on. guitariqx reads them directly when it runs on that computer too; for a
 remote engine it needs an engine with JSON-RPC interface 1.2, which adds
-the `list_directory` and `get_file_places` methods (older engines can be
-used for everything else). `GUITARIQX_REMOTE_FILES=1` makes guitariqx use the
+the `list_directory` and `get_file_places` methods. With an older remote
+engine the file chooser cannot list folders and asks for the path of the
+file instead; everything else works. `GUITARIQX_REMOTE_FILES=1` makes guitariqx use the
 engine's listing even when the engine is local, for testing.
 
 The JSON-RPC port has no authentication: whoever can reach it can control

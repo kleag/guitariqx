@@ -214,7 +214,7 @@ void DirModel::list() {
     if (m && !m->engineLocal() && !m_local) {
         if (!m->ready() || !m->remoteFiles()) {
             setEntries({}, tr("The engine runs on another computer and is too old to list its files "
-                              "(it needs JSON-RPC interface 1.2)."));
+                              "(it needs JSON-RPC interface 1.2): type the path of the file below."));
             return;
         }
         m_busy = true;

@@ -36,6 +36,7 @@ Dialog {
         dir.showAll = false
         dir.openAt(startPath || (dir.places.length ? dir.places[0].path : "/"))
         nameField.text = name || ""
+        pathField.text = startPath ? startPath.replace(/\/*$/, "/") : ""
         confirmReplace = false
         open()
         if (saveMode)
@@ -326,6 +327,30 @@ Dialog {
             highlighted: true
             enabled: root.saveName !== ""
             onClicked: root.save()
+        }
+    }
+    // an engine on another computer that cannot list its folders
+    // (interface < 1.2): the path is typed
+    RowLayout {
+        visible: !root.saveMode && !dir.available
+        Layout.fillWidth: true
+        Layout.leftMargin: Theme.spacing * 1.5
+        Layout.rightMargin: Theme.spacing * 1.5
+        Layout.topMargin: Theme.spacing
+        spacing: Theme.spacing
+        Label { text: qsTr("Path") }
+        TextField {
+            id: pathField
+            Layout.fillWidth: true
+            placeholderText: qsTr("File on the engine's computer")
+            inputMethodHints: Qt.ImhNoAutoUppercase | Qt.ImhNoPredictiveText
+            onAccepted: if (text.trim() !== "") root.finish(text.trim())
+        }
+        Button {
+            text: qsTr("Open")
+            highlighted: true
+            enabled: pathField.text.trim() !== ""
+            onClicked: root.finish(pathField.text.trim())
         }
     }
     Label {
