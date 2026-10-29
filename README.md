@@ -78,7 +78,7 @@ tablet. Options:
 | `--size WxH` | initial window size (default: the size, or maximized state, of the last session, else 1280x800) |
 | `--dump` | print connection, preset and rack changes on the terminal |
 | `--screenshot FILE` | save a screenshot after `--screenshot-delay` ms and quit (testing) |
-| `--debug-state LIST` | testing without instrument or MIDI device: `tuner:HZ`, `switcher[:STATE]`, `learnmode`, `learn:PARAM`, `midimap`, `saveas`, `files:UNIT`, `skins`, `unit:UNIT`, `iredit:UNIT`, `sequencer` |
+| `--debug-state LIST` | testing without instrument or MIDI device: `tuner:HZ`, `switcher[:STATE]`, `learnmode`, `learn:PARAM`, `midimap`, `saveas`, `files:UNIT`, `skins`, `unit:UNIT`, `iredit:UNIT`, `sequencer`, `unitpresets:UNIT` |
 
 The connection indicator at the right of the top bar opens the connect
 dialog. guitariqx reconnects automatically when the engine restarts.
@@ -178,6 +178,7 @@ Working:
   path; the arrows next to the file step through its folder. Files are those
   of the engine's computer: when it runs elsewhere, the engine lists them
 - mono and stereo racks: on/off, add, remove, reorder, collapse
+- unit presets: load, save and remove the settings of one rack unit
 - rack unit panels with gx_head's arrangement: the Glade layout of the
   unit when it has one (`plugin_load_ui` with `UI_FORM_GLADE`, translated
   by src/glade.cpp: boxes, grids, frames, notebooks, labels and the gxw
@@ -209,6 +210,6 @@ Working:
 Not yet:
 
 - gx_head's slider and meter images, its two-tone unit backgrounds and its
-  wallpapers, unit presets, LV2/LADSPA plugin management
+  wallpapers, LV2/LADSPA plugin management
 
 The full list is in [TODO.md](TODO.md).

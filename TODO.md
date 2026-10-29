@@ -60,11 +60,17 @@ Roughly in order of importance for live use. See README.md for what works.
       wider than a rack column at 1280 px (the label_ref labels of the Glade
       grid are dropped, so the rows next to the notebook spanning them get
       its height)
-- [ ] Drum sequencer: next/previous unit preset (seq.npreset/ppreset need
-      unit presets)
+- [x] Drum sequencer: next/previous unit preset (seq.npreset/ppreset)
 - [ ] Tall stacks of meters (e.g. Multi Band Compressor "Analyze")
 - [ ] Drag and drop reordering of rack units (now: up/down buttons)
-- [ ] Unit presets (plugin_preset_list_*)
+- [x] Unit presets (plugin_preset_list_*)
+- [ ] Unit presets of the looper: gx_head sets dubber.filename and
+      dubber.savefile before saving so that the loop files follow the
+      preset (and removes them with it)
+- [ ] Drum sequencer presets by MIDI: gx_head's "connect midi..." registers
+      a seq.<preset> switch per preset (insert_param)
+- [ ] Unit presets of the amplifier (ampstack): its parameters are amp.*,
+      not ampstack.*, so the client side reset does not apply; no ≡ button
 - [ ] LV2/LADSPA plugin management (load_ladspalist, ladspaloader_update_plugins)
 
 ## Tuner
@@ -94,7 +100,9 @@ Roughly in order of importance for live use. See README.md for what works.
   engine for unknown parameter ids (`ParamMap::operator[]` does not check);
   guitariqx only sends known ids
 - `plugin_load_ui` aborts the engine for an unknown plugin id ("lookup
-  plugin *** id not found"); guitariqx only asks for listed units
+  plugin *** id not found"), and the plugin_preset_list_* procedures
+  dereference find_plugin() without a check; guitariqx only sends listed
+  units
 - The server's JSON parser has no `true`/`false` tokens
 - `tools/check_rpc` is still Python 2 and does not run
 - The bank and preset procedures (erase_preset, reorder_preset, pf_append,

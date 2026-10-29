@@ -154,10 +154,41 @@ Rectangle {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             spacing: 2
+            // five buttons: the touch size rather than Material's 48 px, or
+            // the names of narrow units would be elided away
             // Material's dark theme foreground, else the skin's title color
             Material.foreground: Theme.skinned ? Theme.rackTitle : "#ffffff"
 
             ToolButton {
+                implicitWidth: Theme.touch
+                id: presetButton
+                text: "≡"
+                // the amplifier's parameters are not those of its unit id
+                visible: !root.isAmp
+                property var dialog: null
+                function show() {
+                    if (!dialog)
+                        dialog = presetDialog.createObject(presetButton, { unitId: root.unitId })
+                    dialog.show()
+                }
+                onClicked: show()
+                ToolTip.visible: hovered
+                ToolTip.text: qsTr("Unit presets")
+                Component {
+                    id: presetDialog
+                    UnitPresetDialog {}
+                }
+                // --debug-state unitpresets:UNIT
+                readonly property bool debugOpen: {
+                    const args = Qt.application.arguments
+                    const i = args.indexOf("--debug-state")
+                    return Gx.ready && i >= 0 && i + 1 < args.length
+                        && args[i + 1].split(",").indexOf("unitpresets:" + root.unitId) >= 0
+                }
+                onDebugOpenChanged: if (debugOpen) show()
+            }
+            ToolButton {
+                implicitWidth: Theme.touch
                 text: "▲"
                 enabled: !root.first
                 onClicked: Gx.moveUnit(root.unitId, -1, root.stereo)
@@ -165,6 +196,7 @@ Rectangle {
                 ToolTip.text: qsTr("Move up")
             }
             ToolButton {
+                implicitWidth: Theme.touch
                 text: "▼"
                 enabled: !root.last
                 onClicked: Gx.moveUnit(root.unitId, 1, root.stereo)
@@ -172,12 +204,14 @@ Rectangle {
                 ToolTip.text: qsTr("Move down")
             }
             ToolButton {
+                implicitWidth: Theme.touch
                 text: root.expanded ? "−" : "+"
                 onClicked: root.expanded = !root.expanded
                 ToolTip.visible: hovered
                 ToolTip.text: root.expanded ? qsTr("Collapse") : qsTr("Expand")
             }
             ToolButton {
+                implicitWidth: Theme.touch
                 text: "✕"
                 visible: !root.info.fixed
                 onClicked: Gx.removeUnit(root.unitId, root.stereo)

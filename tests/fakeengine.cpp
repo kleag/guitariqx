@@ -14,6 +14,7 @@
 
 #include "fakeengine.h"
 
+#include <algorithm>
 #include <cmath>
 
 #include <QFile>
@@ -65,6 +66,15 @@ FakeEngine::FakeEngine(int interfaceMinor, QObject *parent)
     m_rack[0] = toStringList(racks.at(0).toArray());
     m_rack[1] = toStringList(racks.at(1).toArray());
     m_midiMap = m_fixture.value(QStringLiteral("get_midi_controller_map")).toArray();
+    // the first one is in /usr/share/gx_head/factorysettings/graphiceq
+    QJsonObject drop, flat;
+    const double gains[] = {-16, -7.5, -2.25, 0, -11, 0, 0, 0, -10.75, -15, -23.5};
+    for (int i = 0; i < 11; ++i) {
+        const QString id = QStringLiteral("graphiceq.g%1").arg(i + 1);
+        drop.insert(id, gains[i]);
+        flat.insert(id, 0);
+    }
+    m_unitPresets[1].insert(QStringLiteral("graphiceq"), {{QStringLiteral("drop500"), drop}, {QStringLiteral("flat"), flat}});
 }
 
 FakeEngine::~FakeEngine() {
@@ -249,6 +259,29 @@ bool FakeEngine::checkBank(const QString& method, const QJsonValue& name) {
     }
     violation(QStringLiteral("%1 with unknown bank %2").arg(method, name.toString()));
     return false;
+}
+
+// the plugin_preset_list procedures do not check find_plugin()
+bool FakeEngine::checkPlugin(const QString& method, const QString& id) {
+    if (m_plugins.contains(id)) {
+        return true;
+    }
+    violation(QStringLiteral("%1 with unknown plugin %2").arg(method, id));
+    return false;
+}
+
+// what PluginPresetList::save writes: the saved parameters of the unit
+QJsonObject FakeEngine::unitValues(const QString& unit) const {
+    QJsonObject o;
+    const QString prefix = unit + QLatin1Char('.');
+    for (auto it = m_values.cbegin(); it != m_values.cend(); ++it) {
+        const QJsonObject base = m_paramEntries.value(it.key()).value(QStringLiteral("Parameter")).toObject();
+        if (it.key().startsWith(prefix) && !base.value(QStringLiteral("do_not_save")).toInt()
+            && !base.value(QStringLiteral("output")).toInt()) {
+            o.insert(it.key(), it.value());
+        }
+    }
+    return o;
 }
 
 int FakeEngine::bankIndex(const QString& name) const {
@@ -603,6 +636,66 @@ QJsonValue FakeEngine::dispatch(QTcpSocket *s, const QString& method, const QJso
         const QJsonObject ui = uis.value(p0).toObject();
         const bool glade = params.at(1).toInt() & 0x02;
         return ui.value(glade ? QStringLiteral("glade") : QStringLiteral("stack")).toArray();
+    }
+
+    // unit presets (GxSettings::plugin_preset_list_*)
+    if (method == QLatin1String("plugin_preset_list_load")) {
+        if (!checkPlugin(method, p0)) {
+            return QJsonArray();
+        }
+        QJsonArray l;
+        for (int factory = 0; factory < 2; ++factory) {
+            if (factory) {
+                l.append(QJsonArray{QString(), 0});
+            }
+            for (const auto& [name, values] : m_unitPresets[factory].value(p0)) {
+                bool set = true;
+                for (auto it = values.begin(); it != values.end(); ++it) {
+                    set = set && m_values.value(it.key()) == it.value();
+                }
+                l.append(QJsonArray{name, set ? 1 : 0});
+            }
+        }
+        return l;
+    }
+    if (method == QLatin1String("plugin_preset_list_set")) {
+        if (!checkPlugin(method, p0)) {
+            return {};
+        }
+        for (const auto& [name, values] : m_unitPresets[params.at(1).toInt() ? 1 : 0].value(p0)) {
+            if (name != params.at(2).toString()) {
+                continue;
+            }
+            // a notification for each parameter, then an empty one
+            for (auto it = values.begin(); it != values.end(); ++it) {
+                m_values.insert(it.key(), it.value());
+                notifyClients(QStringLiteral("set"), {it.key(), it.value()});
+            }
+            notifyClients(QStringLiteral("set"), {});
+            break;
+        }
+        return {};
+    }
+    if (method == QLatin1String("plugin_preset_list_save") || method == QLatin1String("plugin_preset_list_remove")) {
+        if (!checkPlugin(method, p0)) {
+            return {};
+        }
+        const QString name = params.at(1).toString();
+        if (name.isEmpty()) {
+            violation(QStringLiteral("%1 with an empty name").arg(method));
+        }
+        UnitPresets& l = m_unitPresets[0][p0];
+        const auto it = std::find_if(l.begin(), l.end(), [&name](const auto& e) { return e.first == name; });
+        if (method == QLatin1String("plugin_preset_list_remove")) {
+            if (it != l.end()) {
+                l.erase(it);
+            }
+        } else if (it != l.end()) {
+            it->second = unitValues(p0);
+        } else {
+            l.append({name, unitValues(p0)});
+        }
+        return {};
     }
 
     // MIDI

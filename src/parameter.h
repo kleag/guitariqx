@@ -66,6 +66,8 @@ public:
     bool isOutput() const { return m_output; }
     bool isMaxlevel() const { return m_maxlevel; }
     bool isControllable() const { return m_controllable; }
+    // saved in presets (not "do_not_save")
+    bool isInPreset() const { return m_inPreset; }
     // get_updates can poll the parameter: the engine handles float and
     // oscilloscope parameters only (it asserts on the others)
     bool isPollable() const {
@@ -84,6 +86,8 @@ public:
     QString displayValue() const;
 
     Q_INVOKABLE void reset();
+    // the value is the standard one (always false for JSON values)
+    bool isStd() const { return m_kind != Other && m_value == m_std; }
 
     // value as reported by the engine (a "set" notification or "get")
     void updateFromEngine(const QJsonValue& v);
@@ -112,6 +116,7 @@ private:
     bool m_output = false;
     bool m_maxlevel = false;
     bool m_controllable = true;
+    bool m_inPreset = true;
     int m_ctype = 0;
     QStringList m_valueIds;
     QStringList m_valueLabels;

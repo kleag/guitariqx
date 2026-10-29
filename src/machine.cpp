@@ -211,6 +211,10 @@ void Machine::loadParameters(const QJsonArray& list) {
         }
         QQmlEngine::setObjectOwnership(np, QQmlEngine::CppOwnership);
         connect(np, &Parameter::changeRequested, this, &Machine::onParameterChangeRequested);
+        if (np->id() == QLatin1String("seq.npreset") || np->id() == QLatin1String("seq.ppreset")) {
+            const int delta = np->id() == QLatin1String("seq.npreset") ? 1 : -1;
+            connect(np, &Parameter::valueChanged, this, [this, np, delta]() { onSequencerPresetStep(np, delta); });
+        }
         m_params.insert(np->id(), np);
     }
     // the engine may have restarted with other plugins; polling an id it

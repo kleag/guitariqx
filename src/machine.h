@@ -164,6 +164,23 @@ public:
     Q_INVOKABLE void toggleSequencerStep(const QString& drum, int step);
     Q_INVOKABLE void setSequencerSteps(int n);
 
+    // Unit presets (unitpresets.cpp): settings of one rack unit, saved
+    // apart from the banks (gx_head's PluginPresetPopup). The list comes
+    // with unitPresetsReady(): {name, factory, active} maps, the user's
+    // presets first. The engine does not check the unit id: only units it
+    // listed are sent. Saving and removing return an error text or an
+    // empty string, and the list is sent again afterwards.
+    Q_INVOKABLE void requestUnitPresets(const QString& unit);
+    Q_INVOKABLE void setUnitPreset(const QString& unit, const QString& name, bool factory);
+    Q_INVOKABLE QString saveUnitPreset(const QString& unit, const QString& name);
+    Q_INVOKABLE QString removeUnitPreset(const QString& unit, const QString& name);
+    // the next (delta 1) or previous (-1) of the user's presets, after the
+    // one in use (seq.npreset and seq.ppreset)
+    Q_INVOKABLE void stepUnitPreset(const QString& unit, int delta);
+    // gx_head's "standard" entry: the unit's standard values
+    Q_INVOKABLE void resetUnit(const QString& unit);
+    Q_INVOKABLE bool unitHasStdValues(const QString& unit) const;
+
     // Files on the engine's computer (see DirModel). The engine lists
     // remote directories from JSON-RPC interface 1.2 on.
     bool engineLocal() const { return m_engineLocal; }
@@ -218,6 +235,7 @@ signals:
     // result of loadModel()
     void modelLoaded(const QString& fileParam, const QString& file, const QString& error);
     void messageReceived(const QString& level, const QString& text);
+    void unitPresetsReady(const QString& unit, const QVariantList& presets);
 
 private:
     void onConnected();
@@ -240,6 +258,10 @@ private:
     QList<Parameter*> unitParameters(const QString& id) const;
     void finishUnitUi(const QString& id, QVariantMap ui);
     void fixSequencerLines(int n);
+    using PresetsHandler = std::function<void(const QVariantList& presets)>;
+    void loadUnitPresets(const QString& unit, PresetsHandler handler);
+    QList<Parameter*> unitPresetParameters(const QString& unit) const;
+    void onSequencerPresetStep(Parameter *p, int delta);
 
     static Machine *s_instance;
 

@@ -74,12 +74,20 @@ also when the engine runs elsewhere.
 ## Racks
 
 **+ Add effect** adds a unit to the mono or stereo rack. Each unit has its
-power switch, buttons to move it up and down, to collapse it to a compact
-view and to remove it. Units are shown with gx_head's arrangement: the
-Glade layout of the unit when it has one, else its stack layout, else a
-generic panel built from the unit's parameters.
+power switch, buttons to open its presets (≡), to move it up and down, to
+collapse it to a compact view and to remove it. Units are shown with
+gx_head's arrangement: the Glade layout of the unit when it has one, else
+its stack layout, else a generic panel built from the unit's parameters.
 `GUITARIQX_FORM_STACK=1` uses the stack layouts, like `GUITARIX_FORM_STACK`
 for gx_head.
+
+The presets of a unit keep the settings of that unit only, apart from the
+banks. Tapping one loads it into the unit (the one in use is checked),
+**Default settings** gives back the unit's standard values, **Save…** keeps
+the unit's current settings under a name, and ✕ removes one of your
+presets. Factory presets come with guitarix.
+
+![The presets of a unit](images/unitpresets.png)
 
 **Skin ...** in the menu (⋮) switches the rack units between guitariqx's
 flat look and gx_head's skins: the skin's background between rack handles,
@@ -113,7 +121,9 @@ Some units have widgets of their own, as in gx_head:
   drum (tap a step to switch it), the beats lit, tempo, beat, number of
   steps, the level of each drum, humanize, follow (keeps the play head in
   view), and buttons to move the stepper (to the start, a beat back, back
-  on the beat, a beat forward).
+  on the beat, a beat forward). ◀ and ▶ load the previous or next of your
+  presets of the sequencer (also from MIDI, through the controls "Load
+  previous/next unit preset" of gx_head), **Presets…** lists them.
 
 ![The looper](images/looper.png)
 

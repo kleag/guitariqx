@@ -40,6 +40,7 @@ set(GUITARIQX_SOURCES
     src/bankfiles.cpp
     src/files.cpp
     src/sequencer.cpp
+    src/unitpresets.cpp
     src/dirmodel.cpp
     src/dirmodel.h
     src/skin.cpp
@@ -94,6 +95,7 @@ qt_add_qml_module(guitariqx
         qml/TextInputDialog.qml
         qml/ConfirmDialog.qml
         qml/SavePresetDialog.qml
+        qml/UnitPresetDialog.qml
         qml/FileIcon.qml
         qml/FileChooserDialog.qml
         qml/FileButton.qml

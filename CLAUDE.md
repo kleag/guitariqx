@@ -30,7 +30,7 @@ Qt Test programs in `tests/`. `GUITARIQX_SOURCES` (CMakeLists.txt, everything bu
 
 `tst_ui` runs the real `guitariqx` binary offscreen against FakeEngine for each `--debug-state` UI state and fails on any QML warning on stderr: QML errors only show at run time, and some only on Qt 6.4. Add a row when adding a view or dialog.
 
-- `--debug-state` (comma separated: `tuner:HZ`, `switcher[:STATE]`, `learnmode`, `learn:PARAM`, `midimap`, `saveas`, `files:UNIT`, `bankload`, `banksave:BANK`, `skins`, `unit:UNIT`, `iredit:UNIT`, `sequencer`) opens UI states that would otherwise need an instrument, a MIDI device or clicks. `tuner`/`switcher`/`learn*`/`unit` are handled in `src/main.cpp`, `midimap` in `qml/Main.qml`, the others by the QML component concerned reading `Qt.application.arguments` (`PresetPanel.qml`, `FileButton.qml`, `SkinDialog.qml`, `Control.qml`); a new debug state follows the same pattern. `files:UNIT` and `iredit:UNIT` need that unit in the rack; `unit:UNIT` adds a unit the recorded rack lacks (`unit:seq,sequencer`).
+- `--debug-state` (comma separated: `tuner:HZ`, `switcher[:STATE]`, `learnmode`, `learn:PARAM`, `midimap`, `saveas`, `files:UNIT`, `bankload`, `banksave:BANK`, `skins`, `unit:UNIT`, `iredit:UNIT`, `sequencer`, `unitpresets:UNIT`) opens UI states that would otherwise need an instrument, a MIDI device or clicks. `tuner`/`switcher`/`learn*`/`unit` are handled in `src/main.cpp`, `midimap` in `qml/Main.qml`, the others by the QML component concerned reading `Qt.application.arguments` (`PresetPanel.qml`, `FileButton.qml`, `SkinDialog.qml`, `Control.qml`, `RackUnit.qml`); a new debug state follows the same pattern. `files:UNIT`, `iredit:UNIT` and `unitpresets:UNIT` need that unit in the rack; `unit:UNIT` adds a unit the recorded rack lacks (`unit:seq,sequencer`).
 - `build/tests/fake-engine -p 7124` runs guitariqx without guitarix (`--interface-minor 1` mimics guitarix 0.47.0).
 - To check against a real engine, use an isolated one rather than the user's (which often runs on port 7000): set `HOME` and `XDG_CONFIG_HOME` to a scratch dir (create its `.config` first or the engine aborts), then `pw-jack guitarix -N -J -K -M -n <name> -p 7123`. The real engine expects compact JSON and returns ids as strings.
 - The distro guitarix 0.47.0 reports JSON-RPC interface 1.1 and is the "old engine" case. `GUITARIQX_REMOTE_FILES=1` makes a local engine behave like a remote one for file listing; `GUITARIQX_FORM_STACK=1` uses stack layouts instead of Glade layouts.
@@ -45,7 +45,7 @@ Qt Test programs in `tests/`. `GUITARIQX_SOURCES` (CMakeLists.txt, everything bu
 
 ## Architecture
 
-**`Machine` (`src/machine.*`) is the center**: the engine proxy, the counterpart of `GxMachineRemote` in gx_head, exposed to QML as the singleton `Gx`. It is created in `main()` and handed to the QML engine via `Machine::create()` (it must not be default constructible). Its implementation is split by topic over several files that all define `Machine::` methods: `machine.cpp` (connection, parameters, rack, notifications, polling), `presets.cpp` (bank/preset editing), `bankfiles.cpp` (.gx import/export), `files.cpp` (file places, directory listing, IR and model loading), `sequencer.cpp` (drum sequencer lines).
+**`Machine` (`src/machine.*`) is the center**: the engine proxy, the counterpart of `GxMachineRemote` in gx_head, exposed to QML as the singleton `Gx`. It is created in `main()` and handed to the QML engine via `Machine::create()` (it must not be default constructible). Its implementation is split by topic over several files that all define `Machine::` methods: `machine.cpp` (connection, parameters, rack, notifications, polling), `presets.cpp` (bank/preset editing), `bankfiles.cpp` (.gx import/export), `files.cpp` (file places, directory listing, IR and model loading), `sequencer.cpp` (drum sequencer lines), `unitpresets.cpp` (presets of one rack unit, `plugin_preset_list_*`).
 
 Data flow:
 - `RpcClient` (`src/rpcclient.*`): newline-framed JSON-RPC over TCP, request ids with callbacks, notifications, automatic reconnect.
@@ -65,7 +65,7 @@ Data flow:
 - Stay compatible with engines lacking newer RPCs: test `m_interfaceMinor` (e.g. `remoteFiles()` is `minor >= 2`) and degrade gracefully (the file chooser falls back to typing a path).
 - The engine is fragile; the client must protect it (details in TODO.md, "Engine side"):
   - its JSON parser has no `true`/`false`: send booleans as 0/1;
-  - unknown parameter ids crash `get_updates`, `midi_modifyCurrent` and `midi_deleteParameter`, an unknown plugin id aborts `plugin_load_ui`: only send known ids;
+  - unknown parameter ids crash `get_updates`, `midi_modifyCurrent` and `midi_deleteParameter`, an unknown plugin id aborts `plugin_load_ui` and crashes the `plugin_preset_list_*` procedures: only send known ids;
   - unknown bank names crash the bank/preset procedures, and duplicate preset names corrupt state: validate names against a fresh bank list first, and run edits one at a time through `enqueueEdit` (bank/preset state is not broadcast and is fetched again after each edit);
   - enum values are indexes in `set` notifications but value ids in `get` results;
   - `midi_modifyCurrent` only works in MIDI config mode, which must be left again with `midi_set_config_mode`.
