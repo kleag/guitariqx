@@ -16,5 +16,5 @@ push = false
 [bumpver.file_patterns]
 "bumpver.toml" = ['current_version = "{version}"']
 "CMakeLists.txt" = ["project(guitariqx VERSION {version} "]
-"README.md" = ["guitariqx_{version}-1~"]
-"docs/install.md" = ["guitariqx_{version}-1~"]
+"README.md" = ["guitariqx_{version}-1."]
+"docs/install.md" = ["guitariqx_{version}-1."]

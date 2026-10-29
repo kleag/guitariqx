@@ -51,7 +51,11 @@ jobs:
         run: |
           v=${{ needs.version.outputs.version }}
           git archive --format=tar.gz --prefix="guitariqx-$v/" -o "dist/guitariqx-$v.tar.gz" HEAD
-          cd dist && sha256sum * > SHA256SUMS && cat SHA256SUMS
+          cd dist
+          # GitHub turns "~" into "." in asset names: name the files that way
+          # so that SHA256SUMS matches them (the package version keeps "~")
+          for f in *~*; do if [ -e "$f" ]; then mv "$f" "$(echo "$f" | tr '~' '.')"; fi; done
+          sha256sum * > SHA256SUMS && cat SHA256SUMS
       - name: Create the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}

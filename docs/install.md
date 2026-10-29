@@ -13,10 +13,10 @@ for Debian 12 "bookworm" and Debian 13 "trixie", on x86_64 (`amd64`) and on
 
 | system | package |
 |---|---|
-| Raspberry Pi OS Bookworm, 64 bit (Pi 4, Pi 5) | `guitariqx_<version>-1~bookworm_arm64.deb` |
-| Raspberry Pi OS Trixie, 64 bit | `guitariqx_<version>-1~trixie_arm64.deb` |
-| Debian 12 | `guitariqx_<version>-1~bookworm_amd64.deb` |
-| Debian 13 | `guitariqx_<version>-1~trixie_amd64.deb` |
+| Raspberry Pi OS Bookworm, 64 bit (Pi 4, Pi 5) | `guitariqx_<version>-1.bookworm_arm64.deb` |
+| Raspberry Pi OS Trixie, 64 bit | `guitariqx_<version>-1.trixie_arm64.deb` |
+| Debian 12 | `guitariqx_<version>-1.bookworm_amd64.deb` |
+| Debian 13 | `guitariqx_<version>-1.trixie_amd64.deb` |
 
 On other distributions, such as Ubuntu, [build it from source](#from-source):
 the packages are only tested on Debian.
@@ -24,7 +24,7 @@ the packages are only tested on Debian.
 Install the package with apt, which also installs the Qt modules it needs:
 
 ```sh
-sudo apt install ./guitariqx_0.1.0-1~bookworm_arm64.deb
+sudo apt install ./guitariqx_0.1.0-1.bookworm_arm64.deb
 ```
 
 `SHA256SUMS` in the release lists the checksums of the files.
