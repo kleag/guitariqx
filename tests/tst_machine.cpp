@@ -1186,7 +1186,14 @@ void TestMachine::unitPresets() {
     m.stepUnitPreset(QStringLiteral("nounit"), 1);
     m.requestUnitPresets(QStringLiteral("graphiceq"));
     QTRY_COMPARE(ready.count(), 5);
-    QCOMPARE(m_engine->received().size(), 1);
+    // only the last request (the sets of the reset may still arrive)
+    QStringList sent;
+    for (const FakeEngine::Message& msg : m_engine->received()) {
+        if (msg.method.startsWith(QLatin1String("plugin_preset_list_"))) {
+            sent.append(msg.method + QLatin1Char(' ') + msg.params.at(0).toString());
+        }
+    }
+    QCOMPARE(sent, QStringList{QStringLiteral("plugin_preset_list_load graphiceq")});
 }
 
 void TestMachine::sequencerPresetSteps() {
