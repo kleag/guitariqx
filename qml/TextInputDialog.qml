@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import QtHead
+import Guitariqx
 
 // Asks for a name. The callback returns an error text (the dialog stays
 // open and shows it) or an empty string.

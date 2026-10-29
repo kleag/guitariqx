@@ -1,6 +1,6 @@
 import QtQuick
 import QtQuick.Controls
-import QtHead
+import Guitariqx
 
 // Mono or stereo effect rack
 Item {

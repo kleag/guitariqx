@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import QtHead
+import Guitariqx
 
 // Choose the engine to connect to
 Dialog {

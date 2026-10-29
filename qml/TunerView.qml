@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import QtHead
+import Guitariqx
 
 // Full window tuner. It is shown while the engine parameter
 // system.show_tuner is on, so a MIDI foot switch assigned to it (or the

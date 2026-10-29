@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import QtHead
+import Guitariqx
 
 // Pick an effect to append to a rack
 Dialog {

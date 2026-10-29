@@ -1,5 +1,5 @@
 import QtQuick
-import QtHead
+import Guitariqx
 
 // GtkLabel of a Glade rack unit layout
 Text {

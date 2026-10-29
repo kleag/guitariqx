@@ -1,11 +1,13 @@
-# qt_head
+# guitariqx
 
-A Qt Quick/QML user interface for guitarix, alongside the GTK `gx_head` one.
+A Qt Quick/QML user interface for [guitarix](https://github.com/brummer10/guitarix),
+alongside its GTK `gx_head` one.
 
-qt_head is a pure client: it talks to a guitarix engine over the JSON-RPC
-protocol (`src/gx_head/engine/jsonrpc.cpp`) that `guitarix -G` already uses.
+guitariqx is a pure client: it talks to a guitarix engine over the JSON-RPC
+protocol (`trunk/src/gx_head/engine/jsonrpc.cpp` in the guitarix sources)
+that `guitarix -G` already uses.
 It does not link against any guitarix library and is built with CMake,
-independently of the waf build. It only needs the free (LGPL) Qt 6 modules
+independently of guitarix's waf build. It only needs the free (LGPL) Qt 6 modules
 Core, Gui, Network, Qml, Quick and QuickControls2.
 
 ## Build
@@ -25,10 +27,11 @@ sudo apt install cmake g++ qt6-base-dev qt6-declarative-dev \
 Pi OS Bookworm on a Pi 5); without it Qt falls back to X11 or shows no window.
 
 ```sh
-cd trunk/src/qt_head
+git clone https://github.com/kleag/guitariqx.git
+cd guitariqx
 cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j$(nproc)
-sudo cmake --install build      # optional, installs /usr/local/bin/qt_head
+sudo cmake --install build    # optional, installs /usr/local/bin/guitariqx
 ```
 
 ## Run
@@ -37,7 +40,7 @@ Start the engine headless with a JSON-RPC port, then the UI:
 
 ```sh
 guitarix -N -p 7000 &
-qt_head -p 7000                  # or: qt_head -H raspberrypi.local -p 7000
+guitariqx -p 7000                # or: guitariqx -H raspberrypi.local -p 7000
 ```
 
 The engine and the UI can run on different machines, e.g. the engine on a
@@ -55,15 +58,15 @@ tablet. Options:
 | `--debug-state LIST` | testing without instrument or MIDI device: `tuner:HZ`, `learnmode`, `learn:PARAM`, `midimap`, `saveas`, `files:UNIT` |
 
 The connection indicator at the right of the top bar opens the connect
-dialog. qt_head reconnects automatically when the engine restarts.
+dialog. guitariqx reconnects automatically when the engine restarts.
 
 ### Files on a remote engine
 
 Models and impulse responses are files of the computer the engine runs
-on. qt_head reads them directly when it runs on that computer too; for a
+on. guitariqx reads them directly when it runs on that computer too; for a
 remote engine it needs an engine with JSON-RPC interface 1.2, which adds
 the `list_directory` and `get_file_places` methods (older engines can be
-used for everything else). `QT_HEAD_REMOTE_FILES=1` makes qt_head use the
+used for everything else). `GUITARIQX_REMOTE_FILES=1` makes guitariqx use the
 engine's listing even when the engine is local, for testing.
 
 The JSON-RPC port has no authentication: whoever can reach it can control
@@ -72,10 +75,10 @@ make it reachable from untrusted networks.
 
 ### Raspberry Pi
 
-qt_head runs under the desktop, or without one directly on the display:
+guitariqx runs under the desktop, or without one directly on the display:
 
 ```sh
-QT_QPA_PLATFORM=eglfs qt_head -f -p 7000
+QT_QPA_PLATFORM=eglfs guitariqx -f -p 7000
 ```
 
 Below 1100 px width (e.g. the official 7" 800x480 touch screen) the racks are
@@ -102,7 +105,7 @@ src/midimap.*     MIDI controller assignments and MIDI learn (Gx.midi)
 qml/              views and controls
 ```
 
-Notes on the protocol, as used by qt_head:
+Notes on the protocol, as used by guitariqx:
 
 - The server does not echo a `set` back to the connection it came from, so
   the client updates its own model when it sends a change.
@@ -136,7 +139,7 @@ Working:
   Factory banks are read only, their presets can be copied.
   Bank files: "Load bank file" (⋮ of the preset list) imports a `.gx`
   file as a new bank, "Save to file" (⋮ of a bank) writes a bank to a
-  `.gx` file; these files are on the computer qt_head runs on, also when
+  `.gx` file; these files are on the computer guitariqx runs on, also when
   the engine runs elsewhere
 - files: NAM and RTNeural models, convolver impulse responses and looper
   imports are chosen with a file chooser in KDE's single click style
@@ -151,7 +154,7 @@ Working:
   knobs, sliders, switches, selectors, meters and displays, file buttons
   from the signal handlers), else its stack layout (`UI_FORM_STACK`), else
   a generic panel built from the unit's parameters.
-  `QT_HEAD_FORM_STACK=1` uses the stack layouts, like
+  `GUITARIQX_FORM_STACK=1` uses the stack layouts, like
   `GUITARIX_FORM_STACK` for gx_head
 - main amplifier panel
 - tuner: full window, note, deviation needle, frequency, string tunings of
@@ -168,7 +171,7 @@ Working:
 Not yet:
 
 - gx_head's skins and images (the Glade layouts keep the arrangement, the
-  widgets are qt_head's), the oscilloscope, drum sequencer and IR wave
+  widgets are guitariqx's), the oscilloscope, drum sequencer and IR wave
   view, LV2/LADSPA plugin management
 
 The full list is in [TODO.md](TODO.md).

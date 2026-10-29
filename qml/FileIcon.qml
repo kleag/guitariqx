@@ -1,5 +1,5 @@
 import QtQuick
-import QtHead
+import Guitariqx
 
 // Folder or document icon, drawn (no icon theme or emoji font needed)
 Item {

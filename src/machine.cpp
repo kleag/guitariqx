@@ -108,7 +108,7 @@ void Machine::onConnected() {
     const QHostAddress peer = m_rpc.peerAddress();
     m_engineLocal = peer.isLoopback() || QNetworkInterface::allAddresses().contains(peer);
     // testing the remote file listing with a local engine
-    if (qEnvironmentVariableIntValue("QT_HEAD_REMOTE_FILES")) {
+    if (qEnvironmentVariableIntValue("GUITARIQX_REMOTE_FILES")) {
         m_engineLocal = false;
     }
     emit connectedChanged();
@@ -378,8 +378,8 @@ QVariantMap Machine::unitUi(const QString& id) {
     }
     m_unitUiPending.insert(id);
     // like gx_head: the Glade layout when the unit has one, else the stack
-    // layout (QT_HEAD_FORM_STACK=1 forces it, like GUITARIX_FORM_STACK)
-    const bool glade = !qEnvironmentVariableIntValue("QT_HEAD_FORM_STACK");
+    // layout (GUITARIQX_FORM_STACK=1 forces it, like GUITARIX_FORM_STACK)
+    const bool glade = !qEnvironmentVariableIntValue("GUITARIQX_FORM_STACK");
     m_rpc.call(QStringLiteral("plugin_load_ui"), {id, glade ? UI_FORM_GLADE | UI_FORM_STACK : UI_FORM_STACK},
                [this, id](const QJsonValue& r) {
         const QJsonArray ops = r.toArray();

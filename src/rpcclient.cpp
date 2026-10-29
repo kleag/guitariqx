@@ -142,7 +142,7 @@ void RpcClient::handleLine(const QByteArray& line) {
     QJsonParseError err;
     QJsonDocument doc = QJsonDocument::fromJson(line, &err);
     if (!doc.isObject()) {
-        qWarning() << "qt_head: bad JSON from server:" << err.errorString() << line.left(200);
+        qWarning() << "guitariqx: bad JSON from server:" << err.errorString() << line.left(200);
         return;
     }
     const QJsonObject msg = doc.object();
@@ -159,7 +159,7 @@ void RpcClient::handleLine(const QByteArray& line) {
         const QString text = QStringLiteral("RPC error %1: %2")
             .arg(e.value(QStringLiteral("code")).toInt())
             .arg(e.value(QStringLiteral("message")).toString());
-        qWarning() << "qt_head:" << text;
+        qWarning() << "guitariqx:" << text;
         emit errorOccurred(text);
     }
     auto it = m_pending.find(id);

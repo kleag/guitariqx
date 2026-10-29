@@ -1,5 +1,5 @@
 import QtQuick
-import QtHead
+import Guitariqx
 
 // Rotary control for a float or int parameter.
 // Drag vertically (hold Shift for fine steps), use the mouse wheel;

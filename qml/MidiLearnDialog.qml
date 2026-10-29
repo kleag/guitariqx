@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import QtHead
+import Guitariqx
 
 // Assign a MIDI controller to a parameter (gx_head: MidiConnect).
 // Opened while Gx.midi.learning; move a controller or type its number.

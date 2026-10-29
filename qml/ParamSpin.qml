@@ -1,6 +1,6 @@
 import QtQuick
 import QtQuick.Controls
-import QtHead
+import Guitariqx
 
 // Numeric entry for a float or int parameter
 Item {

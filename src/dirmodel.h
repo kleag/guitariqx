@@ -24,7 +24,7 @@
 /*
  * Directory listing for the file chooser.
  *
- * Files are chosen on the computer the engine runs on. When qt_head runs
+ * Files are chosen on the computer the engine runs on. When guitariqx runs
  * there too the directory is read locally, otherwise the engine lists it
  * (list_directory RPC, see Machine::remoteFiles()).
  */

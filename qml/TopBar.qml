@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.Material
 import QtQuick.Layouts
-import QtHead
+import Guitariqx
 
 // Preset navigation, engine state and output level
 Rectangle {

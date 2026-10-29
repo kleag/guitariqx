@@ -1,5 +1,5 @@
 import QtQuick
-import QtHead
+import Guitariqx
 
 // Overlay that makes a control MIDI learnable: in MIDI learn mode a tap
 // opens the learn dialog for the parameter, otherwise a right click does.

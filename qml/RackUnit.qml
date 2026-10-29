@@ -1,6 +1,6 @@
 import QtQuick
 import QtQuick.Controls
-import QtHead
+import Guitariqx
 
 // One effect unit in the rack: header with power switch, name and unit
 // actions, body with the controls of the unit layout

@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import QtHead
+import Guitariqx
 
 // Preset banks with their presets; tap a preset to load it. The toolbar
 // saves the current settings; the ⋮ buttons of banks and presets edit them.

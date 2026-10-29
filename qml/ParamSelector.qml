@@ -1,6 +1,6 @@
 import QtQuick
 import QtQuick.Controls
-import QtHead
+import Guitariqx
 
 // Combo box for an enum parameter
 Item {

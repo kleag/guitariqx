@@ -34,7 +34,7 @@ class QQmlEngine;
 class QJSEngine;
 
 /*
- * Engine proxy for the QML UI: the qt_head counterpart of
+ * Engine proxy for the QML UI: the guitariqx counterpart of
  * GxMachineRemote in src/gx_head/gui/machine.cpp.
  *
  * Exposed to QML as the singleton "Gx".

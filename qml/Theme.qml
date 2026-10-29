@@ -1,7 +1,7 @@
 pragma Singleton
 import QtQuick
 
-// Colors and sizes shared by all qt_head views
+// Colors and sizes shared by all guitariqx views
 QtObject {
     readonly property color background: "#17171a"
     readonly property color panel: "#232328"

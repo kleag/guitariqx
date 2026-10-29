@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import QtHead
+import Guitariqx
 
 // Shows the file a unit uses and chooses another one: a model of the
 // neural amp units, a looper track, or the impulse response of a

@@ -1,6 +1,6 @@
 import QtQuick
 import QtQuick.Controls
-import QtHead
+import Guitariqx
 
 // Horizontal slider for a float parameter; vertical for eq bands
 Item {

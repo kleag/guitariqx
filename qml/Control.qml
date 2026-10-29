@@ -1,5 +1,5 @@
 import QtQuick
-import QtHead
+import Guitariqx
 
 // A leaf of a rack unit layout (see uitree.h): picks the widget for the
 // control type and binds it to the parameter

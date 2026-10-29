@@ -25,9 +25,9 @@
 
 int main(int argc, char *argv[]) {
     QGuiApplication app(argc, argv);
-    QGuiApplication::setApplicationName(QStringLiteral("qt_head"));
+    QGuiApplication::setApplicationName(QStringLiteral("guitariqx"));
     QGuiApplication::setOrganizationName(QStringLiteral("guitarix"));
-    QGuiApplication::setApplicationVersion(QStringLiteral(QT_HEAD_VERSION));
+    QGuiApplication::setApplicationVersion(QStringLiteral(GUITARIQX_VERSION));
 
     QCommandLineParser parser;
     parser.setApplicationDescription(QStringLiteral(
@@ -97,10 +97,10 @@ int main(int argc, char *argv[]) {
     }
 
     QQmlApplicationEngine engine;
-    // the QtHead module (and its qmldir declaring the Theme singleton) is
-    // embedded at qrc:/QtHead/, which is not a default import path. In the
+    // the Guitariqx module (and its qmldir declaring the Theme singleton) is
+    // embedded at qrc:/Guitariqx/, which is not a default import path. In the
     // build directory the qmldir next to the binary hides this, but an
-    // installed qt_head would otherwise not find Theme.
+    // installed guitariqx would otherwise not find Theme.
     engine.addImportPath(QStringLiteral("qrc:/"));
     QSize size(1280, 800);
     const QStringList wh = parser.value(sizeOpt).split(QLatin1Char('x'));
@@ -115,7 +115,7 @@ int main(int argc, char *argv[]) {
         {QStringLiteral("height"), size.height()},
     });
     // QQmlApplicationEngine::loadFromModule needs Qt 6.5
-    engine.load(QUrl(QStringLiteral("qrc:/QtHead/qml/Main.qml")));
+    engine.load(QUrl(QStringLiteral("qrc:/Guitariqx/qml/Main.qml")));
     if (engine.rootObjects().isEmpty()) {
         return 1;
     }

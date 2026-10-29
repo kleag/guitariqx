@@ -1,4 +1,4 @@
-# qt_head TODO
+# guitariqx TODO
 
 Roughly in order of importance for live use. See README.md for what works.
 
@@ -18,7 +18,7 @@ Roughly in order of importance for live use. See README.md for what works.
       (convert_preset), online presets (musical-artifacts.com) like gx_head
 - [x] File chooser (KDE style single click) for NAM and RTNeural models,
       convolver impulse responses and looper imports
-- [ ] Check that a model chosen in qt_head is heard (the engine receives
+- [ ] Check that a model chosen in guitariqx is heard (the engine receives
       the same loadpath/flist sequence as from gx_head, the audio was not
       tested)
 - [x] Remote file choosing when the engine runs on another computer
@@ -32,7 +32,7 @@ Roughly in order of importance for live use. See README.md for what works.
       only when the folder changes: a model beyond that, or added since,
       is refused with "the engine does not list ..."
 - [ ] IR editing of the convolvers (offset, length, delay, gain line, like
-      gx_head's IR window); qt_head loads the whole file with normalized gain
+      gx_head's IR window); guitariqx loads the whole file with normalized gain
 
 ## Rack and plugin panels
 
@@ -66,19 +66,19 @@ Roughly in order of importance for live use. See README.md for what works.
 ## Engine side (needs changes in gx_head/engine)
 
 - `get_last_midi_control_value` returns invalid JSON (an object without a
-  key, jsonrpc.cpp); qt_head does not call it
+  key, jsonrpc.cpp); guitariqx does not call it
 - `get_updates`, `midi_modifyCurrent` and `midi_deleteParameter` crash the
   engine for unknown parameter ids (`ParamMap::operator[]` does not check);
-  qt_head only sends known ids
+  guitariqx only sends known ids
 - The server's JSON parser has no `true`/`false` tokens
 - `tools/check_rpc` is still Python 2 and does not run
 - The bank and preset procedures (erase_preset, reorder_preset, pf_append,
   rename_preset, ...) crash the engine for unknown bank names
   (`banks.get_file()` is not checked); `rename_preset` accepts an existing
-  name, and a later `reorder_preset` then aborts the engine. qt_head checks
+  name, and a later `reorder_preset` then aborts the engine. guitariqx checks
   names against a fresh bank list and serializes edits
 - The RTNeural stack layout names its file parameter `rtneuralloadfile`
-  instead of `rtneural.loadfile` (qt_head fixes the id, gx_head shows no
+  instead of `rtneural.loadfile` (guitariqx fixes the id, gx_head shows no
   file button in the stack layout)
 - Preset and bank edits are not broadcast (only `bank_insert_new` sends
   `presetlist_changed`), nor are the changes of the current preset they

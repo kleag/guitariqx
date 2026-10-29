@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import QtHead
+import Guitariqx
 
 // All MIDI controller assignments (gx_head: MidiControllerTable)
 Dialog {

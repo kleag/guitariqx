@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import QtHead
+import Guitariqx
 
 // "Save as" (current settings) and "Copy to bank" (an existing preset):
 // choose a writable bank, or create one, and a name

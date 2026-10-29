@@ -26,7 +26,7 @@ class Machine;
 class RpcClient;
 
 /*
- * MIDI controller assignments and MIDI learn, the qt_head counterpart of
+ * MIDI controller assignments and MIDI learn, the guitariqx counterpart of
  * gx_main_midi::MidiConnect and MidiControllerTable in gx_head.
  *
  * Learning follows the gx_head protocol: the engine is put in config mode

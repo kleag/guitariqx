@@ -12,7 +12,7 @@
  * GNU General Public License for more details.
  */
 
-// Loading and saving bank files (.gx) of the computer qt_head runs on.
+// Loading and saving bank files (.gx) of the computer guitariqx runs on.
 // Like GxMachineRemote in gx_head, the contents travel over the
 // connection, so this works with an engine on another computer.
 

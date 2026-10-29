@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import QtHead
+import Guitariqx
 
 // File chooser in the spirit of KDE's single click mode: one click on a
 // folder opens it, one click on a file chooses it. Places on the left,

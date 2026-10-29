@@ -1,5 +1,5 @@
 import QtQuick
-import QtHead
+import Guitariqx
 
 // Level meter for an output parameter. The engine is polled for the
 // value while the meter exists. Levels are shown on a dB scale.

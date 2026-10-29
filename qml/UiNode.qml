@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import QtHead
+import Guitariqx
 
 // Renders a layout tree node (see uitree.h) recursively. Child boxes are
 // created through a Loader because a component cannot contain itself.

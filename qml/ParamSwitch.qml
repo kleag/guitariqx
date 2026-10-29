@@ -1,5 +1,5 @@
 import QtQuick
-import QtHead
+import Guitariqx
 
 // On/off switch for a bool parameter, drawn as a pedal style LED button
 Item {

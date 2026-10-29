@@ -1,6 +1,6 @@
 import QtQuick
 import QtQuick.Controls
-import QtHead
+import Guitariqx
 
 // Main amplifier controls ("ampstack" has no UiBuilder layout, gx_head
 // builds it from ampbox.glade)
