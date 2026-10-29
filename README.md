@@ -75,7 +75,7 @@ tablet. Options:
 | `--size WxH` | initial window size (default: the size, or maximized state, of the last session, else 1280x800) |
 | `--dump` | print connection, preset and rack changes on the terminal |
 | `--screenshot FILE` | save a screenshot after `--screenshot-delay` ms and quit (testing) |
-| `--debug-state LIST` | testing without instrument or MIDI device: `tuner:HZ`, `learnmode`, `learn:PARAM`, `midimap`, `saveas`, `files:UNIT` |
+| `--debug-state LIST` | testing without instrument or MIDI device: `tuner:HZ`, `switcher[:STATE]`, `learnmode`, `learn:PARAM`, `midimap`, `saveas`, `files:UNIT` |
 
 The connection indicator at the right of the top bar opens the connect
 dialog. guitariqx reconnects automatically when the engine restarts.
@@ -188,6 +188,9 @@ Working:
   gx_head, temperaments, reference pitch, mute while tuning. It follows the
   engine parameter `system.show_tuner`, so a MIDI foot switch assigned to
   the Tuner button opens and closes it
+- preset by note (gx_head's Liveplay preset mode): from the menu or a MIDI
+  foot switch, the engine mutes the output and the note played selects a
+  bank or preset, shown full window with the notes to play
 - MIDI learn: the MIDI button switches learn mode on, then a tap on any
   control (knobs, sliders, switches, selectors, unit power, preset
   previous/next, bypass, mute, tuner) opens the learn dialog; right click

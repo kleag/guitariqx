@@ -50,6 +50,12 @@ in the guitarix sources, which `guitarix -G` uses too. Notes:
 - The tuner reports the frequency in `tuner_changed` notifications once
   `tuner_used_for_display` is on; note names, cents and strings are computed
   by the client from the reference pitch and temperament parameters.
+- The tuner switcher (preset by note) runs in the engine: a controller on
+  `ui.live_play_switcher` or `tuner_switcher_toggle [tuner shown]` starts
+  it; the client shows `set_display_state`, `display_bank_preset` and
+  `show_tuner` ("display" and "tuner" listen tokens). The note is
+  `12 log2(f/440)` whatever the reference pitch: A2..A#3 select banks from
+  the last one, B3..E5 presets 1..18.
 - `midi_modifyCurrent` only works in MIDI config mode, which must be left
   again with `midi_set_config_mode`; `midi_changed` carries the whole map.
 - `midi_value_changed [ctl, value]` is sent every 60 ms for the controllers
@@ -109,6 +115,7 @@ MIDI device or clicks (comma separated):
 | state | |
 |---|---|
 | `tuner:HZ` | the tuner, showing the frequency HZ |
+| `switcher[:STATE]` | preset by note, in the switcher state STATE (`listening` by default, `wait_start`, `wait_stop`) |
 | `learnmode` | MIDI learn mode |
 | `learn:PARAM` | the MIDI learn dialog of a parameter |
 | `midimap` | the MIDI controllers dialog |

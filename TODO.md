@@ -8,6 +8,9 @@ Roughly in order of importance for live use. See README.md for what works.
       `QT_QPA_PLATFORM=eglfs`), check CPU use of the UI while playing
 - [ ] Test the tuner with a real instrument (only tested with simulated
       frequencies: `--debug-state tuner:HZ`) and tune the needle smoothing
+- [ ] Test preset by note with a guitar and a foot switch (only simulated:
+      `--debug-state switcher`, FakeEngine; the note mapping comes from
+      tunerswitcher.cpp)
 - [ ] Test MIDI learn with real hardware (tested by setting the controller
       number from a second connection, which is what the engine does when a
       controller moves)
@@ -52,8 +55,8 @@ Roughly in order of importance for live use. See README.md for what works.
 
 ## Tuner
 
-- [ ] Tuner switcher (MIDI controlled tuner and preset display,
-      tuner_switcher_* RPC, "display" and "tuner" listen tokens)
+- [x] Tuner switcher (preset by note: tuner_switcher_* RPC, "display" and
+      "tuner" listen tokens)
 - [x] Switch the engine's tuner off when the UI quits while the tuner is shown
       (the server does not do it when a connection closes); quitting also
       unmutes the engine and leaves MIDI config mode

@@ -46,6 +46,8 @@ void TestUi::states_data() {
     QTest::newRow("main-small") << QString() << QStringLiteral("800x480") << 2 << false;
     QTest::newRow("tuner") << QStringLiteral("tuner:108") << QStringLiteral("1280x800") << 2 << false;
     QTest::newRow("tuner-small") << QStringLiteral("tuner:330") << QStringLiteral("800x480") << 2 << false;
+    QTest::newRow("switcher") << QStringLiteral("switcher") << QStringLiteral("1280x800") << 2 << false;
+    QTest::newRow("switcher-small") << QStringLiteral("switcher:wait_stop") << QStringLiteral("800x480") << 2 << false;
     QTest::newRow("learnmode") << QStringLiteral("learnmode") << QStringLiteral("1280x800") << 2 << false;
     QTest::newRow("learn") << QStringLiteral("learn:fumaster.Level") << QStringLiteral("1280x800") << 2 << false;
     QTest::newRow("learn-switch") << QStringLiteral("learn:fumaster.on_off") << QStringLiteral("800x480") << 2 << false;

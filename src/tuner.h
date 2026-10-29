@@ -30,6 +30,14 @@ class RpcClient;
  * deviation and target string are computed here from the reference pitch
  * (ui.tuner_reference_pitch), the temperament (racktuner.temperament) and
  * the tuning (racktuner.tuning) parameters.
+ *
+ * It also shows the engine's tuner switcher (gx_head's Liveplay preset
+ * mode): started by tuner_switcher_toggle or a MIDI controller assigned to
+ * ui.live_play_switcher, the engine mutes the output and selects a bank
+ * or preset from the note played (TunerSwitcher in tunerswitcher.cpp).
+ * The engine reports its state (set_display_state), the selection
+ * (display_bank_preset) and whether the tuner is wanted at the end
+ * (show_tuner).
  */
 class Tuner : public QObject {
     Q_OBJECT
@@ -49,6 +57,14 @@ class Tuner : public QObject {
     // stop the engine while the tuner is active and restore its state
     // afterwards (UI option, kept in QSettings)
     Q_PROPERTY(bool muteWhileTuning READ muteWhileTuning WRITE setMuteWhileTuning NOTIFY muteWhileTuningChanged)
+    // normal_mode, wait_start (until no note is heard), listening, wait_stop
+    // (a selection is shown, loaded when the note stops)
+    Q_PROPERTY(QString switcherState READ switcherState NOTIFY switcherChanged)
+    Q_PROPERTY(bool switcherActive READ switcherActive NOTIFY switcherChanged)
+    // selection shown by the engine; the preset may be a number or an
+    // action (MUTE, BYPASS, TUNER ON...) with an empty bank
+    Q_PROPERTY(QString switcherBank READ switcherBank NOTIFY switcherChanged)
+    Q_PROPERTY(QString switcherPreset READ switcherPreset NOTIFY switcherChanged)
 public:
     Tuner(Machine& machine, RpcClient& rpc, QObject *parent = nullptr);
 
@@ -64,11 +80,29 @@ public:
     int stringIndex() const { return m_stringIndex; }
     bool muteWhileTuning() const { return m_muteWhileTuning; }
     void setMuteWhileTuning(bool on);
+    QString switcherState() const { return m_switcherState; }
+    bool switcherActive() const { return m_switcherState != QLatin1String("normal_mode"); }
+    QString switcherBank() const { return m_switcherBank; }
+    QString switcherPreset() const { return m_switcherPreset; }
+
+    // starts the switcher, or stops it (without loading), or closes the
+    // tuner if it is shown: what a MIDI controller assigned to
+    // ui.live_play_switcher does
+    Q_INVOKABLE void toggleSwitcher();
+    Q_INVOKABLE void cancelSwitcher();
+    // notes selecting a bank: [{note: "A2", bank: name}, ...]
+    Q_INVOKABLE QVariantList switcherBankKeys() const;
+    // notes selecting a preset of a bank: [{note: "B3", preset: name}, ...]
+    Q_INVOKABLE QVariantList switcherPresetKeys(const QString& bank) const;
+    // note name of a switcher note (semitones from A4)
+    Q_INVOKABLE static QString switcherNoteName(int note);
 
     // called by the Machine
     void engineReady();
     void engineLost();
     void tunerChanged(const QJsonArray& params);
+    // set_display_state, display_bank_preset and show_tuner notifications
+    void switcherNotification(const QString& method, const QJsonArray& params);
 
     // for tests: compute the display for a frequency
     void setFrequency(double freq);
@@ -80,6 +114,7 @@ signals:
     void pitchChanged();
     void stringsChanged();
     void muteWhileTuningChanged();
+    void switcherChanged();
 
 private:
     void connectParameters();
@@ -107,4 +142,7 @@ private:
     bool m_muteWhileTuning = true;
     // engine state to restore, empty when not muted by the tuner
     QString m_savedState;
+    QString m_switcherState = QStringLiteral("normal_mode");
+    QString m_switcherBank;
+    QString m_switcherPreset;
 };

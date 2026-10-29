@@ -193,6 +193,22 @@ void FakeEngine::notifyClients(const QString& method, const QJsonArray& params) 
     }
 }
 
+void FakeEngine::setState(const QString& state) {
+    m_fixture.insert(QStringLiteral("getstate"), state);
+    notifyClients(QStringLiteral("state_changed"), {state});
+}
+
+void FakeEngine::finishSwitcher(bool tuner) {
+    m_switcher = false;
+    notifyClients(QStringLiteral("set_display_state"), {QStringLiteral("normal_mode")});
+    QString state = m_switcherOldState;
+    if (tuner && state == QLatin1String("running")) {
+        state = QStringLiteral("bypassed");
+    }
+    setState(state);
+    notifyClients(QStringLiteral("show_tuner"), {tuner ? 1 : 0});
+}
+
 void FakeEngine::violation(const QString& text) {
     qWarning("FakeEngine: %s", qPrintable(text));
     m_violations.append(text);
@@ -289,14 +305,43 @@ QJsonValue FakeEngine::dispatch(QTcpSocket *s, const QString& method, const QJso
         return fixture("getstate");
     }
     if (method == QLatin1String("setstate")) {
-        m_fixture.insert(QStringLiteral("getstate"), p0);
-        notifyClients(QStringLiteral("state_changed"), {p0});
+        setState(p0);
         return {};
     }
     if (method == QLatin1String("jack_cpu_load")) {
         return 12.5;
     }
     if (method == QLatin1String("tuner_used_for_display")) {
+        return {};
+    }
+    // TunerSwitcher (tunerswitcher.cpp)
+    if (method == QLatin1String("get_tuner_switcher_active")) {
+        return m_switcher ? 1 : 0;
+    }
+    if (method == QLatin1String("tuner_switcher_activate")
+        || (method == QLatin1String("tuner_switcher_toggle") && !m_switcher && params.at(0).toInt() == 0)) {
+        if (!m_switcher) {
+            m_switcher = true;
+            m_switcherOldState = fixture("getstate").toString();
+            m_switcherOldTuner = params.at(0).toInt() != 0;
+            notifyClients(QStringLiteral("set_display_state"), {QStringLiteral("wait_start")});
+            setState(QStringLiteral("stopped"));
+        }
+        return {};
+    }
+    if (method == QLatin1String("tuner_switcher_deactivate")
+        || (method == QLatin1String("tuner_switcher_toggle") && m_switcher)) {
+        if (m_switcher) {
+            finishSwitcher(m_switcherOldTuner);
+        }
+        return {};
+    }
+    if (method == QLatin1String("tuner_switcher_toggle")) {
+        // the tuner is shown: close it
+        if (fixture("getstate").toString() == QLatin1String("bypassed")) {
+            setState(QStringLiteral("running"));
+        }
+        notifyClients(QStringLiteral("show_tuner"), {0});
         return {};
     }
 

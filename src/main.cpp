@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
                                QStringLiteral("Print engine state on the terminal (debugging)."));
     QCommandLineOption debugOpt(QStringLiteral("debug-state"),
                                 QStringLiteral("Comma separated UI states for testing without instrument or "
-                                               "MIDI device: tuner:HZ, learnmode, learn:PARAM, midimap, saveas, files:UNIT (open the file chooser of UNIT), bankload, banksave:BANK."),
+                                               "MIDI device: tuner:HZ, switcher[:STATE], learnmode, learn:PARAM, midimap, saveas, files:UNIT (open the file chooser of UNIT), bankload, banksave:BANK."),
                                 QStringLiteral("states"));
     parser.addOptions({hostOpt, portOpt, fullOpt, shotOpt, delayOpt, sizeOpt, dumpOpt, debugOpt});
     parser.process(app);
@@ -167,6 +167,10 @@ int main(int argc, char *argv[]) {
                     QTimer::singleShot(500, &machine, [&machine, arg]() {
                         machine.tuner()->setFrequency(arg.toDouble());
                     });
+                } else if (st == QLatin1String("switcher") || st.startsWith(QLatin1String("switcher:"))) {
+                    // the switcher as the engine shows it
+                    machine.tuner()->switcherNotification(QStringLiteral("set_display_state"),
+                                                          {arg.isEmpty() ? QStringLiteral("listening") : arg});
                 } else if (st == QLatin1String("learnmode")) {
                     machine.midi()->setLearnMode(true);
                 } else if (st.startsWith(QLatin1String("learn:"))) {

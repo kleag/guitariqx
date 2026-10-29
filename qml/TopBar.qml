@@ -129,6 +129,12 @@ Rectangle {
                 id: menu
                 y: parent.height
                 MenuItem {
+                    text: qsTr("Preset by note ...")
+                    enabled: Gx.ready
+                    onTriggered: Gx.tuner.toggleSwitcher()
+                    MidiLearnArea { paramId: "ui.live_play_switcher" }
+                }
+                MenuItem {
                     text: qsTr("MIDI controllers ...")
                     enabled: Gx.ready
                     onTriggered: root.midiMapRequested()

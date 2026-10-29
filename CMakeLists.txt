@@ -80,6 +80,7 @@ qt_add_qml_module(guitariqx
         qml/MidiLearnDialog.qml
         qml/MidiMapDialog.qml
         qml/MidiValueBar.qml
+        qml/SwitcherView.qml
         qml/TunerView.qml
         qml/TextInputDialog.qml
         qml/ConfirmDialog.qml

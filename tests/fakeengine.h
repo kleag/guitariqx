@@ -69,6 +69,10 @@ public:
     QStringList rack(bool stereo) const { return m_rack[stereo ? 1 : 0]; }
     bool midiConfigMode() const { return m_midiConfig; }
     bool midiFeedback() const { return m_midiFeedback; }
+    bool switcherActive() const { return m_switcher; }
+    // the switcher ends as when a note was played: tuner selected or not
+    // (TunerSwitcher::deactivate)
+    void finishSwitcher(bool tuner);
     // files listed by list_directory, path -> entries [name, is_dir, size, mtime]
     void setDirectory(const QString& path, const QJsonArray& entries) { m_dirs.insert(path, entries); }
 
@@ -109,6 +113,10 @@ private:
     bool m_midiConfig = false;
     int m_midiControl = -1;
     bool m_midiFeedback = false;
+    void setState(const QString& state);
+    bool m_switcher = false;
+    QString m_switcherOldState;
+    bool m_switcherOldTuner = false;
     QList<Message> m_received;
     QStringList m_violations;
 };

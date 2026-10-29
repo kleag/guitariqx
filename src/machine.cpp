@@ -39,11 +39,11 @@ const int PGN_GUI = 0x0008;
 const int PGN_FIXED_GUI = 0x0800;
 
 // notification classes requested with "listen" (token_range in
-// jsonrpc.cpp); "display" and "tuner" are only used by the tuner
-// switcher (MIDI controlled tuner display), which is not supported yet
+// jsonrpc.cpp); "display" and "tuner" carry the tuner switcher's
+// notifications
 const char *listenTokens[] = {
     "preset", "state", "param", "plugins_changed", "presetlist_changed",
-    "logger", "units_changed", "misc", "freq", "midi",
+    "logger", "units_changed", "misc", "freq", "midi", "display", "tuner",
 };
 
 } // anonymous namespace
@@ -324,6 +324,9 @@ void Machine::onNotification(const QString& method, const QJsonArray& params) {
         emit rackChanged();
     } else if (method == QLatin1String("tuner_changed")) {
         m_tuner.tunerChanged(params);
+    } else if (method == QLatin1String("set_display_state") || method == QLatin1String("display_bank_preset")
+               || method == QLatin1String("show_tuner")) {
+        m_tuner.switcherNotification(method, params);
     } else if (method == QLatin1String("midi_changed")) {
         m_midi.midiChanged(params);
     } else if (method == QLatin1String("midi_value_changed")) {

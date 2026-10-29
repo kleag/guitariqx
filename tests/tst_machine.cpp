@@ -65,6 +65,10 @@ private slots:
     void tunerMuteIsSaved();
     void tunerMutesEngine();
     void shutdownRestoresEngine();
+    void switcherDisplay();
+    void switcherTunerRoundTrip_data();
+    void switcherTunerRoundTrip();
+    void switcherKeys();
 
     void filePlacesOldEngine();
     void filePlacesRemote();
@@ -722,6 +726,103 @@ void TestMachine::shutdownRestoresEngine() {
     QTRY_VERIFY(!m_engine->midiConfigMode());
     QTRY_COMPARE(m_engine->received(QStringLiteral("setstate")).last().params, QJsonArray{QStringLiteral("running")});
     QCOMPARE(m_engine->received(QStringLiteral("tuner_used_for_display")).last().params, QJsonArray{0});
+}
+
+void TestMachine::switcherDisplay() {
+    start();
+    Machine& m = *m_machine;
+    Tuner *t = m.tuner();
+    QVERIFY(!t->switcherActive());
+    m.setEngineState(QStringLiteral("running"));
+    QTRY_COMPARE(m.engineState(), QStringLiteral("running"));
+    QSignalSpy changed(t, &Tuner::switcherChanged);
+    t->toggleSwitcher();
+    QTRY_COMPARE(t->switcherState(), QStringLiteral("wait_start"));
+    QVERIFY(t->switcherActive());
+    QCOMPARE(m_engine->received(QStringLiteral("tuner_switcher_toggle")).at(0).params, QJsonArray{0});
+    // the current preset until a note selects another one
+    QCOMPARE(t->switcherBank(), m.currentBank());
+    QCOMPARE(t->switcherPreset(), m.currentPreset());
+    QTRY_COMPARE(m.engineState(), QStringLiteral("stopped"));
+    m_engine->notifyClients(QStringLiteral("set_display_state"), {QStringLiteral("listening")});
+    m_engine->notifyClients(QStringLiteral("display_bank_preset"), {QStringLiteral("Scratchpad"), QStringLiteral("p2")});
+    QTRY_COMPARE(t->switcherPreset(), QStringLiteral("p2"));
+    QCOMPARE(t->switcherBank(), QStringLiteral("Scratchpad"));
+    QCOMPARE(t->switcherState(), QStringLiteral("listening"));
+    // cancelled: nothing loaded, engine state back
+    t->cancelSwitcher();
+    QTRY_VERIFY(!t->switcherActive());
+    QTRY_COMPARE(m.engineState(), QStringLiteral("running"));
+    QVERIFY(!m.param(QStringLiteral("system.show_tuner"))->value().toBool());
+
+    // started before the connection, e.g. by a MIDI controller
+    t->toggleSwitcher();
+    QTRY_VERIFY(m_engine->switcherActive());
+    m_machine.reset();
+    Machine::setInstance(nullptr);
+    m_machine = std::make_unique<Machine>(nullptr);
+    Machine::setInstance(m_machine.get());
+    m_machine->connectTo(QStringLiteral("127.0.0.1"), m_engine->port());
+    QTRY_VERIFY(m_machine->ready());
+    QTRY_VERIFY(m_machine->tuner()->switcherActive());
+    m_machine->tuner()->cancelSwitcher();
+    QTRY_VERIFY(!m_machine->tuner()->switcherActive());
+}
+
+void TestMachine::switcherTunerRoundTrip_data() {
+    QTest::addColumn<bool>("mute");
+    QTest::newRow("mute while tuning") << true;
+    QTest::newRow("no mute") << false;
+}
+
+// a note selects the tuner, the switcher closes it again: the engine ends
+// running, as in gx_head
+void TestMachine::switcherTunerRoundTrip() {
+    QFETCH(bool, mute);
+    start();
+    Machine& m = *m_machine;
+    Tuner *t = m.tuner();
+    t->setMuteWhileTuning(mute);
+    // what TunerView does
+    Parameter *show = m.param(QStringLiteral("system.show_tuner"));
+    connect(show, &Parameter::valueChanged, t, [t, show]() { t->setActive(show->value().toBool()); });
+    m.setEngineState(QStringLiteral("running"));
+    QTRY_COMPARE(m.engineState(), QStringLiteral("running"));
+
+    t->toggleSwitcher();
+    QTRY_VERIFY(m_engine->switcherActive());
+    m_engine->finishSwitcher(true);
+    QTRY_VERIFY(t->active());
+    QVERIFY(!t->switcherActive());
+    QTRY_COMPARE(m.engineState(), mute ? QStringLiteral("stopped") : QStringLiteral("bypassed"));
+
+    t->toggleSwitcher();
+    QTRY_VERIFY(!t->active());
+    QCOMPARE(m_engine->received(QStringLiteral("tuner_switcher_toggle")).last().params, QJsonArray{1});
+    QTRY_COMPARE(m.engineState(), QStringLiteral("running"));
+    QTest::qWait(100);
+    QCOMPARE(m.engineState(), QStringLiteral("running"));
+}
+
+void TestMachine::switcherKeys() {
+    start();
+    Machine& m = *m_machine;
+    Tuner *t = m.tuner();
+    QCOMPARE(Tuner::switcherNoteName(0), QStringLiteral("A4"));
+    QCOMPARE(Tuner::switcherNoteName(-24), QStringLiteral("A2"));
+    QCOMPARE(Tuner::switcherNoteName(-10), QStringLiteral("B3"));
+    QCOMPARE(Tuner::switcherNoteName(7), QStringLiteral("E5"));
+    // banks from the last one
+    const QVariantList banks = t->switcherBankKeys();
+    QCOMPARE(banks.size(), std::min<qsizetype>(14, m.banks().size()));
+    QCOMPARE(banks.at(0).toMap().value(QStringLiteral("note")).toString(), QStringLiteral("A2"));
+    QCOMPARE(banks.at(0).toMap().value(QStringLiteral("bank")), m.banks().last().toMap().value(QStringLiteral("name")));
+    const QVariantList presets = t->switcherPresetKeys(m.currentBank());
+    const QStringList names = bankPresets(m.currentBank());
+    QCOMPARE(presets.size(), std::min<qsizetype>(18, names.size()));
+    QCOMPARE(presets.at(0).toMap().value(QStringLiteral("note")).toString(), QStringLiteral("B3"));
+    QCOMPARE(presets.at(0).toMap().value(QStringLiteral("preset")).toString(), names.at(0));
+    QVERIFY(t->switcherPresetKeys(QStringLiteral("no such bank")).isEmpty());
 }
 
 void TestMachine::filePlacesOldEngine() {

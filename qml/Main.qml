@@ -122,6 +122,7 @@ ApplicationWindow {
     }
 
     TunerView {}
+    SwitcherView {}
 
     MidiMapDialog {
         id: midiMapDialog

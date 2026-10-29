@@ -107,6 +107,28 @@ switch assigned to the Tuner button opens and closes it. Mute while tuning
 stops the engine while the tuner is shown and restores its state when the
 tuner closes, or when guitariqx quits with the tuner open.
 
+## Preset by note
+
+gx_head's Liveplay preset mode: **Preset by note ...** in the menu, or a
+MIDI foot switch assigned to it (in learn mode, tap the menu entry), mutes
+the output and lets the note played on the guitar choose what to load. Mute
+the strings first, then play:
+
+| notes | |
+|---|---|
+| A2 to A#3 | a bank, starting from the last one |
+| B3 to E5 | preset 1 to 18 of the bank |
+| G2 / G#2 | bypass / mute (or back on) |
+| below G2, F5 to A#6 | the tuner |
+
+The selection is loaded when the note stops. The view lists which note
+selects which bank and preset. Pressing the foot switch again, or Cancel,
+leaves without loading anything; with the tuner shown, the foot switch
+closes it. The engine does the selection, so the foot switch works without
+any UI too.
+
+![Preset by note](images/switcher.png)
+
 ## MIDI learn
 
 The **MIDI** button switches learn mode on: a tap on any control (knobs,

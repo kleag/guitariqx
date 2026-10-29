@@ -23,6 +23,12 @@ namespace {
 
 const char muteKey[] = "tuner/muteWhileTuning";
 
+// switcher notes, in semitones from A4 (TunerSwitcher::on_note_timeout)
+const int bankNoteFirst = -24;    // A2 .. A#3: banks, from the last one
+const int bankNoteCount = 14;
+const int presetNoteFirst = -10;  // B3 .. E5: presets 1 .. 18
+const int presetNoteCount = 18;
+
 // divisions of the octave for the values of racktuner.temperament
 const int temperaments[] = {12, 19, 24, 31, 41, 53};
 
@@ -160,9 +166,94 @@ void Tuner::engineReady() {
     if (m_active) {
         m_rpc.notify(QStringLiteral("tuner_used_for_display"), {1});
     }
+    // the switcher may have been started before (e.g. by a MIDI controller)
+    m_rpc.call(QStringLiteral("get_tuner_switcher_active"), {}, [this](const QJsonValue& r) {
+        if (r.toInt() != 0 && !switcherActive()) {
+            m_switcherState = QStringLiteral("listening");
+            m_switcherBank = m_machine.currentBank();
+            m_switcherPreset = m_machine.currentPreset();
+            emit switcherChanged();
+        }
+    });
+}
+
+void Tuner::toggleSwitcher() {
+    m_rpc.notify(QStringLiteral("tuner_switcher_toggle"), {m_active ? 1 : 0});
+}
+
+void Tuner::cancelSwitcher() {
+    m_rpc.notify(QStringLiteral("tuner_switcher_deactivate"));
+}
+
+void Tuner::switcherNotification(const QString& method, const QJsonArray& params) {
+    if (method == QLatin1String("set_display_state")) {
+        const QString state = params.at(0).toString();
+        if (state == m_switcherState) {
+            return;
+        }
+        if (!switcherActive()) {
+            // the engine only sends a selection once a note is played
+            m_switcherBank = m_machine.currentBank();
+            m_switcherPreset = m_machine.currentPreset();
+        }
+        m_switcherState = state;
+        emit switcherChanged();
+    } else if (method == QLatin1String("display_bank_preset")) {
+        m_switcherBank = params.at(0).toString();
+        m_switcherPreset = params.at(1).toString();
+        emit switcherChanged();
+    } else if (method == QLatin1String("show_tuner")) {
+        const bool show = params.at(0).toInt() != 0;
+        // Closing the tuner this way also ends bypass (TunerSwitcher::toggle),
+        // which the engine could not do while the tuner had stopped it.
+        if (!show && m_savedState == QLatin1String("bypassed")) {
+            m_savedState = QStringLiteral("running");
+        }
+        Parameter *p = m_machine.param(QStringLiteral("system.show_tuner"));
+        if (p) {
+            p->setValue(show);
+        }
+    }
+}
+
+QString Tuner::switcherNoteName(int note) {
+    const int midi = 69 + note;
+    return midiNoteName(midi) + QString::number(midi / 12 - 1);
+}
+
+QVariantList Tuner::switcherBankKeys() const {
+    QVariantList keys;
+    const QVariantList banks = m_machine.banks();
+    for (int i = 0; i < bankNoteCount; ++i) {
+        const int idx = banks.size() - i - 1;
+        if (idx < 0) {
+            break;
+        }
+        keys.append(QVariantMap{
+            {QStringLiteral("note"), switcherNoteName(bankNoteFirst + i)},
+            {QStringLiteral("bank"), banks.at(idx).toMap().value(QStringLiteral("name"))},
+        });
+    }
+    return keys;
+}
+
+QVariantList Tuner::switcherPresetKeys(const QString& bank) const {
+    QVariantList keys;
+    const QStringList presets = m_machine.bank(bank).value(QStringLiteral("presets")).toStringList();
+    for (int i = 0; i < presetNoteCount && i < presets.size(); ++i) {
+        keys.append(QVariantMap{
+            {QStringLiteral("note"), switcherNoteName(presetNoteFirst + i)},
+            {QStringLiteral("preset"), presets.at(i)},
+        });
+    }
+    return keys;
 }
 
 void Tuner::engineLost() {
+    if (switcherActive()) {
+        m_switcherState = QStringLiteral("normal_mode");
+        emit switcherChanged();
+    }
     if (m_hasPitch) {
         m_hasPitch = false;
         emit pitchChanged();
