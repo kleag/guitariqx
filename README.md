@@ -19,9 +19,11 @@ Documentation: <https://kleag.github.io/guitariqx/>
 
 ## Install
 
-The [releases](https://github.com/kleag/guitariqx/releases) have Debian
-packages for Debian 12 "bookworm" and 13 "trixie" (also Raspberry Pi OS),
-on x86_64 and arm64 (Raspberry Pi 4/5):
+An [apt repository](https://kleag.github.io/guitariqx/install/#with-apt)
+serves Debian 12 "bookworm" and 13 "trixie" (also Raspberry Pi OS) and
+Ubuntu 26.04, on x86_64 and arm64 (Raspberry Pi 4/5). The
+[releases](https://github.com/kleag/guitariqx/releases) have the same
+packages as files:
 
 ```sh
 sudo apt install ./guitariqx_0.3.4-1.bookworm_arm64.deb

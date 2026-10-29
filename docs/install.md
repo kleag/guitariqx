@@ -5,11 +5,32 @@ computer attached to your audio interface (`sudo apt install guitarix` on
 Debian, Ubuntu and Raspberry Pi OS). guitariqx itself can run on that
 computer or on another one.
 
+## With apt
+
+guitariqx has an apt repository for Debian 12 "bookworm" and 13 "trixie"
+(also Raspberry Pi OS) and Ubuntu 26.04 "resolute", on x86_64 (`amd64`) and
+64 bit ARM (`arm64`, Raspberry Pi 4 and 5). It holds the latest release and
+updates with the rest of the system:
+
+```sh
+sudo install -d /etc/apt/keyrings
+sudo curl -fsSLo /etc/apt/keyrings/kleag-guitarix.asc https://kleag.github.io/guitariqx/apt/kleag-guitarix.asc
+printf 'Types: deb\nURIs: https://kleag.github.io/guitariqx/apt\nSuites: %s\nComponents: main\nSigned-By: /etc/apt/keyrings/kleag-guitarix.asc\n' \
+  "$(. /etc/os-release; echo $VERSION_CODENAME)" | sudo tee /etc/apt/sources.list.d/guitariqx.sources
+sudo apt update
+sudo apt install guitariqx
+```
+
+The repository is signed with the same key as the
+[guitarix-kleag](https://kleag.github.io/guitarix/) packages, a guitarix
+build with the engine changes guitariqx can use (such as browsing the
+engine's files from another computer), so both repositories can share the
+keyring file.
+
 ## Debian packages
 
-Each [release](https://github.com/kleag/guitariqx/releases) has packages
-for Debian 12 "bookworm" and Debian 13 "trixie", on x86_64 (`amd64`) and on
-64 bit ARM (`arm64`):
+Each [release](https://github.com/kleag/guitariqx/releases) also has the
+packages as files:
 
 | system | package |
 |---|---|
@@ -17,9 +38,9 @@ for Debian 12 "bookworm" and Debian 13 "trixie", on x86_64 (`amd64`) and on
 | Raspberry Pi OS Trixie, 64 bit | `guitariqx_<version>-1.trixie_arm64.deb` |
 | Debian 12 | `guitariqx_<version>-1.bookworm_amd64.deb` |
 | Debian 13 | `guitariqx_<version>-1.trixie_amd64.deb` |
+| Ubuntu 26.04 | `guitariqx_<version>-1.resolute_amd64.deb` |
 
-On other distributions, such as Ubuntu, [build it from source](#from-source):
-the packages are only tested on Debian.
+On other distributions, [build it from source](#from-source).
 
 Install the package with apt, which also installs the Qt modules it needs:
 
