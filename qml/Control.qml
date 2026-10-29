@@ -112,13 +112,14 @@ Item {
     Component {
         id: irEdit
         Button {
+            id: irButton
             readonly property string unit: (root.node.id || "").replace(/\.convolver$/, "")
             text: root.node.label || qsTr("Setup")
             implicitHeight: Math.max(Theme.touch, implicitContentHeight + topPadding + bottomPadding)
             property var editor: null
             function show() {
                 if (!editor)
-                    editor = editorComponent.createObject(this)
+                    editor = editorComponent.createObject(irButton)
                 editor.edit(unit)
             }
             onClicked: show()
@@ -133,12 +134,13 @@ Item {
     Component {
         id: sequencer
         Button {
+            id: seqButton
             text: root.node.label || qsTr("Setup")
             implicitHeight: Math.max(Theme.touch, implicitContentHeight + topPadding + bottomPadding)
             property var dialog: null
             function show() {
                 if (!dialog)
-                    dialog = dialogComponent.createObject(this)
+                    dialog = dialogComponent.createObject(seqButton)
                 dialog.open()
             }
             onClicked: show()
