@@ -15,17 +15,25 @@ Rectangle {
     property bool fullScreen: false
     property bool canToggleFullScreen: true
 
-    implicitHeight: Theme.touch + 20
+    // portrait screen: the preset name gets its own, larger row above the
+    // buttons (presetRow), so that it can be read standing up
+    readonly property bool stacked: width < 640
+
+    implicitHeight: stacked ? 2 * Theme.touch + 50 : Theme.touch + 20
     color: Theme.panel
 
     RowLayout {
-        anchors.fill: parent
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        height: Theme.touch + 20
         anchors.leftMargin: Theme.spacing
         anchors.rightMargin: Theme.spacing
-        spacing: Theme.spacing
+        spacing: root.stacked ? 0 : Theme.spacing
 
         ToolButton {
             text: "☰"
+            visible: !root.stacked
             font.pixelSize: Theme.fontLarge
             onClicked: root.presetsRequested()
             ToolTip.visible: hovered
@@ -34,12 +42,14 @@ Rectangle {
 
         RoundButton {
             text: "◀"
+            visible: !root.stacked
             enabled: Gx.ready
             onClicked: Gx.stepPreset(-1)
             MidiLearnArea { paramId: "engine.previus_preset" }
         }
 
         Column {
+            visible: !root.stacked
             Layout.fillWidth: true
             Layout.minimumWidth: 80
             Text {
@@ -62,6 +72,7 @@ Rectangle {
 
         RoundButton {
             text: "▶"
+            visible: !root.stacked
             enabled: Gx.ready
             onClicked: Gx.stepPreset(1)
             MidiLearnArea { paramId: "engine.next_preset" }
@@ -124,6 +135,11 @@ Rectangle {
             }
         }
 
+        Item {
+            visible: root.stacked
+            Layout.fillWidth: true
+        }
+
         ToolButton {
             text: "\u22EE"
             font.pixelSize: Theme.fontLarge
@@ -162,6 +178,61 @@ Rectangle {
             radius: 6
             color: Gx.ready ? Theme.meterLow : Gx.connected ? Theme.meterMid : Theme.meterHigh
             TapHandler { onTapped: root.connectRequested() }
+        }
+    }
+
+    RowLayout {
+        id: presetRow
+        visible: root.stacked
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        anchors.margins: Theme.spacing
+        spacing: Theme.spacing
+
+        ToolButton {
+            text: "☰"
+            font.pixelSize: Theme.fontLarge
+            onClicked: root.presetsRequested()
+        }
+
+        RoundButton {
+            text: "◀"
+            enabled: Gx.ready
+            onClicked: Gx.stepPreset(-1)
+            MidiLearnArea { paramId: "engine.previus_preset" }
+        }
+
+        Column {
+            Layout.fillWidth: true
+            Text {
+                width: parent.width
+                text: Gx.currentPreset || (Gx.ready ? qsTr("(no preset)") : qsTr("Not connected"))
+                color: Theme.text
+                font.pixelSize: 2 * Theme.fontLarge
+                // long names shrink before being elided
+                fontSizeMode: Text.HorizontalFit
+                minimumPixelSize: Theme.fontLarge + 3
+                font.bold: true
+                horizontalAlignment: Text.AlignHCenter
+                elide: Text.ElideRight
+            }
+            Text {
+                width: parent.width
+                text: Gx.currentBank
+                color: Theme.textDim
+                font.pixelSize: Theme.fontNormal
+                horizontalAlignment: Text.AlignHCenter
+                elide: Text.ElideRight
+            }
+            TapHandler { onTapped: root.presetsRequested() }
+        }
+
+        RoundButton {
+            text: "▶"
+            enabled: Gx.ready
+            onClicked: Gx.stepPreset(1)
+            MidiLearnArea { paramId: "engine.next_preset" }
         }
     }
 }
