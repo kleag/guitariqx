@@ -4,8 +4,9 @@
 name: CI
 
 on:
+  # every branch (tags are the release workflow's)
   push:
-    branches: [main]
+    branches: ['**']
   pull_request:
   workflow_dispatch:
   # the release workflow builds its packages with this one
