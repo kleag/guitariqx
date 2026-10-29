@@ -10,7 +10,10 @@ Rectangle {
     signal presetsRequested()
     signal connectRequested()
     signal midiMapRequested()
+    signal fullScreenRequested()
     property bool compact: false
+    property bool fullScreen: false
+    property bool canToggleFullScreen: true
 
     implicitHeight: Theme.touch + 20
     color: Theme.panel
@@ -142,6 +145,12 @@ Rectangle {
                 MenuItem {
                     text: qsTr("Connect to engine ...")
                     onTriggered: root.connectRequested()
+                }
+                MenuItem {
+                    text: root.fullScreen ? qsTr("Leave full screen") : qsTr("Full screen")
+                    visible: root.canToggleFullScreen
+                    height: visible ? implicitHeight : 0
+                    onTriggered: root.fullScreenRequested()
                 }
             }
         }

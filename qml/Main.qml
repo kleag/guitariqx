@@ -13,6 +13,21 @@ ApplicationWindow {
     // side by side racks and a docked preset list need room; small
     // touch screens (800x480) get tabs and a drawer
     readonly property bool wide: width >= 1100
+    readonly property bool fullScreen: visibility === Window.FullScreen
+    // eglfs and linuxfb have no windows to go back to
+    readonly property bool canLeaveFullScreen: Qt.platform.pluginName !== "eglfs"
+                                               && Qt.platform.pluginName !== "linuxfb"
+    // what leaving full screen goes back to
+    property int windowedVisibility: startMaximized ? Window.Maximized : Window.Windowed
+
+    function toggleFullScreen() {
+        if (fullScreen) {
+            visibility = windowedVisibility
+        } else {
+            windowedVisibility = visibility === Window.Maximized ? Window.Maximized : Window.Windowed
+            visibility = Window.FullScreen
+        }
+    }
 
     visible: true
     visibility: startFullScreen ? Window.FullScreen
@@ -26,6 +41,9 @@ ApplicationWindow {
 
     header: TopBar {
         compact: !window.wide
+        fullScreen: window.fullScreen
+        canToggleFullScreen: window.canLeaveFullScreen
+        onFullScreenRequested: window.toggleFullScreen()
         onPresetsRequested: {
             if (window.wide)
                 presetDock.visible = !presetDock.visible
@@ -115,6 +133,12 @@ ApplicationWindow {
                 Rack { stereo: true }
             }
         }
+    }
+
+    Shortcut {
+        sequence: "F11"
+        enabled: window.canLeaveFullScreen
+        onActivated: window.toggleFullScreen()
     }
 
     ConnectDialog {

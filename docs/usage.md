@@ -25,7 +25,9 @@ laptop or tablet.
 | `--debug-state LIST` | open UI states for testing without instrument or MIDI device, see [Development](development.md#ui-states-for-testing) |
 
 The connection indicator at the right of the top bar opens the connect
-dialog. guitariqx reconnects by itself when the engine restarts.
+dialog. "Full screen" in the top bar menu (⋮), or F11, switches between
+full screen and a window at any time (not under `eglfs` or `linuxfb`, which
+are always full screen). guitariqx reconnects by itself when the engine restarts.
 
 guitariqx remembers the last engine, the window size and the tuner's "mute
 while tuning" option, with the recent folders of the file chooser, in
