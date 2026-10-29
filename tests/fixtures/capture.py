@@ -30,8 +30,9 @@ import sys
 import time
 
 # units whose plugin_load_ui answers are recorded, besides those of the rack:
-# the convolvers and neural units have file controls
-EXTRA_UNITS = ["jconv_mono", "jconv", "nam", "rtneural"]
+# the convolvers and neural units have file controls, the others special
+# widgets (looper, drum sequencer, oscilloscope)
+EXTRA_UNITS = ["jconv_mono", "jconv", "nam", "rtneural", "dubber", "dubber_st", "seq", "oscilloscope"]
 # plugin ids whose parameters the UI uses outside of a rack unit
 # (AmpPanel.qml, TopBar.qml)
 KEEP_GROUPS = {"amp", "con", "maxlevel"}

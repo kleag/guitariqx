@@ -295,7 +295,7 @@ private:
         if (cls == QLatin1String("GxWheel")) {
             return var.isEmpty() ? QVariantMap() : makeControl(QStringLiteral("wheel"), var);
         }
-        // GxWaveView (IR wave), GtkButton without known handler, GtkDrawingArea ...
+        // GtkButton without known handler, GtkDrawingArea ...
         return QVariantMap();
     }
 
@@ -326,12 +326,34 @@ private:
             if (tok.endsWith(QLatin1String(".convolver:IRFile"))) {
                 return file(tok.section(QLatin1Char(':'), 0, 0), QStringLiteral("ir"));
             }
-            // portdisplay:clip <display> <clip>: looper position
-            if (tok == QLatin1String("portdisplay:clip") && t.size() > 1) {
-                return makeControl(QStringLiteral("display"), t.at(1));
+            // portdisplay:clip <cut> <clip> on the play head display of a
+            // looper tape: the part of the tape played, in percent
+            // (create_p_display of the stack layouts)
+            if (tok == QLatin1String("portdisplay:clip") && t.size() > 2) {
+                QVariantMap c = makeControl(QStringLiteral("display"), n.prop("var_id"));
+                c.insert(QStringLiteral("id2"), t.at(1));
+                c.insert(QStringLiteral("id3"), t.at(2));
+                return c;
             }
-            // windows of gx_head (IR editor, sequencer) and the oscilloscope
-            if (tok.endsWith(QLatin1String("_reload_and_show")) || tok == QLatin1String("connect_oscilloscope")) {
+            // buttons opening the IR editor and the drum sequencer windows
+            // of gx_head (IRWindow::create is given these units)
+            if (tok == QLatin1String("ir_mono_window_reload_and_show")
+                || tok == QLatin1String("ir_stereo_window_reload_and_show")) {
+                const bool mono = tok.startsWith(QLatin1String("ir_mono"));
+                QVariantMap c = makeControl(QStringLiteral("iredit"),
+                                            mono ? QStringLiteral("jconv_mono.convolver") : QStringLiteral("jconv.convolver"));
+                c.insert(QStringLiteral("label"), n.prop("label"));
+                return c;
+            }
+            if (tok == QLatin1String("SEQWindow_reload_and_show")) {
+                QVariantMap c = makeControl(QStringLiteral("sequencer"), QStringLiteral("seq.sequencer.kick"));
+                c.insert(QStringLiteral("label"), n.prop("label"));
+                return c;
+            }
+            if (tok == QLatin1String("connect_oscilloscope")) {
+                return makeControl(QStringLiteral("oscilloscope"), QStringLiteral("oscilloscope.info"));
+            }
+            if (tok.endsWith(QLatin1String("_reload_and_show"))) {
                 return QVariantMap{{QStringLiteral("type"), QStringLiteral("skip")}};
             }
         }
@@ -395,6 +417,13 @@ private:
             cn.insert(QStringLiteral("row"), c->pack("top_attach", QStringLiteral("0")).toInt());
             cn.insert(QStringLiteral("columnSpan"), std::max(1, c->pack("width", QStringLiteral("1")).toInt()));
             cn.insert(QStringLiteral("rowSpan"), std::max(1, c->pack("height", QStringLiteral("1")).toInt()));
+            // GtkWidget halign/valign: start, end, center (default fill)
+            for (const char *a : {"halign", "valign"}) {
+                const QString v = c->prop(a);
+                if (v == QLatin1String("start") || v == QLatin1String("end")) {
+                    cn.insert(QLatin1String(a), v);
+                }
+            }
             children.append(cn);
         }
         b.insert(QStringLiteral("children"), children);

@@ -39,10 +39,17 @@ set(GUITARIQX_SOURCES
     src/presets.cpp
     src/bankfiles.cpp
     src/files.cpp
+    src/sequencer.cpp
     src/dirmodel.cpp
     src/dirmodel.h
     src/skin.cpp
     src/skin.h
+    src/oscilloscope.cpp
+    src/oscilloscope.h
+    src/impulseresponse.cpp
+    src/impulseresponse.h
+    src/waveview.cpp
+    src/waveview.h
 )
 
 qt_add_executable(guitariqx
@@ -91,6 +98,11 @@ qt_add_qml_module(guitariqx
         qml/FileChooserDialog.qml
         qml/FileButton.qml
         qml/SkinDialog.qml
+        qml/OutputWatch.qml
+        qml/LoopPosition.qml
+        qml/ScopeView.qml
+        qml/IrEditor.qml
+        qml/SequencerDialog.qml
 )
 
 # the gx_head "Guitarix" skin and the libgxw icons (skins/README.md)

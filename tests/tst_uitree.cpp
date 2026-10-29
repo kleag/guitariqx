@@ -15,9 +15,11 @@
 #include "parameter.h"
 #include "uitree.h"
 
+#include <QJsonArray>
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QSet>
 #include <QTest>
 #include <memory>
 
@@ -34,6 +36,24 @@ QJsonObject fixture() {
 QJsonArray recordedUi(const QString& unit, const QString& form) {
     static const QJsonObject uis = fixture().value(QStringLiteral("plugin_load_ui")).toObject();
     return uis.value(unit).toObject().value(form).toArray();
+}
+
+// ids of the parameters of the engine
+bool hasParam(const QString& id) {
+    static const QSet<QString> ids = []() {
+        QSet<QString> s;
+        const QJsonArray list = fixture().value(QStringLiteral("parameterlist")).toArray();
+        for (int i = 0; i + 1 < list.size(); i += 2) {
+            QJsonObject e = list.at(i + 1).toObject();
+            if (e.contains(QStringLiteral("value_names"))) {
+                e = e.value(e.contains(QStringLiteral("IntParameter")) ? QStringLiteral("IntParameter")
+                                                                       : QStringLiteral("FloatParameter")).toObject();
+            }
+            s.insert(e.value(QStringLiteral("Parameter")).toObject().value(QStringLiteral("id")).toString());
+        }
+        return s;
+    }();
+    return ids.contains(id);
 }
 
 QList<QVariantMap> controls(const QVariantMap& node) {
@@ -72,6 +92,8 @@ private slots:
     void generic();
     void fixIds();
     void prependControl();
+    void specialWidgets();
+    void specialWidgetsOfStackLayouts();
 };
 
 void TestUiTree::stackOps() {
@@ -174,7 +196,9 @@ void TestUiTree::recordedStackLayouts_data() {
 
 void TestUiTree::recordedStackLayouts() {
     QFETCH(QString, unit);
-    const QVariantMap ui = uitree::fromStackOps(recordedUi(unit, QStringLiteral("stack")));
+    QVariantMap ui = uitree::fromStackOps(recordedUi(unit, QStringLiteral("stack")));
+    // as Machine::finishUnitUi does
+    uitree::addSpecialWidgets(ui, unit, hasParam);
     QVERIFY(uitree::hasControls(ui.value(QStringLiteral("main")).toMap()));
 }
 
@@ -250,4 +274,63 @@ void TestUiTree::prependControl() {
 }
 
 QTEST_GUILESS_MAIN(TestUiTree)
+void TestUiTree::specialWidgets() {
+    const auto glade = [](const QString& unit) {
+        return uitree::fromGlade(recordedUi(unit, QStringLiteral("glade")).at(0).toArray().at(1).toString());
+    };
+    const auto find = [](const QVariantMap& ui, const QString& widget) {
+        QList<QVariantMap> l;
+        for (const char *view : {"main", "mini"}) {
+            for (const QVariantMap& c : controls(ui.value(QLatin1String(view)).toMap())) {
+                if (c.value(QStringLiteral("widget")) == widget) {
+                    l.append(c);
+                }
+            }
+        }
+        return l;
+    };
+
+    // looper: four tapes with a position display each
+    QList<QVariantMap> pos;
+    for (const QVariantMap& c : find(glade(QStringLiteral("dubber")), QStringLiteral("display"))) {
+        if (c.contains(QStringLiteral("id2"))) {
+            pos.append(c);
+        }
+    }
+    QCOMPARE(pos.size(), 4);
+    QCOMPARE(pos.first().value(QStringLiteral("id")).toString(), QStringLiteral("dubber.playh1"));
+    QCOMPARE(pos.first().value(QStringLiteral("id2")).toString(), QStringLiteral("dubber.clips1"));
+    QCOMPARE(pos.first().value(QStringLiteral("id3")).toString(), QStringLiteral("dubber.clip1"));
+
+    // IR editor buttons in the main and the mini view
+    QList<QVariantMap> ir = find(glade(QStringLiteral("jconv_mono")), QStringLiteral("iredit"));
+    QCOMPARE(ir.size(), 2);
+    QCOMPARE(ir.first().value(QStringLiteral("id")).toString(), QStringLiteral("jconv_mono.convolver"));
+    QCOMPARE(find(glade(QStringLiteral("jconv")), QStringLiteral("iredit")).first().value(QStringLiteral("id")).toString(),
+             QStringLiteral("jconv.convolver"));
+
+    const QList<QVariantMap> seq = find(glade(QStringLiteral("seq")), QStringLiteral("sequencer"));
+    QCOMPARE(seq.size(), 2);
+    QVERIFY(hasParam(seq.first().value(QStringLiteral("id")).toString()));
+
+    const QList<QVariantMap> osc = find(glade(QStringLiteral("oscilloscope")), QStringLiteral("oscilloscope"));
+    QCOMPARE(osc.size(), 1);
+    QCOMPARE(osc.first().value(QStringLiteral("id")).toString(), QStringLiteral("oscilloscope.info"));
+}
+
+void TestUiTree::specialWidgetsOfStackLayouts() {
+    for (const QString& unit : {QStringLiteral("jconv_mono"), QStringLiteral("seq"), QStringLiteral("oscilloscope"),
+                                QStringLiteral("fumaster")}) {
+        QVariantMap ui = uitree::fromStackOps(recordedUi(unit, QStringLiteral("stack")));
+        uitree::addSpecialWidgets(ui, unit, hasParam);
+        const QVariantMap main = ui.value(QStringLiteral("main")).toMap();
+        QCOMPARE(uitree::hasWidget(main, QStringLiteral("iredit")), unit == QLatin1String("jconv_mono"));
+        QCOMPARE(uitree::hasWidget(main, QStringLiteral("sequencer")), unit == QLatin1String("seq"));
+        QCOMPARE(uitree::hasWidget(main, QStringLiteral("oscilloscope")), unit == QLatin1String("oscilloscope"));
+        // added once
+        uitree::addSpecialWidgets(ui, unit, hasParam);
+        QCOMPARE(controls(ui.value(QStringLiteral("main")).toMap()).size(), controls(main).size());
+    }
+}
+
 #include "tst_uitree.moc"

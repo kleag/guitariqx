@@ -49,6 +49,7 @@ Parameter *Parameter::fromJson(const QString& tag, const QJsonObject& entry, QOb
         return nullptr;
     }
     Parameter *p = new Parameter(parent);
+    p->m_tag = tag;
     p->m_id = base.value(QStringLiteral("id")).toString();
     p->m_name = base.value(QStringLiteral("name")).toString();
     p->m_group = base.value(QStringLiteral("group")).toString();

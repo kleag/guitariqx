@@ -8,19 +8,34 @@ Item {
     property Parameter param: null
     property string label: param && param.name !== "on/off" ? param.name : ""
     property string switchType: ""
+    // named after what it does (the transport switches) or the parameter
+    // instead of label
+    property bool nameLabel: false
     readonly property bool on: param ? !!param.value : false
     readonly property url icon: Theme.skinImage((switchType || "switch") + (on ? "_on" : "_off"))
     readonly property bool skinned: icon.toString() !== ""
+    // transport switches of the looper and the recorder: a symbol in the
+    // flat look (gx_head draws their icon sets)
+    readonly property var transport: ({
+        "rbutton": { glyph: "●", name: qsTr("Record"), color: Theme.ledOn },
+        "pbutton": { glyph: "▶", name: qsTr("Play"), color: Theme.meterLow },
+        "prbutton": { glyph: "◀", name: qsTr("Reverse"), color: Theme.meterLow },
+        "button": { glyph: "✕", name: qsTr("Erase"), color: Theme.meterHigh },
+        "overdub": { glyph: "+", name: qsTr("Overdub"), color: Theme.accent },
+    })
+    readonly property var transportInfo: transport[switchType]
+    readonly property string shownLabel: !nameLabel ? label
+                                       : transportInfo ? transportInfo.name : param ? param.name : ""
 
     implicitWidth: Math.max(Theme.touch, labelText.implicitWidth)
-    implicitHeight: (label ? labelText.height + 2 : 0) + Theme.touch
+    implicitHeight: (shownLabel ? labelText.height + 2 : 0) + Theme.touch
     opacity: param ? 1 : 0.4
 
     Text {
         id: labelText
-        visible: root.label !== ""
+        visible: root.shownLabel !== ""
         anchors.horizontalCenter: parent.horizontalCenter
-        text: root.label
+        text: root.shownLabel
         color: Theme.rackLabel
         font.pixelSize: Theme.fontSmall
     }
@@ -34,7 +49,8 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         color: root.skinned ? (tap.pressed ? "#60000000" : "#30000000")
                             : tap.pressed ? Theme.panelBorder : Theme.panelRaised
-        border.color: root.skinned ? "transparent" : Theme.panelBorder
+        border.color: root.skinned ? "transparent"
+                    : root.on && root.transportInfo ? root.transportInfo.color : Theme.panelBorder
 
         // the icons are 7 to 37 pixels: scaled to about 24
         Image {
@@ -48,8 +64,17 @@ Item {
             mipmap: true
         }
 
+        Text {
+            visible: !root.skinned && root.transportInfo !== undefined
+            anchors.centerIn: parent
+            text: root.transportInfo ? root.transportInfo.glyph : ""
+            color: root.on && root.transportInfo ? root.transportInfo.color : Theme.textDim
+            font.pixelSize: Theme.fontLarge
+            font.bold: true
+        }
+
         Rectangle {
-            visible: !root.skinned
+            visible: !root.skinned && root.transportInfo === undefined
             anchors.centerIn: parent
             width: 14
             height: 14

@@ -16,6 +16,7 @@
 // check that the engine saw no request that would crash the real one.
 
 #include "fakeengine.h"
+#include "impulseresponse.h"
 #include "machine.h"
 #include "uitree.h"
 
@@ -26,6 +27,7 @@
 #include <QStandardPaths>
 #include <QTemporaryDir>
 #include <QTest>
+#include <cmath>
 #include <memory>
 
 class TestMachine : public QObject {
@@ -48,6 +50,8 @@ private slots:
     void bankFiles();
     void rackEditing();
     void metersArePolled();
+    void specialOutputsArePolled();
+    void oscilloscope();
     void unitLayouts_data();
     void unitLayouts();
     void reconnectKeepsParameters();
@@ -73,6 +77,9 @@ private slots:
     void filePlacesOldEngine();
     void filePlacesRemote();
     void loadImpulseResponse();
+    void gainLine();
+    void impulseResponseEditing();
+    void sequencer();
     void loadModel();
 
 private:
@@ -400,8 +407,10 @@ void TestMachine::rackEditing() {
 void TestMachine::metersArePolled() {
     start();
     Machine& m = *m_machine;
-    // not outputs, or unknown: never polled (get_updates would crash the engine)
-    m.watchOutput(QStringLiteral("fumaster.Level"));
+    // not float parameters, or unknown: never polled (get_updates would
+    // crash the engine)
+    m.watchOutput(QStringLiteral("fumaster.on_off"));
+    m.watchOutput(QStringLiteral("jconv.convolver"));
     m.watchOutput(QStringLiteral("no.such.meter"));
     m.watchOutput(QStringLiteral("graphiceq.v1"));
     m.watchOutput(QStringLiteral("graphiceq.v1"));
@@ -418,6 +427,58 @@ void TestMachine::metersArePolled() {
     const int stopped = m_engine->received(QStringLiteral("get_updates")).size();
     QTest::qWait(200);
     QCOMPARE(m_engine->received(QStringLiteral("get_updates")).size(), stopped);
+}
+
+void TestMachine::specialOutputsArePolled() {
+    start();
+    Machine& m = *m_machine;
+    // a switch the engine flips (a full tape stops recording) and the
+    // sequencer position, which is no output: both floats in the engine
+    QCOMPARE(m.param(QStringLiteral("dubber.rec1"))->kind(), Parameter::Bool);
+    m.watchOutput(QStringLiteral("dubber.rec1"));
+    m.watchOutput(QStringLiteral("seq.pos"));
+    QTRY_VERIFY(!m_engine->received(QStringLiteral("get_updates")).isEmpty());
+    const QJsonArray ids = m_engine->received(QStringLiteral("get_updates")).first().params;
+    QVERIFY(ids.contains(QStringLiteral("dubber.rec1")));
+    QVERIFY(ids.contains(QStringLiteral("seq.pos")));
+    m.unwatchOutput(QStringLiteral("dubber.rec1"));
+    m.unwatchOutput(QStringLiteral("seq.pos"));
+}
+
+void TestMachine::oscilloscope() {
+    start();
+    Machine& m = *m_machine;
+    Oscilloscope *osc = m.oscilloscope();
+    QSignalSpy frames(osc, &Oscilloscope::frameChanged);
+    // the value of the parameter list
+    const QVariant before = m.param(QStringLiteral("oscilloscope.info"))->value();
+    m.watchOutput(QStringLiteral("oscilloscope.info"));
+    m.watchOutput(QStringLiteral("graphiceq.v1"));
+    QTRY_VERIFY(frames.count() > 0);
+    QCOMPARE(osc->size(), 256);
+    QCOMPARE(osc->jackBufferSize(), 256);
+    QVERIFY(osc->realtime());
+    QVERIFY(!m_engine->received(QStringLiteral("get_oscilloscope_mul_buffer")).isEmpty());
+    // the frames are not kept in the parameter
+    QCOMPARE(m.param(QStringLiteral("oscilloscope.info"))->value(), before);
+    // polled at half the rate of the meters
+    QTRY_VERIFY(m_engine->received(QStringLiteral("get_updates")).size() >= 6);
+    int withOsc = 0;
+    const auto polls = m_engine->received(QStringLiteral("get_updates"));
+    for (const auto& msg : polls) {
+        QVERIFY(msg.params.contains(QStringLiteral("graphiceq.v1")));
+        withOsc += msg.params.contains(QStringLiteral("oscilloscope.info")) ? 1 : 0;
+    }
+    QVERIFY(withOsc > 0 && withOsc < polls.size());
+
+    osc->setMulBuffer(3);
+    QTRY_COMPARE(m_engine->received(QStringLiteral("set_oscilloscope_mul_buffer")).size(), 1);
+    QCOMPARE(m_engine->received(QStringLiteral("set_oscilloscope_mul_buffer")).first().params, QJsonArray{3});
+    QTRY_COMPARE(osc->size(), 3 * 256);
+    osc->setMulBuffer(10);
+    QCOMPARE(osc->mulBuffer(), Oscilloscope::maxMulBuffer);
+    m.unwatchOutput(QStringLiteral("oscilloscope.info"));
+    m.unwatchOutput(QStringLiteral("graphiceq.v1"));
 }
 
 void TestMachine::unitLayouts_data() {
@@ -911,6 +972,152 @@ void TestMachine::loadImpulseResponse() {
     QCOMPARE(settings.value(QStringLiteral("jconv.Gain")).toDouble(), 0.5);
     // the unit is switched on
     QTRY_COMPARE(m_engine->value(QStringLiteral("jconv_mono.on_off")), QJsonValue(1));
+}
+
+void TestMachine::gainLine() {
+    using P = ImpulseResponse::Point;
+    // no gain line: flat
+    QCOMPARE(ImpulseResponse::gainAt({}, 5), 0.0);
+    const QVector<P> line{{0, 0}, {3, -20}};
+    QCOMPARE(ImpulseResponse::gainAt(line, 0), 0.0);
+    QCOMPARE(ImpulseResponse::gainAt(line, 3), -20.0);
+    QVERIFY(qFuzzyCompare(ImpulseResponse::gainAt(line, 1), -20.0 / 3));
+
+    // IRWindow::calc_normalized_gain: 4 samples of 1 attenuated by 0,
+    // 20/3, 40/3 and 20 dB
+    double sum = 0;
+    for (double db : {0.0, -20.0 / 3, -40.0 / 3, -20.0}) {
+        sum += std::pow(10, db / 10);
+    }
+    const QVector<float> ones{1, 1, 1, 1};
+    QVERIFY(qFuzzyCompare(ImpulseResponse::normalizedGain(ones, 1, 0, 4, line), 1 / std::sqrt(sum)));
+    QCOMPARE(ImpulseResponse::normalizedGain(ones, 1, 0, 4, {}), 0.5);
+    // only the part used counts
+    QCOMPARE(ImpulseResponse::normalizedGain(ones, 1, 3, 1, line), 10.0);
+    // stereo: energy per channel
+    QCOMPARE(ImpulseResponse::normalizedGain(QVector<float>{1, 1, 1, 1, 1, 1, 1, -1}, 2, 0, 4, {}), 0.5);
+
+    // what the engine accepts: from 0 to the last sample, strictly
+    // increasing, gains in range
+    const QVector<P> fixed = ImpulseResponse::validLine({{5, -3}, {5, -4}, {2, -1}, {20, -200}}, 10);
+    QCOMPARE(fixed, (QVector<P>{{0, -3}, {5, -3}, {9, ImpulseResponse::minGain}}));
+    QVERIFY(ImpulseResponse::validLine({{0, 0}}, 1).isEmpty());
+    QVERIFY(ImpulseResponse::validLine({}, 100).isEmpty());
+}
+
+void TestMachine::impulseResponseEditing() {
+    start();
+    Machine& m = *m_machine;
+    QTRY_VERIFY(m.resolveIrDir(QStringLiteral("%S")) != QLatin1String("%S"));
+    QCOMPARE(m.resolveIrDir(QStringLiteral("%S/bands")), QStringLiteral("/usr/share/gx_head/sounds/bands"));
+    QCOMPARE(m.resolveIrDir(QStringLiteral("%U")), QStringLiteral("/home/guitarist/.config/guitarix/IR"));
+
+    ImpulseResponse ir;
+    QSignalSpy loaded(&ir, &ImpulseResponse::fileLoaded);
+    ir.setUnit(QStringLiteral("jconv"));
+    QTRY_VERIFY(ir.loaded());
+    QCOMPARE(ir.file(), QStringLiteral("/usr/share/gx_head/sounds/bands/Pan de Higo.wav"));
+    QCOMPARE(ir.frames(), 4800);
+    QCOMPARE(ir.channels(), 1);
+    // Length 0: the whole file
+    QCOMPARE(ir.offset(), 0);
+    QCOMPARE(ir.length(), 4800);
+    QVERIFY(ir.gainLine().isEmpty());
+    QVERIFY(!ir.modified());
+
+    // the first point brings the end points
+    QCOMPARE(ir.addPoint(2400, -20), 1);
+    QCOMPARE(ir.gainLine().size(), 3);
+    QVERIFY(ir.modified());
+    // end points keep their place, the others stay between their
+    // neighbours
+    QCOMPARE(ir.movePoint(0, 100, -10), 0);
+    QCOMPARE(ir.points().first().i, 0);
+    QCOMPARE(ir.points().first().g, -10.0);
+    ir.movePoint(1, 9000, -500);
+    QCOMPARE(ir.points().at(1).i, 4798);
+    QCOMPARE(ir.points().at(1).g, ImpulseResponse::minGain);
+    QCOMPARE(ir.addPoint(4798, -3), -1);
+    ir.removePoint(0);
+    ir.removePoint(2);
+    QCOMPARE(ir.points().size(), 3);
+    ir.setOffset(100);
+    ir.setLength(100000);
+    QCOMPARE(ir.length(), 4700);
+    ir.setLength(1000);
+    ir.setDelay(-5);
+    QCOMPARE(ir.delay(), 0);
+    ir.setDelay(48);
+    QVERIFY(!ir.gainCorrection());
+    ir.setGainCorrection(true);
+
+    ir.apply();
+    QVERIFY(!ir.modified());
+    QTRY_COMPARE(m_engine->value(QStringLiteral("jconv.convolver")).toObject()
+                     .value(QStringLiteral("jconv.Offset")).toInt(), 100);
+    const QJsonObject s = m_engine->value(QStringLiteral("jconv.convolver")).toObject();
+    // the folder as the engine gave it
+    QCOMPARE(s.value(QStringLiteral("jconv.IRDir")).toString(), QStringLiteral("%S/bands"));
+    QCOMPARE(s.value(QStringLiteral("jconv.IRFile")).toString(), QStringLiteral("Pan de Higo.wav"));
+    QCOMPARE(s.value(QStringLiteral("jconv.Length")).toInt(), 1000);
+    QCOMPARE(s.value(QStringLiteral("jconv.Delay")).toInt(), 48);
+    QCOMPARE(s.value(QStringLiteral("jconv.GainCor")), QJsonValue(1));
+    QCOMPARE(s.value(QStringLiteral("jconv.gainline")).toArray(),
+             (QJsonArray{QJsonArray{0, -10}, QJsonArray{4798, -120}, QJsonArray{4799, 0}}));
+    QVERIFY(qFuzzyCompare(s.value(QStringLiteral("jconv.Gain")).toDouble(),
+                          ImpulseResponse::normalizedGain(ir.samples(), 1, 100, 1000, ir.points())));
+
+    // reset, and settings changed elsewhere are read again
+    ir.resetSettings();
+    QCOMPARE(ir.length(), 4800);
+    QVERIFY(ir.gainLine().isEmpty());
+    ir.reload();
+    QCOMPARE(ir.offset(), 100);
+    QJsonObject other = s;
+    other.insert(QStringLiteral("jconv.Offset"), 7);
+    m_engine->notifyClients(QStringLiteral("set"), {QStringLiteral("jconv.convolver"), other});
+    QTRY_COMPARE(ir.offset(), 7);
+    QCOMPARE(loaded.count(), 1);
+}
+
+void TestMachine::sequencer() {
+    start();
+    Machine& m = *m_machine;
+    const auto line = [this](const QString& drum) {
+        return m_engine->value(QStringLiteral("seq.sequencer.") + drum).toObject()
+            .value(QStringLiteral("seq.seqline")).toArray();
+    };
+    // a fresh engine has empty lines
+    QVERIFY(line(QStringLiteral("kick")).isEmpty());
+    QCOMPARE(m.sequencerDrums().size(), 6);
+    QCOMPARE(m.sequencerSteps(), 24);
+
+    // the first edit gives every line its steps
+    m.toggleSequencerStep(QStringLiteral("kick"), 3);
+    QTRY_COMPARE(line(QStringLiteral("kick")).size(), 24);
+    QCOMPARE(line(QStringLiteral("kick")).at(3), QJsonValue(1));
+    QCOMPARE(line(QStringLiteral("kick")).at(2), QJsonValue(0));
+    for (const QString& d : m.sequencerDrums()) {
+        QCOMPARE(line(d).size(), 24);
+    }
+    m.toggleSequencerStep(QStringLiteral("kick"), 3);
+    QTRY_COMPARE(line(QStringLiteral("kick")).at(3), QJsonValue(0));
+    m.toggleSequencerStep(QStringLiteral("hat"), 23);
+    QTRY_COMPARE(line(QStringLiteral("hat")).at(23), QJsonValue(1));
+    // out of range or unknown: nothing sent
+    m.toggleSequencerStep(QStringLiteral("hat"), 24);
+    m.toggleSequencerStep(QStringLiteral("cowbell"), 0);
+
+    // more steps: whole beats, every line follows and keeps its steps
+    m.setSequencerSteps(30);
+    QTRY_COMPARE(m_engine->value(QStringLiteral("seq.asequences")).toDouble(), 28.0);
+    for (const QString& d : m.sequencerDrums()) {
+        QTRY_COMPARE(line(d).size(), 28);
+    }
+    QCOMPARE(line(QStringLiteral("hat")).at(23), QJsonValue(1));
+    m.setSequencerSteps(4);
+    QTRY_COMPARE(line(QStringLiteral("hat")).size(), 24);
+    QCOMPARE(m.sequencerSteps(), 24);
 }
 
 void TestMachine::loadModel() {

@@ -68,6 +68,20 @@ void TestUi::states_data() {
     QTest::newRow("skin") << QString() << QStringLiteral("1280x800") << 2 << false << QStringLiteral("Guitarix");
     QTest::newRow("skin-small") << QString() << QStringLiteral("800x480") << 2 << false << QStringLiteral("Guitarix");
     QTest::newRow("skins") << QStringLiteral("skins") << QStringLiteral("800x480") << 2 << false << QStringLiteral("Guitarix");
+    // special widgets: units not in the recorded rack are added first
+    QTest::newRow("looper") << QStringLiteral("unit:dubber") << QStringLiteral("1280x800") << 2 << false << QString();
+    QTest::newRow("looper-skin") << QStringLiteral("unit:dubber") << QStringLiteral("800x480") << 2 << false
+                                 << QStringLiteral("Guitarix");
+    QTest::newRow("oscilloscope") << QStringLiteral("unit:oscilloscope") << QStringLiteral("1280x800") << 2 << false
+                                  << QString();
+    QTest::newRow("iredit") << QStringLiteral("iredit:jconv") << QStringLiteral("1280x800") << 2 << false << QString();
+    // the mono rack is the tab shown
+    QTest::newRow("iredit-small") << QStringLiteral("iredit:jconv_mono") << QStringLiteral("800x480") << 2 << false
+                                  << QString();
+    QTest::newRow("sequencer") << QStringLiteral("unit:seq,sequencer") << QStringLiteral("1280x800") << 2 << false
+                               << QString();
+    QTest::newRow("sequencer-small") << QStringLiteral("unit:seq,sequencer") << QStringLiteral("800x480") << 2
+                                     << false << QString();
     QTest::newRow("files-remote-old-engine") << QStringLiteral("files:nam") << QStringLiteral("800x480") << 1 << true << QString();
 }
 

@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls
 import Guitariqx
 
 // A leaf of a rack unit layout (see uitree.h): picks the widget for the
@@ -12,6 +13,21 @@ Item {
     readonly property string label: node.noLabel ? ""
                                   : node.label !== undefined && node.label !== "" ? node.label.trim()
                                   : (param ? param.name : "")
+
+    // outputs shown as values or switches (the looper's buffer time,
+    // record and play) change in the engine without notification
+    OutputWatch {
+        paramId: root.param && root.param.isOutput && root.widget !== "meter" && root.widget !== "oscilloscope"
+                 && !root.node.id2 ? root.param.id : ""
+        active: root.visible
+    }
+
+    // --debug-state iredit:UNIT, sequencer: open the editor of the unit
+    function debugState(name) {
+        const args = Qt.application.arguments
+        const i = args.indexOf("--debug-state")
+        return i >= 0 && i + 1 < args.length && args[i + 1].split(",").indexOf(name) >= 0
+    }
 
     implicitWidth: loader.item ? loader.item.implicitWidth : 0
     implicitHeight: loader.item ? loader.item.implicitHeight : 0
@@ -38,7 +54,8 @@ Item {
         id: toggle
         ParamSwitch {
             param: root.param
-            label: root.node.nameLabel && root.param ? root.param.name : (root.node.label || "")
+            label: root.node.label || ""
+            nameLabel: !!root.node.nameLabel
             switchType: root.node.switchType || ""
         }
     }
@@ -81,6 +98,64 @@ Item {
             }
         }
     }
+    // play head of a looper tape
+    Component {
+        id: loopPosition
+        LoopPosition {
+            param: root.param
+            cut: Gx.ready ? Gx.param(root.node.id2) : null
+            clip: Gx.ready ? Gx.param(root.node.id3) : null
+        }
+    }
+    // the button opening the IR editor of a convolver; the dialogs are
+    // created when first opened
+    Component {
+        id: irEdit
+        Button {
+            id: irButton
+            readonly property string unit: (root.node.id || "").replace(/\.convolver$/, "")
+            text: root.node.label || qsTr("Setup")
+            implicitHeight: Math.max(Theme.touch, implicitContentHeight + topPadding + bottomPadding)
+            property var editor: null
+            function show() {
+                if (!editor)
+                    editor = editorComponent.createObject(irButton)
+                editor.edit(unit)
+            }
+            onClicked: show()
+            Component {
+                id: editorComponent
+                IrEditor {}
+            }
+            readonly property bool debugOpen: Gx.ready && visible && root.debugState("iredit:" + unit)
+            onDebugOpenChanged: if (debugOpen) show()
+        }
+    }
+    Component {
+        id: sequencer
+        Button {
+            id: seqButton
+            text: root.node.label || qsTr("Setup")
+            implicitHeight: Math.max(Theme.touch, implicitContentHeight + topPadding + bottomPadding)
+            property var dialog: null
+            function show() {
+                if (!dialog)
+                    dialog = dialogComponent.createObject(seqButton)
+                dialog.open()
+            }
+            onClicked: show()
+            Component {
+                id: dialogComponent
+                SequencerDialog {}
+            }
+            readonly property bool debugOpen: Gx.ready && visible && root.debugState("sequencer")
+            onDebugOpenChanged: if (debugOpen) show()
+        }
+    }
+    Component {
+        id: oscilloscope
+        ScopeView { param: root.param }
+    }
     Component {
         id: display
         Column {
@@ -122,7 +197,13 @@ Item {
             case "ir":
                 return fileButton
             case "display":
-                return display
+                return root.node.id2 ? loopPosition : display
+            case "iredit":
+                return irEdit
+            case "sequencer":
+                return sequencer
+            case "oscilloscope":
+                return oscilloscope
             }
             return null
         }

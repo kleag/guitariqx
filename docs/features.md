@@ -21,6 +21,10 @@ Its automated tests run with Qt 6.4 and Qt 6.8 on x86_64 and arm64.
   guitariqx's widgets, else stack layouts, else a generic panel); units
   too wide for their rack wrap their controls onto several rows
 - main amplifier panel
+- special units: the looper's transport with the play head of each tape,
+  the oscilloscope, the impulse response editor of the convolvers (level
+  in dB, part used, delay, gain line, gain correction) and the drum
+  sequencer
 - gx_head's skins for the rack units (menu, Skin): background, rack
   handles and screws, knob images with their LED rings, switch icons
   (also the looper's), colors. The Guitarix skin is built in, the others
@@ -35,8 +39,8 @@ Its automated tests run with Qt 6.4 and Qt 6.8 on x86_64 and arm64.
 ## Not yet
 
 - gx_head's slider and meter images, its two-tone unit backgrounds and its
-  wallpapers, the oscilloscope, drum sequencer and IR wave view, LV2/LADSPA
-  plugin management
+  wallpapers, unit presets (also the drum sequencer's next/previous
+  preset), LV2/LADSPA plugin management
 
 The full list of what remains is in
 [TODO.md](https://github.com/kleag/guitariqx/blob/main/TODO.md).

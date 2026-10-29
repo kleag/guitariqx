@@ -35,8 +35,10 @@ Roughly in order of importance for live use. See README.md for what works.
 - [ ] The neural units list at most 127 models of a folder and rescan it
       only when the folder changes: a model beyond that, or added since,
       is refused with "the engine does not list ..."
-- [ ] IR editing of the convolvers (offset, length, delay, gain line, like
-      gx_head's IR window); guitariqx loads the whole file with normalized gain
+- [x] IR editing of the convolvers (offset, length, delay, gain line, gain
+      correction, like gx_head's IR window)
+- [ ] IR editor: zoom into the start of long responses, show the channels
+      separately (gx_head's left/right/sum)
 
 ## Rack and plugin panels
 
@@ -52,8 +54,14 @@ Roughly in order of importance for live use. See README.md for what works.
       alternate-box needs labels placed as in gx_head to stay readable),
       slider and meter images, wallpapers (amp, tuner), skinned top bar and
       preset list
-- [ ] Special widgets: looper (dubber) transport, drum sequencer, oscilloscope,
+- [x] Special widgets: looper (dubber) transport, drum sequencer, oscilloscope,
       jconv gain line, IR wave view
+- [ ] Looper layout: the unit's Gain/Mix knobs end up low and the unit is
+      wider than a rack column at 1280 px (the label_ref labels of the Glade
+      grid are dropped, so the rows next to the notebook spanning them get
+      its height)
+- [ ] Drum sequencer: next/previous unit preset (seq.npreset/ppreset need
+      unit presets)
 - [ ] Tall stacks of meters (e.g. Multi Band Compressor "Analyze")
 - [ ] Drag and drop reordering of rack units (now: up/down buttons)
 - [ ] Unit presets (plugin_preset_list_*)
@@ -97,6 +105,13 @@ Roughly in order of importance for live use. See README.md for what works.
 - The RTNeural stack layout names its file parameter `rtneuralloadfile`
   instead of `rtneural.loadfile` (guitariqx fixes the id, gx_head shows no
   file button in the stack layout)
+- `read_audio` of a file it cannot read answers `"result": }` (invalid
+  JSON); guitariqx only asks for resolved paths
+- The drum sequencer's lines (`seq.sequencer.*`) are empty in a fresh
+  engine, and setting an empty line makes its length -1 (min_seq_size);
+  guitariqx always sends all lines with `seq.asequences` steps
+- A convolver gain line that does not start at sample 0 or is not strictly
+  increasing makes the convolver read outside of it (GxConvolver)
 - Preset and bank edits are not broadcast (only `bank_insert_new` sends
   `presetlist_changed`), nor are the changes of the current preset they
   cause: other connected UIs do not see them until they reload

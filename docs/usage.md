@@ -91,6 +91,36 @@ installed. The choice is remembered.
 
 ![The Guitarix skin](images/skin.png)
 
+### Special units
+
+Some units have widgets of their own, as in gx_head:
+
+- **Live Looper**: each tape has record, play, reverse, erase and overdub
+  switches, a file button to import a loop, and the play head over the
+  tape, the part between cut and clip lit.
+- **Oscilloscope**: the signal at the unit's place in the rack while the
+  unit is on; **Buffer** sets how many jack periods are shown, **Zoom**
+  the vertical scale.
+- **Convolver** (mono and stereo): **Setup** opens the impulse response
+  editor. It shows the level of the response in dB; the brackets above it
+  (or the Start and Length fields) set the part of the file used, Delay
+  delays it. The yellow gain line shapes the response: tap on the line to
+  add a point, drag points, select one and tap **Remove point** (or double
+  click it). **Gain correction** normalizes the level of the result,
+  **Reset** goes back to the whole file without gain line, **Apply** sends
+  the changes to the engine.
+- **DrumSequencer**: **Setup** opens the sequencer: one line of steps per
+  drum (tap a step to switch it), the beats lit, tempo, beat, number of
+  steps, the level of each drum, humanize, follow (keeps the play head in
+  view), and buttons to move the stepper (to the start, a beat back, back
+  on the beat, a beat forward).
+
+![The looper](images/looper.png)
+
+![The impulse response editor](images/iredit.png)
+
+![The drum sequencer](images/sequencer.png)
+
 ## Files
 
 Neural amp models (NAM and RTNeural) and impulse responses of the

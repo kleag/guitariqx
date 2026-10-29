@@ -91,7 +91,7 @@ int main(int argc, char *argv[]) {
                                QStringLiteral("Print engine state on the terminal (debugging)."));
     QCommandLineOption debugOpt(QStringLiteral("debug-state"),
                                 QStringLiteral("Comma separated UI states for testing without instrument or "
-                                               "MIDI device: tuner:HZ, switcher[:STATE], learnmode, learn:PARAM, midimap, saveas, files:UNIT (open the file chooser of UNIT), bankload, banksave:BANK, skins."),
+                                               "MIDI device: tuner:HZ, switcher[:STATE], learnmode, learn:PARAM, midimap, saveas, files:UNIT (open the file chooser of UNIT), bankload, banksave:BANK, skins, unit:UNIT (add UNIT to the rack), iredit:UNIT (IR editor of a convolver), sequencer (drum sequencer, with unit:seq)."),
                                 QStringLiteral("states"));
     QCommandLineOption skinOpt(QStringLiteral("skin"),
                                QStringLiteral("gx_head skin NAME for this session, \"\" for the flat look "
@@ -210,6 +210,28 @@ int main(int argc, char *argv[]) {
                     machine.midi()->setLearnMode(true);
                 } else if (st.startsWith(QLatin1String("learn:"))) {
                     machine.midi()->startLearn(arg);
+                } else if (st.startsWith(QLatin1String("unit:"))) {
+                    // a unit at the top of its rack, switched on
+                    const QVariantMap info = machine.pluginInfo(arg);
+                    if (!info.isEmpty()) {
+                        const bool stereo = info.value(QStringLiteral("stereo")).toBool();
+                        const QStringList rack = stereo ? machine.stereoRack() : machine.monoRack();
+                        if (!rack.contains(arg)) {
+                            // before the first unit that can move (the amp
+                            // cannot)
+                            QString before;
+                            for (const QString& u : rack) {
+                                if (!machine.pluginInfo(u).value(QStringLiteral("fixed")).toBool()) {
+                                    before = u;
+                                    break;
+                                }
+                            }
+                            machine.insertUnit(arg, before, stereo);
+                        }
+                        if (Parameter *on = machine.param(arg + QStringLiteral(".on_off"))) {
+                            on->setValue(true);
+                        }
+                    }
                 }
             }
         });

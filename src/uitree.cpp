@@ -324,6 +324,25 @@ bool hasWidget(const QVariantMap& node, const QString& widget) {
     return false;
 }
 
+void addSpecialWidgets(QVariantMap& ui, const QString& unit, const std::function<bool(const QString&)>& hasParam) {
+    const QString convolver = unit + QStringLiteral(".convolver");
+    for (const auto& [widget, id] : {
+             std::pair<QString, QString>{QStringLiteral("iredit"), convolver},
+             {QStringLiteral("sequencer"), QStringLiteral("seq.sequencer.kick")},
+             {QStringLiteral("oscilloscope"), QStringLiteral("oscilloscope.info")}}) {
+        if (!id.startsWith(unit + QLatin1Char('.')) || !hasParam(id)) {
+            continue;
+        }
+        // the convolvers have an editor for the jconv settings only
+        if (widget == QLatin1String("iredit") && unit != QLatin1String("jconv") && unit != QLatin1String("jconv_mono")) {
+            continue;
+        }
+        if (!hasWidget(ui.value(QStringLiteral("main")).toMap(), widget)) {
+            prependControl(ui, widget, id);
+        }
+    }
+}
+
 void prependControl(QVariantMap& ui, const QString& widget, const QString& id) {
     QVariantMap root = box(QStringLiteral("v"));
     root.insert(QStringLiteral("children"), QVariantList{

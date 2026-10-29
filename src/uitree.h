@@ -27,14 +27,21 @@ class Parameter;
  * A layout is a tree of QVariantMaps:
  *   box:     {type: "box", orientation: "h"|"v"|"flow", label, frame, tabs, children: [...]}
  *   control: {type: "control", widget: "knob"|"slider"|"switch"|"selector"|"spin"|
- *             "meter"|"display"|"wheel", size: "small"|"mid"|"big", id, label, ...}
+ *             "meter"|"display"|"wheel"|"file"|"ir"|"iredit"|"sequencer"|"oscilloscope",
+ *             size: "small"|"mid"|"big", id, label, ...}
  *            knob: "smallknob" for the small knobs drawn with that skin image
  *            (GxSmallKnob), switchType: the icon set of a switch (base_name)
+ *            display: id2 and id3 are the cut and clip parameters of a
+ *            looper tape position (create_p_display)
+ *            iredit: button opening the IR editor of a convolver (id
+ *            <unit>.convolver), sequencer: the drum sequencer (id: one of
+ *            its seq.sequencer.* lines), oscilloscope: id oscilloscope.info
  *   spacer:  {type: "spacer"}
  *   label:   {type: "label", text}
  *
  * The children of a box with orientation "grid" have row, column, rowSpan
- * and columnSpan.
+ * and columnSpan, and halign or valign ("start", "end") when they are not
+ * centered in their cell.
  *
  * A unit layout is {mini: <box>, main: <box>}: the mini box is the
  * compact view of a collapsed rack unit.
@@ -66,5 +73,10 @@ void prependControl(QVariantMap& ui, const QString& widget, const QString& id);
 
 // true when the layout has a control of this widget type
 bool hasWidget(const QVariantMap& node, const QString& widget);
+
+// Add the special widgets of a unit that its layout lacks (the stack
+// layouts have none): IR editor of the convolvers, drum sequencer,
+// oscilloscope. hasParam tells the parameters the engine has.
+void addSpecialWidgets(QVariantMap& ui, const QString& unit, const std::function<bool(const QString&)>& hasParam);
 
 } // namespace uitree

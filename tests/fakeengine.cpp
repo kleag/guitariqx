@@ -14,6 +14,8 @@
 
 #include "fakeengine.h"
 
+#include <cmath>
+
 #include <QFile>
 #include <QJsonDocument>
 #include <QMap>
@@ -77,6 +79,7 @@ void FakeEngine::loadParameterValues(const QJsonArray& list) {
         const QJsonObject body = parameterBody(list.at(i + 1).toObject());
         const QString id = body.value(QStringLiteral("Parameter")).toObject().value(QStringLiteral("id")).toString();
         m_paramEntries.insert(id, body);
+        m_tags.insert(id, list.at(i).toString());
         m_values.insert(id, body.value(QStringLiteral("value")));
     }
 }
@@ -276,6 +279,63 @@ QString FakeEngine::uniqueBankName(const QString& name) const {
     return n;
 }
 
+// OscilloscopeInfo::writeJSON: [load, frames, is_rt, jack buffer size,
+// size, [samples]]; a sine of a few periods
+QJsonArray FakeEngine::oscilloscopeInfo() const {
+    const int bs = 256;
+    const int size = bs * m_oscMul;
+    QJsonArray samples;
+    for (int i = 0; i < size; ++i) {
+        samples.append(0.6 * std::sin(i * 2 * M_PI * 3 / bs));
+    }
+    return QJsonArray{12, 4251, 1, bs, size, samples};
+}
+
+// JConv and Seq parameters take an object (GxJConvSettings::readJSON,
+// GxSeqSettings::readJSON); the convolver asserts when its gain line does
+// not start at 0 or is not strictly increasing (GxConvolver::read_sndfile)
+void FakeEngine::checkSpecialValue(const QString& id, const QJsonValue& v) {
+    const QString tag = m_tags.value(id);
+    if (tag == QLatin1String("JConv")) {
+        const QJsonObject o = v.toObject();
+        if (o.isEmpty()) {
+            violation(QStringLiteral("set %1 without settings object").arg(id));
+            return;
+        }
+        for (const char *k : {"jconv.Offset", "jconv.Length", "jconv.Delay"}) {
+            const double n = o.value(QLatin1String(k)).toDouble(-1);
+            if (n < 0 || n != std::floor(n)) {
+                violation(QStringLiteral("set %1 with %2 %3").arg(id, QLatin1String(k)).arg(n));
+            }
+        }
+        const QJsonArray line = o.value(QStringLiteral("jconv.gainline")).toArray();
+        double last = -1;
+        for (const QJsonValue& pt : line) {
+            const double i = pt.toArray().at(0).toDouble(-1);
+            if (i != std::floor(i) || i <= last || (last < 0 && i != 0)) {
+                violation(QStringLiteral("set %1 with a bad gain line point %2").arg(id).arg(i));
+            }
+            last = i;
+        }
+        if (line.size() == 1) {
+            violation(QStringLiteral("set %1 with a single gain line point").arg(id));
+        }
+    } else if (tag == QLatin1String("Seq")) {
+        const QJsonValue line = v.toObject().value(QStringLiteral("seq.seqline"));
+        // an empty line makes the sequence length -1 (min_seq_size)
+        if (!line.isArray() || line.toArray().isEmpty()) {
+            violation(QStringLiteral("set %1 without steps").arg(id));
+        }
+        for (const QJsonValue& b : line.toArray()) {
+            if (b.toDouble(-1) != 0 && b.toDouble(-1) != 1) {
+                violation(QStringLiteral("set %1 with step value %2").arg(id, b.toVariant().toString()));
+            }
+        }
+    } else if (tag == QLatin1String("Osc")) {
+        violation(QStringLiteral("set of the output %1").arg(id));
+    }
+}
+
 QJsonValue FakeEngine::paramValue(const QString& id) const {
     return m_values.value(id);
 }
@@ -349,6 +409,7 @@ QJsonValue FakeEngine::dispatch(QTcpSocket *s, const QString& method, const QJso
     if (method == QLatin1String("set")) {
         for (int i = 0; i + 1 < params.size(); i += 2) {
             if (checkParam(method, params.at(i))) {
+                checkSpecialValue(params.at(i).toString(), params.at(i + 1));
                 m_values.insert(params.at(i).toString(), params.at(i + 1));
             }
         }
@@ -366,10 +427,18 @@ QJsonValue FakeEngine::dispatch(QTcpSocket *s, const QString& method, const QJso
     if (method == QLatin1String("get_updates")) {
         QJsonArray values;
         for (const QJsonValue& id : params) {
-            if (checkParam(method, id)) {
-                values.append(id);
-                values.append(paramValue(id.toString()));
+            if (!checkParam(method, id)) {
+                continue;
             }
+            // get_updates asserts on anything but float and oscilloscope
+            // parameters
+            const QString tag = m_tags.value(id.toString());
+            if (tag != QLatin1String("Float") && tag != QLatin1String("FloatEnum") && tag != QLatin1String("Osc")) {
+                violation(QStringLiteral("get_updates with the %1 parameter %2").arg(tag, id.toString()));
+                continue;
+            }
+            values.append(id);
+            values.append(tag == QLatin1String("Osc") ? oscilloscopeInfo() : paramValue(id.toString()));
         }
         send(s, QJsonObject{
             {QStringLiteral("jsonrpc"), QStringLiteral("2.0")},
@@ -612,8 +681,27 @@ QJsonValue FakeEngine::dispatch(QTcpSocket *s, const QString& method, const QJso
         return QJsonObject{{QStringLiteral("path"), p0}, {QStringLiteral("entries"), m_dirs.value(p0)}};
     }
     if (method == QLatin1String("read_audio")) {
+        if (p0.startsWith(QLatin1String("/usr/share/gx_head/sounds/"))) {
+            // factory IRs: 0.1 s of decaying oscillation, mono
+            const int frames = 4800;
+            QJsonArray samples;
+            for (int i = 0; i < frames; ++i) {
+                samples.append(std::exp(-i / 600.0) * std::sin(i * 0.05) * (i % 7 == 0 ? 1 : 0.6));
+            }
+            return QJsonArray{frames, 1, 2, 1, 48000, samples};
+        }
         // 4 frames, 2 channels; sum of squares 8, normalized gain 1/2
         return QJsonArray{4, 2, 0, 0, 48000, QJsonArray{1, 1, 1, 1, 1, 1, 1, -1}};
+    }
+    if (method == QLatin1String("get_oscilloscope_mul_buffer")) {
+        return m_oscMul;
+    }
+    if (method == QLatin1String("set_oscilloscope_mul_buffer")) {
+        m_oscMul = params.at(0).toInt();
+        if (m_oscMul < 1 || m_oscMul > 6) {
+            violation(QStringLiteral("set_oscilloscope_mul_buffer %1").arg(m_oscMul));
+        }
+        return {};
     }
     if (method == QLatin1String("get_file_list")) {
         if (!checkParam(method, params.at(0))) {
