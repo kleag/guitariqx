@@ -21,6 +21,7 @@
 
 #include <QFile>
 #include <QJsonDocument>
+#include <QSettings>
 #include <QSignalSpy>
 #include <QStandardPaths>
 #include <QTemporaryDir>
@@ -36,6 +37,7 @@ private slots:
     void connectsAndLoads();
     void listensToNotifications();
     void unsupportedInterface();
+    void lastEngineIsSaved();
     void userChangesAreSent();
     void engineChangesAreNotSentBack();
     void presetNotifications();
@@ -58,6 +60,7 @@ private slots:
     void tunerReferencePitch();
     void tunerStrings();
     void tunerDisplayRequest();
+    void tunerMuteIsSaved();
 
     void filePlacesOldEngine();
     void filePlacesRemote();
@@ -165,6 +168,24 @@ void TestMachine::unsupportedInterface() {
     QVERIFY(!m_machine->ready());
     QCOMPARE(m_engine->received(QStringLiteral("getversion")).size(), 1);
     QVERIFY(m_engine->received(QStringLiteral("parameterlist")).isEmpty());
+}
+
+void TestMachine::lastEngineIsSaved() {
+    QSettings().clear();
+    // not saved for an engine that is refused
+    m_engine = std::make_unique<FakeEngine>();
+    m_engine->setInterfaceMajor(2);
+    QVERIFY(m_engine->listen());
+    m_machine = std::make_unique<Machine>(nullptr);
+    m_machine->connectTo(QStringLiteral("127.0.0.1"), m_engine->port());
+    QTRY_VERIFY(!m_machine->connected());
+    QVERIFY(!QSettings().contains(QStringLiteral("connection/port")));
+    cleanup();
+
+    start();
+    QSettings s;
+    QCOMPARE(s.value(QStringLiteral("connection/host")).toString(), QStringLiteral("127.0.0.1"));
+    QCOMPARE(s.value(QStringLiteral("connection/port")).toInt(), int(m_engine->port()));
 }
 
 void TestMachine::userChangesAreSent() {
@@ -595,6 +616,17 @@ void TestMachine::tunerDisplayRequest() {
     t->setActive(false);
     QVERIFY(!t->hasPitch());
     QTRY_COMPARE(m_engine->received(QStringLiteral("tuner_used_for_display")).size(), 2);
+}
+
+void TestMachine::tunerMuteIsSaved() {
+    QSettings().clear();
+    start();
+    QVERIFY(m_machine->tuner()->muteWhileTuning());
+    m_machine->tuner()->setMuteWhileTuning(false);
+    cleanup();
+    // a new session reads it back
+    start();
+    QVERIFY(!m_machine->tuner()->muteWhileTuning());
 }
 
 void TestMachine::filePlacesOldEngine() {

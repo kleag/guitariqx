@@ -16,16 +16,20 @@ laptop or tablet.
 
 | option | |
 |---|---|
-| `-H`, `--host HOST` | engine host (default `localhost`) |
-| `-p`, `--port PORT` | engine port (default `7000`) |
+| `-H`, `--host HOST` | engine host (default: the last engine connected to, else `localhost`) |
+| `-p`, `--port PORT` | engine port (default: the last one, else `7000`) |
 | `-f`, `--fullscreen` | full screen, for touch screens |
-| `--size WxH` | initial window size |
+| `--size WxH` | initial window size (default: the size, or maximized state, of the last session, else 1280x800) |
 | `--dump` | print connection, preset and rack changes on the terminal |
 | `--screenshot FILE` | save a screenshot after `--screenshot-delay` ms and quit (testing) |
 | `--debug-state LIST` | open UI states for testing without instrument or MIDI device, see [Development](development.md#ui-states-for-testing) |
 
 The connection indicator at the right of the top bar opens the connect
 dialog. guitariqx reconnects by itself when the engine restarts.
+
+guitariqx remembers the last engine, the window size and the tuner's "mute
+while tuning" option, with the recent folders of the file chooser, in
+`~/.config/guitarix/guitariqx.conf`.
 
 !!! warning "Security"
     The engine's JSON-RPC port has no authentication: whoever can reach it

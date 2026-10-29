@@ -16,9 +16,12 @@
 #include "machine.h"
 #include "rpcclient.h"
 
+#include <QSettings>
 #include <cmath>
 
 namespace {
+
+const char muteKey[] = "tuner/muteWhileTuning";
 
 // divisions of the octave for the values of racktuner.temperament
 const int temperaments[] = {12, 19, 24, 31, 41, 53};
@@ -94,7 +97,17 @@ const int numTunings = sizeof(tunings) / sizeof(tunings[0]);
 } // anonymous namespace
 
 Tuner::Tuner(Machine& machine, RpcClient& rpc, QObject *parent)
-    : QObject(parent), m_machine(machine), m_rpc(rpc) {
+    : QObject(parent), m_machine(machine), m_rpc(rpc),
+      m_muteWhileTuning(QSettings().value(QLatin1String(muteKey), true).toBool()) {
+}
+
+void Tuner::setMuteWhileTuning(bool on) {
+    if (on == m_muteWhileTuning) {
+        return;
+    }
+    m_muteWhileTuning = on;
+    QSettings().setValue(QLatin1String(muteKey), on);
+    emit muteWhileTuningChanged();
 }
 
 QString Tuner::midiNoteName(int note, bool flat) {

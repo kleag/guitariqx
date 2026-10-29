@@ -69,10 +69,10 @@ tablet. Options:
 
 | option | |
 |---|---|
-| `-H`, `--host HOST` | engine host (default `localhost`) |
-| `-p`, `--port PORT` | engine port (default `7000`) |
+| `-H`, `--host HOST` | engine host (default: the last engine connected to, else `localhost`) |
+| `-p`, `--port PORT` | engine port (default: the last one, else `7000`) |
 | `-f`, `--fullscreen` | full screen, for touch screens |
-| `--size WxH` | initial window size |
+| `--size WxH` | initial window size (default: the size, or maximized state, of the last session, else 1280x800) |
 | `--dump` | print connection, preset and rack changes on the terminal |
 | `--screenshot FILE` | save a screenshot after `--screenshot-delay` ms and quit (testing) |
 | `--debug-state LIST` | testing without instrument or MIDI device: `tuner:HZ`, `learnmode`, `learn:PARAM`, `midimap`, `saveas`, `files:UNIT` |

@@ -7,6 +7,7 @@ import Guitariqx
 ApplicationWindow {
     id: window
     property bool startFullScreen: false
+    property bool startMaximized: false
     // --debug-state midimap
     property bool openMidiMap: false
     // side by side racks and a docked preset list need room; small
@@ -14,7 +15,8 @@ ApplicationWindow {
     readonly property bool wide: width >= 1100
 
     visible: true
-    visibility: startFullScreen ? Window.FullScreen : Window.Windowed
+    visibility: startFullScreen ? Window.FullScreen
+                : startMaximized ? Window.Maximized : Window.Windowed
     title: Gx.currentPreset ? qsTr("Guitarix - %1").arg(Gx.currentPreset) : qsTr("Guitarix")
     color: Theme.background
 

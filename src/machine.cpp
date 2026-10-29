@@ -19,6 +19,7 @@
 #include <QJsonObject>
 #include <QNetworkInterface>
 #include <QQmlEngine>
+#include <QSettings>
 #include <algorithm>
 #include <cmath>
 
@@ -124,6 +125,10 @@ void Machine::onConnected() {
             m_rpc.disconnectFromServer();
             return;
         }
+        // the next start connects to this engine by default
+        QSettings settings;
+        settings.setValue(QStringLiteral("connection/host"), m_rpc.host());
+        settings.setValue(QStringLiteral("connection/port"), int(m_rpc.port()));
         for (const char *t : listenTokens) {
             m_rpc.notify(QStringLiteral("listen"), {QString::fromLatin1(t)});
         }

@@ -11,7 +11,6 @@ Popup {
     readonly property Parameter showParam: Gx.ready ? Gx.param("system.show_tuner") : null
     readonly property bool wanted: showParam ? !!showParam.value : false
     // mute the output while tuning and restore the engine state afterwards
-    property bool muteWhileTuning: true
     property string savedState: ""
     readonly property Tuner tuner: Gx.tuner
     readonly property real inTune: 3     // cents
@@ -31,7 +30,7 @@ Popup {
     onWantedChanged: wanted ? open() : close()
     onOpened: {
         Gx.tuner.active = true
-        if (muteWhileTuning && Gx.engineState !== "stopped") {
+        if (Gx.tuner.muteWhileTuning && Gx.engineState !== "stopped") {
             savedState = Gx.engineState
             Gx.setEngineState("stopped")
         }
@@ -61,9 +60,9 @@ Popup {
             Item { Layout.fillWidth: true }
             Switch {
                 text: qsTr("Mute while tuning")
-                checked: root.muteWhileTuning
+                checked: Gx.tuner.muteWhileTuning
                 onToggled: {
-                    root.muteWhileTuning = checked
+                    Gx.tuner.muteWhileTuning = checked
                     if (checked && Gx.engineState !== "stopped") {
                         root.savedState = Gx.engineState
                         Gx.setEngineState("stopped")

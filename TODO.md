@@ -90,4 +90,4 @@ Roughly in order of importance for live use. See README.md for what works.
 
 - [ ] Debian packaging (separate binary package, depends on the engine)
 - [ ] Icon and translations (qsTr is used everywhere, no .ts files yet)
-- [ ] Remember window size, last host/port and "mute while tuning" (QSettings)
+- [x] Remember window size, last host/port and "mute while tuning" (QSettings)

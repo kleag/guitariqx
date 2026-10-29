@@ -46,6 +46,8 @@ class Tuner : public QObject {
     Q_PROPERTY(double range READ range NOTIFY pitchChanged)
     Q_PROPERTY(QStringList strings READ strings NOTIFY stringsChanged)
     Q_PROPERTY(int stringIndex READ stringIndex NOTIFY pitchChanged)
+    // mute the output while the tuner is shown (UI option, kept in QSettings)
+    Q_PROPERTY(bool muteWhileTuning READ muteWhileTuning WRITE setMuteWhileTuning NOTIFY muteWhileTuningChanged)
 public:
     Tuner(Machine& machine, RpcClient& rpc, QObject *parent = nullptr);
 
@@ -59,6 +61,8 @@ public:
     double range() const { return m_range; }
     QStringList strings() const { return m_strings; }
     int stringIndex() const { return m_stringIndex; }
+    bool muteWhileTuning() const { return m_muteWhileTuning; }
+    void setMuteWhileTuning(bool on);
 
     // called by the Machine
     void engineReady();
@@ -74,6 +78,7 @@ signals:
     void activeChanged();
     void pitchChanged();
     void stringsChanged();
+    void muteWhileTuningChanged();
 
 private:
     void connectParameters();
@@ -96,4 +101,5 @@ private:
     QList<int> m_stringNotes;
     bool m_flat = false;
     int m_stringIndex = -1;
+    bool m_muteWhileTuning = true;
 };
