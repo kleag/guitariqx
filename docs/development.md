@@ -156,20 +156,33 @@ podman run --rm -v "$PWD:/src:Z" -w /src debian:bookworm ci/check.sh --deps --pa
 
 ## Releasing
 
-1. Update the version in `project(guitariqx VERSION x.y.z)` in
-   `CMakeLists.txt` and the status in `README.md` and `docs/features.md`.
-2. Commit, then tag and push:
+Versions are managed with [bumpver](https://github.com/mbarkhau/bumpver),
+run by [uv](https://docs.astral.sh/uv/) without installing anything:
+`bumpver.toml` lists the files holding the version (`CMakeLists.txt`, the
+package names in `README.md` and `docs/install.md`).
+
+1. Update the status in `README.md` and `docs/features.md`, commit, on an
+   up to date `main` with a clean working tree.
+2. Bump the version; bumpver rewrites the files, commits
+   ("Release 0.2.0") and makes the annotated tag `0.2.0`:
 
     ```sh
-    git tag -a v0.2.0 -m "guitariqx 0.2.0"
-    git push origin main v0.2.0
+    uvx bumpver update --minor --dry   # show the changes only
+    uvx bumpver update --minor         # or --patch, --major
+    ```
+
+3. Push the commit and the tag:
+
+    ```sh
+    git push origin main 0.2.0
     ```
 
 `.github/workflows/release.yml` checks that the tag matches the CMake
 version, builds and tests the packages like the CI, and publishes a GitHub
 release with the four Debian packages, a source archive and `SHA256SUMS`;
 the release notes list the changes since the previous tag. A tag with a
-suffix, such as `v0.2.0-rc1`, makes a pre-release.
+suffix, such as `0.2.0-rc1` made by hand on the commit of version 0.2.0,
+makes a pre-release. Tags starting with `v` (`v0.2.0`) work too.
 
 ## Documentation
 

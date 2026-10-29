@@ -1,14 +1,14 @@
 # Publish a release when a version tag is pushed (see docs/development.md):
 #
-#   git tag -a v0.2.0 -m "guitariqx 0.2.0" && git push origin v0.2.0
+#   uvx bumpver update --minor && git push origin main 0.2.0
 #
-# The tag must match project(VERSION) in CMakeLists.txt. A tag with a
-# suffix (v0.2.0-rc1) makes a pre-release.
+# The tag (0.2.0, or v0.2.0) must match project(VERSION) in CMakeLists.txt.
+# A tag with a suffix (0.2.0-rc1) makes a pre-release.
 name: Release
 
 on:
   push:
-    tags: ['v*']
+    tags: ['[0-9]*', 'v[0-9]*']
 
 permissions:
   contents: read

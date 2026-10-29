@@ -39,7 +39,7 @@ Qt Test programs in `tests/`. `GUITARIQX_SOURCES` (CMakeLists.txt, everything bu
 ## CI, packaging, releases, docs
 
 - `ci/check.sh [--deps] [--no-tests] [--package]` is what CI runs (build, ctest, `cpack -G DEB` into `dist/`). Check Qt 6.4 locally with `podman run --rm -v "$PWD:/src:Z" -w /src debian:bookworm ci/check.sh --deps`.
-- `.github/workflows/ci.yml`: Debian bookworm (Qt 6.4) and trixie (Qt 6.8) containers on amd64 and arm64 runners, then an install test of each `.deb` in a clean container. `release.yml` runs on `v*` tags (must match `project(VERSION)`) and publishes the debs, a source archive and SHA256SUMS. `docs.yml` publishes `docs/` (MkDocs Material, `mkdocs build --strict`) to GitHub Pages.
+- `.github/workflows/ci.yml`: Debian bookworm (Qt 6.4) and trixie (Qt 6.8) containers on amd64 and arm64 runners, then an install test of each `.deb` in a clean container. `release.yml` runs on version tags (`0.2.0` or `v0.2.0`, must match `project(VERSION)`; made by `uvx bumpver update --patch|--minor|--major`, configured in `bumpver.toml`, which also lists the files holding the version) and publishes the debs, a source archive and SHA256SUMS. `docs.yml` publishes `docs/` (MkDocs Material, `mkdocs build --strict`) to GitHub Pages.
 - Debian package settings are in `cmake/Packaging.cmake`; its `Depends` lists the QML modules by hand (dpkg-shlibdeps cannot see QML imports), so a new `import` in `qml/` needs its `qml6-module-*` package there and in `ci/check.sh`.
 - User documentation lives in `docs/` (README.md keeps a summary); keep the options table, debug states and features list in sync.
 
