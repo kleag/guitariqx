@@ -80,6 +80,8 @@ private slots:
     void gainLine();
     void impulseResponseEditing();
     void sequencer();
+    void unitPresets();
+    void sequencerPresetSteps();
     void loadModel();
 
 private:
@@ -1118,6 +1120,108 @@ void TestMachine::sequencer() {
     m.setSequencerSteps(4);
     QTRY_COMPARE(line(QStringLiteral("hat")).size(), 24);
     QCOMPARE(m.sequencerSteps(), 24);
+}
+
+void TestMachine::unitPresets() {
+    start();
+    Machine& m = *m_machine;
+    QSignalSpy ready(&m, &Machine::unitPresetsReady);
+    const auto names = [&ready]() {
+        QStringList l;
+        for (const QVariant& v : ready.last().at(1).toList()) {
+            const QVariantMap e = v.toMap();
+            l.append(QStringLiteral("%1%2%3").arg(e.value(QStringLiteral("factory")).toBool() ? "f:" : "u:",
+                                                  e.value(QStringLiteral("name")).toString(),
+                                                  e.value(QStringLiteral("active")).toBool() ? "*" : ""));
+        }
+        return l;
+    };
+    m.requestUnitPresets(QStringLiteral("graphiceq"));
+    QTRY_COMPARE(ready.count(), 1);
+    QCOMPARE(ready.last().at(0).toString(), QStringLiteral("graphiceq"));
+    QCOMPARE(names(), (QStringList{QStringLiteral("f:drop500"), QStringLiteral("f:flat")}));
+
+    // the values come back as notifications
+    Parameter *g1 = m.param(QStringLiteral("graphiceq.g1"));
+    m.setUnitPreset(QStringLiteral("graphiceq"), QStringLiteral("drop500"), true);
+    QTRY_COMPARE(g1->value().toDouble(), -16.0);
+    QCOMPARE(m.param(QStringLiteral("graphiceq.g11"))->value().toDouble(), -23.5);
+    m.requestUnitPresets(QStringLiteral("graphiceq"));
+    QTRY_COMPARE(ready.count(), 2);
+    QCOMPARE(names(), (QStringList{QStringLiteral("f:drop500*"), QStringLiteral("f:flat")}));
+
+    // saving sends the list again, the user's presets first
+    g1->setValue(-3.0);
+    QCOMPARE(m.saveUnitPreset(QStringLiteral("graphiceq"), QStringLiteral("  my  eq ")), QString());
+    QTRY_COMPARE(ready.count(), 3);
+    QCOMPARE(names(), (QStringList{QStringLiteral("u:my eq*"), QStringLiteral("f:drop500"), QStringLiteral("f:flat")}));
+    QCOMPARE(m_engine->unitPresets(QStringLiteral("graphiceq"), false).at(0).second
+                 .value(QStringLiteral("graphiceq.g1")).toDouble(), -3.0);
+    QVERIFY(!m.saveUnitPreset(QStringLiteral("graphiceq"), QStringLiteral("  ")).isEmpty());
+    m.setUnitPreset(QStringLiteral("graphiceq"), QStringLiteral("flat"), true);
+    QTRY_COMPARE(g1->value().toDouble(), 0.0);
+    m.setUnitPreset(QStringLiteral("graphiceq"), QStringLiteral("my eq"), false);
+    QTRY_COMPARE(g1->value().toDouble(), -3.0);
+
+    QCOMPARE(m.removeUnitPreset(QStringLiteral("graphiceq"), QStringLiteral("my eq")), QString());
+    QTRY_COMPARE(ready.count(), 4);
+    QCOMPARE(names(), (QStringList{QStringLiteral("f:drop500"), QStringLiteral("f:flat")}));
+
+    // standard values, without the switch of the unit
+    QVERIFY(!m.unitHasStdValues(QStringLiteral("graphiceq")));
+    m.resetUnit(QStringLiteral("graphiceq"));
+    QVERIFY(m.unitHasStdValues(QStringLiteral("graphiceq")));
+    QTRY_COMPARE(m_engine->value(QStringLiteral("graphiceq.g1")).toDouble(), g1->value().toDouble());
+    QVERIFY(m_engine->received(QStringLiteral("set")).size() > 0);
+    for (const FakeEngine::Message& msg : m_engine->received(QStringLiteral("set"))) {
+        QVERIFY(msg.params.at(0).toString() != QLatin1String("graphiceq.on_off"));
+    }
+
+    // units the engine does not know are not sent
+    m_engine->clearReceived();
+    m.requestUnitPresets(QStringLiteral("nounit"));
+    m.setUnitPreset(QStringLiteral("nounit"), QStringLiteral("x"), false);
+    QVERIFY(!m.saveUnitPreset(QStringLiteral("nounit"), QStringLiteral("x")).isEmpty());
+    QVERIFY(!m.removeUnitPreset(QStringLiteral("nounit"), QStringLiteral("x")).isEmpty());
+    m.stepUnitPreset(QStringLiteral("nounit"), 1);
+    m.requestUnitPresets(QStringLiteral("graphiceq"));
+    QTRY_COMPARE(ready.count(), 5);
+    // only the last request (the sets of the reset may still arrive)
+    QStringList sent;
+    for (const FakeEngine::Message& msg : m_engine->received()) {
+        if (msg.method.startsWith(QLatin1String("plugin_preset_list_"))) {
+            sent.append(msg.method + QLatin1Char(' ') + msg.params.at(0).toString());
+        }
+    }
+    QCOMPARE(sent, QStringList{QStringLiteral("plugin_preset_list_load graphiceq")});
+}
+
+void TestMachine::sequencerPresetSteps() {
+    start();
+    Machine& m = *m_machine;
+    m_engine->setUnitPresets(QStringLiteral("seq"), false, {
+        {QStringLiteral("a"), QJsonObject{{QStringLiteral("seq.bpm"), 61}}},
+        {QStringLiteral("b"), QJsonObject{{QStringLiteral("seq.bpm"), 62}}},
+        {QStringLiteral("c"), QJsonObject{{QStringLiteral("seq.bpm"), 63}}},
+    });
+    Parameter *bpm = m.param(QStringLiteral("seq.bpm"));
+    // none in use: the first one, then the next ones, wrapping
+    m.stepUnitPreset(QStringLiteral("seq"), 1);
+    QTRY_COMPARE(bpm->value().toDouble(), 61.0);
+    m.stepUnitPreset(QStringLiteral("seq"), -1);
+    QTRY_COMPARE(bpm->value().toDouble(), 63.0);
+    m.stepUnitPreset(QStringLiteral("seq"), 1);
+    QTRY_COMPARE(bpm->value().toDouble(), 61.0);
+
+    // the buttons of the unit (or their MIDI controllers) are set back
+    Parameter *next = m.param(QStringLiteral("seq.npreset"));
+    next->setValue(1);
+    QTRY_COMPARE(bpm->value().toDouble(), 62.0);
+    QCOMPARE(next->value().toDouble(), 0.0);
+    QTRY_COMPARE(m_engine->value(QStringLiteral("seq.npreset")).toDouble(), 0.0);
+    m_engine->notifyClients(QStringLiteral("set"), {QStringLiteral("seq.ppreset"), 1});
+    QTRY_COMPARE(bpm->value().toDouble(), 61.0);
+    QTRY_COMPARE(m_engine->value(QStringLiteral("seq.ppreset")).toDouble(), 0.0);
 }
 
 void TestMachine::loadModel() {

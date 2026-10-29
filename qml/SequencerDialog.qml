@@ -46,6 +46,7 @@ Dialog {
                                     ? Math.min(steps - 1, Math.floor(posParam.value / 2300 * steps)) : 0
     readonly property real cell: Theme.touch + 2
 
+    UnitPresetDialog { id: presetDialog; unitId: "seq" }
     OutputWatch { paramId: "seq.pos"; active: root.opened && root.running }
     OutputWatch { paramId: "seq.step"; active: root.opened && root.running }
     OutputWatch { paramId: "seq.step_orig"; active: root.opened && root.running }
@@ -121,6 +122,35 @@ Dialog {
                 ParamSwitch { param: root.p("seq.hum"); label: qsTr("Humanize") }
                 ParamSwitch { param: root.p("seq.follow"); label: qsTr("Follow") }
                 ParamSwitch { param: root.p("seq.direct_out"); label: qsTr("Direct out") }
+                // the unit presets: the patterns saved by the user
+                Column {
+                    spacing: 2
+                    Text {
+                        text: qsTr("Preset")
+                        color: Theme.textDim
+                        font.pixelSize: Theme.fontSmall
+                        anchors.horizontalCenter: parent.horizontalCenter
+                    }
+                    Row {
+                        RoundButton {
+                            text: "◀"
+                            onClicked: Gx.stepUnitPreset("seq", -1)
+                            ToolTip.visible: hovered
+                            ToolTip.text: qsTr("Previous preset")
+                        }
+                        Button {
+                            text: qsTr("Presets…")
+                            flat: true
+                            onClicked: presetDialog.show()
+                        }
+                        RoundButton {
+                            text: "▶"
+                            onClicked: Gx.stepUnitPreset("seq", 1)
+                            ToolTip.visible: hovered
+                            ToolTip.text: qsTr("Next preset")
+                        }
+                    }
+                }
                 Column {
                     spacing: 2
                     Text {

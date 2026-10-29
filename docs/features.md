@@ -17,6 +17,9 @@ Its automated tests run with Qt 6.4 and Qt 6.8 on x86_64 and arm64.
 - files: NAM and RTNeural models, convolver impulse responses and looper
   imports, chosen with a single click file chooser, on the engine's computer
 - mono and stereo racks: on/off, add, remove, reorder, collapse
+- unit presets: load, save and remove the settings of one rack unit,
+  factory presets, standard values; previous/next preset of the drum
+  sequencer
 - rack unit panels with gx_head's arrangement (Glade layouts translated to
   guitariqx's widgets, else stack layouts, else a generic panel); units
   too wide for their rack wrap their controls onto several rows
@@ -39,8 +42,7 @@ Its automated tests run with Qt 6.4 and Qt 6.8 on x86_64 and arm64.
 ## Not yet
 
 - gx_head's slider and meter images, its two-tone unit backgrounds and its
-  wallpapers, unit presets (also the drum sequencer's next/previous
-  preset), LV2/LADSPA plugin management
+  wallpapers, LV2/LADSPA plugin management
 
 The full list of what remains is in
 [TODO.md](https://github.com/kleag/guitariqx/blob/main/TODO.md).

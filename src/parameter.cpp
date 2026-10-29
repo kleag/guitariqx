@@ -57,6 +57,7 @@ Parameter *Parameter::fromJson(const QString& tag, const QJsonObject& entry, QOb
     p->m_output = base.value(QStringLiteral("output")).toInt();
     p->m_maxlevel = base.value(QStringLiteral("maxlevel")).toInt();
     p->m_controllable = !base.value(QStringLiteral("non_controllable")).toInt();
+    p->m_inPreset = !base.value(QStringLiteral("do_not_save")).toInt();
     const int ctype = base.value(QStringLiteral("c_type")).toInt();
     p->m_ctype = ctype;
 

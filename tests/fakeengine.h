@@ -75,6 +75,13 @@ public:
     void finishSwitcher(bool tuner);
     // files listed by list_directory, path -> entries [name, is_dir, size, mtime]
     void setDirectory(const QString& path, const QJsonArray& entries) { m_dirs.insert(path, entries); }
+    // unit presets: name -> parameter values; graphiceq has two factory
+    // presets
+    using UnitPresets = QList<QPair<QString, QJsonObject>>;
+    UnitPresets unitPresets(const QString& unit, bool factory) const { return m_unitPresets[factory ? 1 : 0].value(unit); }
+    void setUnitPresets(const QString& unit, bool factory, const UnitPresets& presets) {
+        m_unitPresets[factory ? 1 : 0].insert(unit, presets);
+    }
 
 signals:
     void messageReceived(const QString& method);
@@ -89,6 +96,8 @@ private:
     void checkNoBool(const QJsonValue& v, const QString& where);
     bool checkParam(const QString& method, const QJsonValue& id);
     bool checkBank(const QString& method, const QJsonValue& name);
+    bool checkPlugin(const QString& method, const QString& id);
+    QJsonObject unitValues(const QString& unit) const;
     int bankIndex(const QString& name) const;
     QStringList presets(const QString& bank) const;
     void setPresets(const QString& bank, const QStringList& presets);
@@ -112,6 +121,8 @@ private:
     int m_oscMul = 1;
     QHash<QString, QJsonArray> m_dirs;
     QSet<QString> m_plugins;
+    // user (0) and factory (1) unit presets by unit
+    QHash<QString, UnitPresets> m_unitPresets[2];
     QJsonArray m_banks;
     QStringList m_rack[2];
     QJsonArray m_midiMap;

@@ -87,10 +87,19 @@ in the guitarix sources, which `guitarix -G` uses too. Notes:
   sequencer plays as many steps as its shortest line has and breaks on an
   empty line, which a fresh engine has until a line is edited: guitariqx
   gives every line `seq.asequences` steps.
+- Unit presets: `plugin_preset_list_load [unit]` answers
+  `[[name, is_set], ...]`, the user's (and LV2) presets, an entry with an
+  empty name, then the factory presets; `is_set` is 1 when the unit's
+  values are those of the preset. `plugin_preset_list_set [unit, factory,
+  name]` sends a `set` notification for each parameter it changes, to its
+  sender too, then an empty `set`; `plugin_preset_list_save` and
+  `plugin_preset_list_remove [unit, name]` notify nothing. The engine
+  leaves `seq.npreset`/`seq.ppreset` to the GUI, which loads the next or
+  previous user preset of the sequencer and sets them back to 0.
 
 The engine trusts its clients: unknown parameter ids (`get_updates`,
 `midi_modifyCurrent`, `midi_deleteParameter`), unknown plugin ids
-(`plugin_load_ui`) and unknown bank names (the bank and preset procedures)
+(`plugin_load_ui`, `plugin_preset_list_*`) and unknown bank names (the bank and preset procedures)
 crash or abort it. guitariqx only sends what the engine listed, and the
 tests check it (see below).
 
@@ -149,6 +158,7 @@ MIDI device or clicks (comma separated):
 | `unit:UNIT` | adds UNIT at the top of its rack (if missing) and switches it on |
 | `iredit:UNIT` | the IR editor of a convolver (`jconv`, `jconv_mono`) |
 | `sequencer` | the drum sequencer (with `unit:seq`) |
+| `unitpresets:UNIT` | the presets of a rack unit (which must be in the rack) |
 
 ### Without guitarix
 

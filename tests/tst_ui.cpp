@@ -82,6 +82,10 @@ void TestUi::states_data() {
                                << QString();
     QTest::newRow("sequencer-small") << QStringLiteral("unit:seq,sequencer") << QStringLiteral("800x480") << 2
                                      << false << QString();
+    QTest::newRow("unitpresets") << QStringLiteral("unitpresets:graphiceq") << QStringLiteral("1280x800") << 2 << false
+                                 << QString();
+    QTest::newRow("unitpresets-small") << QStringLiteral("unitpresets:graphiceq") << QStringLiteral("800x480") << 2
+                                       << false << QStringLiteral("Guitarix");
     QTest::newRow("files-remote-old-engine") << QStringLiteral("files:nam") << QStringLiteral("800x480") << 1 << true << QString();
 }
 
@@ -99,6 +103,9 @@ void TestUi::states() {
     engine.setDirectory(QStringLiteral("/home/guitarist/models"),
                         QJsonArray{QJsonArray{QStringLiteral("clean.nam"), 0, 300000, 1700000000},
                                    QJsonArray{QStringLiteral("crunch.nam"), 0, 310000, 1700000000}});
+    // a user preset besides the factory ones
+    engine.setUnitPresets(QStringLiteral("graphiceq"), false,
+                          {{QStringLiteral("Bright"), QJsonObject{{QStringLiteral("graphiceq.g11"), 6}}}});
     QVERIFY(engine.listen());
 
     QTemporaryDir home;
