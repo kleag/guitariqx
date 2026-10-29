@@ -36,6 +36,8 @@ guitariqx_add_test(tst_uitree)
 guitariqx_add_test(tst_rpcclient)
 guitariqx_add_test(tst_machine)
 guitariqx_add_test(tst_dirmodel)
+guitariqx_add_test(tst_skin)
+target_compile_definitions(tst_skin PRIVATE GUITARIQX_SKINS="${PROJECT_SOURCE_DIR}/skins")
 
 # runs the application against FakeEngine and fails on QML errors
 guitariqx_add_test(tst_ui)

@@ -18,6 +18,7 @@
 #include "midimap.h"
 #include "parameter.h"
 #include "rpcclient.h"
+#include "skin.h"
 #include "tuner.h"
 
 #include <QHash>
@@ -60,6 +61,7 @@ class Machine : public QObject {
     Q_PROPERTY(QString lastMessage READ lastMessage NOTIFY messageReceived)
     Q_PROPERTY(Tuner *tuner READ tuner CONSTANT)
     Q_PROPERTY(MidiMap *midi READ midi CONSTANT)
+    Q_PROPERTY(Skin *skin READ skin CONSTANT)
     // the engine runs on this computer: its files can be read directly
     Q_PROPERTY(bool engineLocal READ engineLocal NOTIFY connectedChanged)
     Q_PROPERTY(QVariantList filePlaces READ filePlaces NOTIFY filePlacesChanged)
@@ -92,6 +94,7 @@ public:
     int parameterCount() const { return m_params.size(); }
     Tuner *tuner() { return &m_tuner; }
     MidiMap *midi() { return &m_midi; }
+    Skin *skin() { return &m_skin; }
 
     Q_INVOKABLE void connectTo(const QString& host, int port);
     // Before quitting: the engine does not clean up after a connection
@@ -218,6 +221,7 @@ private:
     RpcClient m_rpc;
     Tuner m_tuner;
     MidiMap m_midi;
+    Skin m_skin;
     QHash<QString, Parameter*> m_params;
     QHash<QString, QVariantMap> m_pluginInfo;
     QVariantList m_pluginList;

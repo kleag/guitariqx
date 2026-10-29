@@ -41,27 +41,32 @@ void TestUi::states_data() {
     QTest::addColumn<QString>("size");
     QTest::addColumn<int>("interfaceMinor");
     QTest::addColumn<bool>("remote");
+    // --skin: the built-in gx_head skin (installed skins are hidden)
+    QTest::addColumn<QString>("skin");
 
-    QTest::newRow("main") << QString() << QStringLiteral("1280x800") << 2 << false;
-    QTest::newRow("main-small") << QString() << QStringLiteral("800x480") << 2 << false;
+    QTest::newRow("main") << QString() << QStringLiteral("1280x800") << 2 << false << QString();
+    QTest::newRow("main-small") << QString() << QStringLiteral("800x480") << 2 << false << QString();
     // portrait: the preset name gets its own row
-    QTest::newRow("main-portrait") << QString() << QStringLiteral("480x800") << 2 << false;
+    QTest::newRow("main-portrait") << QString() << QStringLiteral("480x800") << 2 << false << QString();
     // narrowest side by side racks: wide units wrap
-    QTest::newRow("main-narrow") << QString() << QStringLiteral("1100x800") << 2 << false;
-    QTest::newRow("tuner") << QStringLiteral("tuner:108") << QStringLiteral("1280x800") << 2 << false;
-    QTest::newRow("tuner-small") << QStringLiteral("tuner:330") << QStringLiteral("800x480") << 2 << false;
-    QTest::newRow("switcher") << QStringLiteral("switcher") << QStringLiteral("1280x800") << 2 << false;
-    QTest::newRow("switcher-small") << QStringLiteral("switcher:wait_stop") << QStringLiteral("800x480") << 2 << false;
-    QTest::newRow("learnmode") << QStringLiteral("learnmode") << QStringLiteral("1280x800") << 2 << false;
-    QTest::newRow("learn") << QStringLiteral("learn:fumaster.Level") << QStringLiteral("1280x800") << 2 << false;
-    QTest::newRow("learn-switch") << QStringLiteral("learn:fumaster.on_off") << QStringLiteral("800x480") << 2 << false;
-    QTest::newRow("midimap") << QStringLiteral("midimap") << QStringLiteral("1280x800") << 2 << false;
-    QTest::newRow("saveas") << QStringLiteral("saveas") << QStringLiteral("1280x800") << 2 << false;
-    QTest::newRow("bankload") << QStringLiteral("bankload") << QStringLiteral("1280x800") << 2 << false;
-    QTest::newRow("banksave") << QStringLiteral("banksave:Scratchpad") << QStringLiteral("800x480") << 2 << false;
-    QTest::newRow("files-ir") << QStringLiteral("files:jconv_mono") << QStringLiteral("1280x800") << 2 << false;
-    QTest::newRow("files-remote") << QStringLiteral("files:nam") << QStringLiteral("1280x800") << 2 << true;
-    QTest::newRow("files-remote-old-engine") << QStringLiteral("files:nam") << QStringLiteral("800x480") << 1 << true;
+    QTest::newRow("main-narrow") << QString() << QStringLiteral("1100x800") << 2 << false << QString();
+    QTest::newRow("tuner") << QStringLiteral("tuner:108") << QStringLiteral("1280x800") << 2 << false << QString();
+    QTest::newRow("tuner-small") << QStringLiteral("tuner:330") << QStringLiteral("800x480") << 2 << false << QString();
+    QTest::newRow("switcher") << QStringLiteral("switcher") << QStringLiteral("1280x800") << 2 << false << QString();
+    QTest::newRow("switcher-small") << QStringLiteral("switcher:wait_stop") << QStringLiteral("800x480") << 2 << false << QString();
+    QTest::newRow("learnmode") << QStringLiteral("learnmode") << QStringLiteral("1280x800") << 2 << false << QString();
+    QTest::newRow("learn") << QStringLiteral("learn:fumaster.Level") << QStringLiteral("1280x800") << 2 << false << QString();
+    QTest::newRow("learn-switch") << QStringLiteral("learn:fumaster.on_off") << QStringLiteral("800x480") << 2 << false << QString();
+    QTest::newRow("midimap") << QStringLiteral("midimap") << QStringLiteral("1280x800") << 2 << false << QString();
+    QTest::newRow("saveas") << QStringLiteral("saveas") << QStringLiteral("1280x800") << 2 << false << QString();
+    QTest::newRow("bankload") << QStringLiteral("bankload") << QStringLiteral("1280x800") << 2 << false << QString();
+    QTest::newRow("banksave") << QStringLiteral("banksave:Scratchpad") << QStringLiteral("800x480") << 2 << false << QString();
+    QTest::newRow("files-ir") << QStringLiteral("files:jconv_mono") << QStringLiteral("1280x800") << 2 << false << QString();
+    QTest::newRow("files-remote") << QStringLiteral("files:nam") << QStringLiteral("1280x800") << 2 << true << QString();
+    QTest::newRow("skin") << QString() << QStringLiteral("1280x800") << 2 << false << QStringLiteral("Guitarix");
+    QTest::newRow("skin-small") << QString() << QStringLiteral("800x480") << 2 << false << QStringLiteral("Guitarix");
+    QTest::newRow("skins") << QStringLiteral("skins") << QStringLiteral("800x480") << 2 << false << QStringLiteral("Guitarix");
+    QTest::newRow("files-remote-old-engine") << QStringLiteral("files:nam") << QStringLiteral("800x480") << 1 << true << QString();
 }
 
 void TestUi::states() {
@@ -69,6 +74,7 @@ void TestUi::states() {
     QFETCH(QString, size);
     QFETCH(int, interfaceMinor);
     QFETCH(bool, remote);
+    QFETCH(QString, skin);
 
     FakeEngine engine(interfaceMinor);
     engine.setDirectory(QStringLiteral("/home/guitarist"),
@@ -90,6 +96,9 @@ void TestUi::states() {
     if (!debugState.isEmpty()) {
         args << QStringLiteral("--debug-state") << debugState;
     }
+    if (!skin.isEmpty()) {
+        args << QStringLiteral("--skin") << skin;
+    }
 
     QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
     env.insert(QStringLiteral("QT_QPA_PLATFORM"), QStringLiteral("offscreen"));
@@ -97,6 +106,9 @@ void TestUi::states() {
     // settings (recent folders) in a scratch folder
     env.insert(QStringLiteral("HOME"), home.path());
     env.insert(QStringLiteral("XDG_CONFIG_HOME"), home.filePath(QStringLiteral(".config")));
+    // no installed gx_head skins: the same on every computer
+    env.insert(QStringLiteral("XDG_DATA_HOME"), home.filePath(QStringLiteral(".local/share")));
+    env.insert(QStringLiteral("XDG_DATA_DIRS"), home.filePath(QStringLiteral("share")));
     env.remove(QStringLiteral("QT_QUICK_CONTROLS_STYLE"));
     if (remote) {
         env.insert(QStringLiteral("GUITARIQX_REMOTE_FILES"), QStringLiteral("1"));
@@ -119,7 +131,7 @@ void TestUi::states() {
     // QML errors and warnings name their file (qrc:/Guitariqx/qml/...)
     static const QRegularExpression qmlProblem(
         QStringLiteral("qrc:/|\\.qml:|TypeError|ReferenceError|Binding loop|Cannot assign|is not a type|"
-                       "module .* is not installed|Unable to assign"));
+                       "module .* is not installed|Unable to assign|unknown skin"));
     QStringList problems;
     for (const QString& line : err.split(QLatin1Char('\n'))) {
         if (qmlProblem.match(line).hasMatch()) {

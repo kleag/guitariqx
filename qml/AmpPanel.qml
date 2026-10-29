@@ -26,10 +26,10 @@ Flow {
         spacing: 4
         Text {
             text: qsTr("Tube model")
-            color: Theme.textDim
+            color: Theme.rackLabel
             font.pixelSize: Theme.fontSmall
         }
-        ParamSelector { param: root.p("tube.select") }
+        ParamSelector { param: root.p("tube.select"); solid: Theme.skinned }
         Row {
             spacing: Theme.spacing
             ParamSwitch { param: root.p("amp.feed_on_off"); label: qsTr("Feedback") }
@@ -51,7 +51,7 @@ Flow {
         spacing: 4
         Text {
             text: qsTr("Out")
-            color: Theme.textDim
+            color: Theme.rackLabel
             font.pixelSize: Theme.fontSmall
             anchors.horizontalCenter: parent.horizontalCenter
         }

@@ -19,7 +19,7 @@ Item {
         visible: root.label !== ""
         anchors.horizontalCenter: parent.horizontalCenter
         text: root.showValue && root.param ? root.label + "  " + root.param.displayValue : root.label
-        color: Theme.textDim
+        color: Theme.rackLabel
         font.pixelSize: Theme.fontSmall
     }
 

@@ -7,6 +7,7 @@ Item {
     id: root
     property Parameter param: null
     property string label: ""
+    property color labelColor: Theme.textDim
     // SpinBox works on integers: scale floats by the step precision
     readonly property real scale: param && param.kind === Parameter.Float
                                   ? (param.step > 0 && param.step < 1 ? Math.round(1 / param.step) : 100) : 1
@@ -19,7 +20,7 @@ Item {
         visible: root.label !== ""
         anchors.horizontalCenter: parent.horizontalCenter
         text: root.label
-        color: Theme.textDim
+        color: root.labelColor
         font.pixelSize: Theme.fontSmall
     }
 
