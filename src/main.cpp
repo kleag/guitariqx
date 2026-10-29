@@ -24,6 +24,40 @@
 #include <QTimer>
 #include <cstdio>
 
+namespace {
+
+// Saves the window size when the window is closed, before it is hidden
+// (aboutToQuit comes too late). An event filter rather than a connection
+// to QQuickWindow::closing, whose QQuickCloseEvent argument is an
+// incomplete type in Qt 6.4.
+class WindowSizeSaver : public QObject {
+public:
+    explicit WindowSizeSaver(QQuickWindow *window) : QObject(window), m_window(window) {
+        window->installEventFilter(this);
+    }
+
+protected:
+    bool eventFilter(QObject *watched, QEvent *event) override {
+        if (watched == m_window && event->type() == QEvent::Close) {
+            // a full screen or maximized window keeps the last normal size
+            QSettings settings;
+            const QWindow::Visibility v = m_window->visibility();
+            if (v == QWindow::Windowed) {
+                settings.setValue(QStringLiteral("window/size"), m_window->size());
+            }
+            if (v == QWindow::Windowed || v == QWindow::Maximized) {
+                settings.setValue(QStringLiteral("window/maximized"), v == QWindow::Maximized);
+            }
+        }
+        return false;
+    }
+
+private:
+    QQuickWindow *m_window;
+};
+
+} // namespace
+
 int main(int argc, char *argv[]) {
     QGuiApplication app(argc, argv);
     QGuiApplication::setApplicationName(QStringLiteral("guitariqx"));
@@ -132,18 +166,7 @@ int main(int argc, char *argv[]) {
     }
 
     auto *window = qobject_cast<QQuickWindow*>(engine.rootObjects().first());
-    // before the window is hidden, aboutToQuit comes too late
-    QObject::connect(window, &QQuickWindow::closing, [window]() {
-        // a full screen or maximized window keeps the last normal size
-        QSettings settings;
-        const QWindow::Visibility v = window->visibility();
-        if (v == QWindow::Windowed) {
-            settings.setValue(QStringLiteral("window/size"), window->size());
-        }
-        if (v == QWindow::Windowed || v == QWindow::Maximized) {
-            settings.setValue(QStringLiteral("window/maximized"), v == QWindow::Maximized);
-        }
-    });
+    new WindowSizeSaver(window);
 
     // Machine saves the engine after a successful connection
     const QString host = parser.isSet(hostOpt)
