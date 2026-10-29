@@ -16,6 +16,7 @@
 // directory listing and loading impulse responses.
 
 #include "machine.h"
+#include "impulseresponse.h"
 
 #include <QDateTime>
 #include <QJsonObject>
@@ -59,14 +60,17 @@ void Machine::requestFilePlaces() {
     emit filePlacesChanged();
     // IR folders of the engine (user folder and the factory sounds)
     m_rpc.call(QStringLiteral("load_impresp_dirs"), {}, [this, places](const QJsonValue& r) mutable {
+        bool user = true;
         for (const QJsonValue& v : r.toArray()) {
             const QJsonArray d = v.toArray();
             const QString path = d.at(0).toString();
             const QString name = d.at(1).toString().trimmed();
             // the top level folders come first (user, then factory: the
-            // "%S" of IR settings), their sub folders are named relatively
+            // "%U" and "%S" of IR settings), each followed by its sub
+            // folders, which are named relatively
             if (name == path) {
-                m_irFactoryDir = path;
+                (user ? m_irUserDir : m_irFactoryDir) = path;
+                user = false;
             }
             bool seen = false;
             for (const QVariant& p : std::as_const(places)) {
@@ -122,6 +126,14 @@ void Machine::listDirectory(const QString& path, ListHandler handler) {
     });
 }
 
+void Machine::readAudio(const QString& file, AudioHandler handler) {
+    if (!m_rpc.isConnected()) {
+        handler(QJsonArray());
+        return;
+    }
+    m_rpc.call(QStringLiteral("read_audio"), {file}, [handler](const QJsonValue& r) { handler(r.toArray()); });
+}
+
 void Machine::loadImpulseResponse(const QString& unit, const QString& file) {
     const QString id = unit + QStringLiteral(".convolver");
     if (!m_params.contains(id)) {
@@ -129,23 +141,19 @@ void Machine::loadImpulseResponse(const QString& unit, const QString& file) {
         return;
     }
     // read_audio [file] -> [size, channels, type, form, rate, [samples...]]
-    m_rpc.call(QStringLiteral("read_audio"), {file}, [this, unit, file, id](const QJsonValue& r) {
-        const QJsonArray a = r.toArray();
+    readAudio(file, [this, unit, file, id](const QJsonArray& a) {
         if (a.size() < 6) {
             emit impulseResponseLoaded(unit, file, tr("Cannot read the audio file %1").arg(file));
             return;
         }
         const qint64 frames = qint64(a.at(0).toDouble());
         const int channels = a.at(1).toInt();
-        const QJsonArray samples = a.at(5).toArray();
-        // IRWindow::calc_normalized_gain with an empty gain line
-        double sum = 0;
-        for (const QJsonValue& s : samples) {
-            const double v = s.toDouble();
-            sum += v * v;
+        const QJsonArray s = a.at(5).toArray();
+        QVector<float> samples(s.size());
+        for (int i = 0; i < s.size(); ++i) {
+            samples[i] = float(s.at(i).toDouble());
         }
-        double gain = channels > 0 ? std::sqrt(sum / channels) : 0;
-        gain = gain != 0 ? 1 / gain : 1;
+        const double gain = ImpulseResponse::normalizedGain(samples, channels, 0, int(frames), {});
         const int slash = file.lastIndexOf(QLatin1Char('/'));
         // like IRWindow::on_reset_clicked: whole file, no delay, flat gain line
         QJsonObject settings{

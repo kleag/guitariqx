@@ -53,9 +53,14 @@ Machine *Machine::s_instance = nullptr;
 Machine::Machine(QObject *parent)
     : QObject(parent),
       m_tuner(*this, m_rpc),
-      m_midi(*this, m_rpc) {
+      m_midi(*this, m_rpc),
+      m_oscilloscope(this) {
     QQmlEngine::setObjectOwnership(&m_tuner, QQmlEngine::CppOwnership);
     QQmlEngine::setObjectOwnership(&m_midi, QQmlEngine::CppOwnership);
+    QQmlEngine::setObjectOwnership(&m_oscilloscope, QQmlEngine::CppOwnership);
+    connect(&m_oscilloscope, &Oscilloscope::mulBufferRequested, this, [this](int n) {
+        m_rpc.notify(QStringLiteral("set_oscilloscope_mul_buffer"), {n});
+    });
     connect(&m_rpc, &RpcClient::connected, this, &Machine::onConnected);
     connect(&m_rpc, &RpcClient::disconnected, this, &Machine::onDisconnected);
     connect(&m_rpc, &RpcClient::notification, this, &Machine::onNotification);
@@ -296,6 +301,11 @@ void Machine::onNotification(const QString& method, const QJsonArray& params) {
             if (!p) {
                 continue;
             }
+            if (p->tag() == QLatin1String("Osc")) {
+                // a whole frame: kept out of the parameter's QVariant
+                m_oscilloscope.update(params.at(i + 1).toArray());
+                continue;
+            }
             p->updateFromEngine(params.at(i + 1));
             if (id.startsWith(QLatin1String("ui.")) || id.endsWith(QLatin1String(".position"))
                 || id.endsWith(QLatin1String(".pp"))) {
@@ -419,6 +429,7 @@ QVariantMap Machine::unitUi(const QString& id) {
 void Machine::finishUnitUi(const QString& id, QVariantMap ui) {
     m_unitUiPending.remove(id);
     {
+        uitree::addSpecialWidgets(ui, id, [this](const QString& pid) { return m_params.contains(pid); });
         if (!uitree::hasControls(ui.value(QStringLiteral("main")).toMap())) {
             ui = uitree::generic(unitParameters(id));
         }
@@ -500,10 +511,14 @@ void Machine::moveUnit(const QString& id, int delta, bool stereo) {
 }
 
 void Machine::watchOutput(const QString& id) {
-    // get_updates only handles float outputs (it asserts on others)
     Parameter *p = m_params.value(id);
-    if (!p || !(p->isOutput() || p->isMaxlevel()) || p->kind() != Parameter::Float) {
+    if (!p || !p->isPollable()) {
         return;
+    }
+    if (p->tag() == QLatin1String("Osc") && !m_watched.contains(id)) {
+        m_rpc.call(QStringLiteral("get_oscilloscope_mul_buffer"), {}, [this](const QJsonValue& r) {
+            m_oscilloscope.updateMulBuffer(r.toInt(1));
+        });
     }
     m_watched[id] += 1;
     if (m_ready && !m_pollTimer.isActive()) {
@@ -528,9 +543,15 @@ void Machine::pollOutputs() {
     if (m_watched.isEmpty() || !m_rpc.isConnected()) {
         return;
     }
+    // the oscilloscope frames (up to 6 jack periods) at half the rate
+    const bool osc = (m_pollCount++ % 2) == 0;
     QJsonArray ids;
     for (auto it = m_watched.cbegin(); it != m_watched.cend(); ++it) {
-        ids.append(it.key());
+        if (osc || m_params.value(it.key())->tag() != QLatin1String("Osc")) {
+            ids.append(it.key());
+        }
     }
-    m_rpc.notify(QStringLiteral("get_updates"), ids);
+    if (!ids.isEmpty()) {
+        m_rpc.notify(QStringLiteral("get_updates"), ids);
+    }
 }

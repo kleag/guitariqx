@@ -94,6 +94,8 @@ private:
     void setPresets(const QString& bank, const QStringList& presets);
     QString uniqueBankName(const QString& name) const;
     QJsonValue paramValue(const QString& id) const;
+    QJsonArray oscilloscopeInfo() const;
+    void checkSpecialValue(const QString& id, const QJsonValue& v);
     void loadParameterValues(const QJsonArray& list);
 
     QTcpServer m_server;
@@ -105,6 +107,9 @@ private:
     QJsonObject m_fixture;
     QHash<QString, QJsonValue> m_values;
     QHash<QString, QJsonObject> m_paramEntries;
+    // parameterlist type tag of each parameter: Float, Bool, JConv, Osc...
+    QHash<QString, QString> m_tags;
+    int m_oscMul = 1;
     QHash<QString, QJsonArray> m_dirs;
     QSet<QString> m_plugins;
     QJsonArray m_banks;

@@ -16,6 +16,7 @@
 
 #include "dirmodel.h"
 #include "midimap.h"
+#include "oscilloscope.h"
 #include "parameter.h"
 #include "rpcclient.h"
 #include "skin.h"
@@ -62,6 +63,7 @@ class Machine : public QObject {
     Q_PROPERTY(Tuner *tuner READ tuner CONSTANT)
     Q_PROPERTY(MidiMap *midi READ midi CONSTANT)
     Q_PROPERTY(Skin *skin READ skin CONSTANT)
+    Q_PROPERTY(Oscilloscope *oscilloscope READ oscilloscope CONSTANT)
     // the engine runs on this computer: its files can be read directly
     Q_PROPERTY(bool engineLocal READ engineLocal NOTIFY connectedChanged)
     Q_PROPERTY(QVariantList filePlaces READ filePlaces NOTIFY filePlacesChanged)
@@ -95,6 +97,7 @@ public:
     Tuner *tuner() { return &m_tuner; }
     MidiMap *midi() { return &m_midi; }
     Skin *skin() { return &m_skin; }
+    Oscilloscope *oscilloscope() { return &m_oscilloscope; }
 
     Q_INVOKABLE void connectTo(const QString& host, int port);
     // Before quitting: the engine does not clean up after a connection
@@ -146,9 +149,20 @@ public:
     Q_INVOKABLE void removeUnit(const QString& id, bool stereo);
     Q_INVOKABLE void moveUnit(const QString& id, int delta, bool stereo);
 
-    // output parameters (meters) are polled while registered
+    // Output parameters (meters, looper position, oscilloscope) are
+    // polled while registered. Float parameters that the engine changes
+    // without notifying (seq.pos) can be polled too, but not the others
+    // (get_updates asserts on them).
     Q_INVOKABLE void watchOutput(const QString& id);
     Q_INVOKABLE void unwatchOutput(const QString& id);
+
+    // Drum sequencer (sequencer.cpp): its drums (seq.sequencer.<drum>),
+    // the number of steps, a step switched on or off, and the number of
+    // steps changed (every line follows)
+    Q_INVOKABLE QStringList sequencerDrums() const;
+    int sequencerSteps() const;
+    Q_INVOKABLE void toggleSequencerStep(const QString& drum, int step);
+    Q_INVOKABLE void setSequencerSteps(int n);
 
     // Files on the engine's computer (see DirModel). The engine lists
     // remote directories from JSON-RPC interface 1.2 on.
@@ -159,11 +173,21 @@ public:
     void listDirectory(const QString& path, ListHandler handler);
     // {name, path} of folders the engine uses (IR folders, model folders)
     QVariantList filePlaces() const { return m_filePlaces; }
-    // IR settings store the factory folder as "%S"
+    // IR settings store the factory folder as "%S", the user's as "%U"
+    // (the IR prefix map of gx_system::CmdlineOptions)
     Q_INVOKABLE QString resolveIrDir(const QString& dir) const {
-        return dir.startsWith(QLatin1String("%S")) && !m_irFactoryDir.isEmpty()
-            ? m_irFactoryDir + dir.mid(2) : dir;
+        if (dir.startsWith(QLatin1String("%S")) && !m_irFactoryDir.isEmpty()) {
+            return m_irFactoryDir + dir.mid(2);
+        }
+        if (dir.startsWith(QLatin1String("%U")) && !m_irUserDir.isEmpty()) {
+            return m_irUserDir + dir.mid(2);
+        }
+        return dir;
     }
+    // read_audio: [size, channels, type, form, rate, [samples...]], an
+    // empty array when the engine cannot read the file
+    using AudioHandler = std::function<void(const QJsonArray& audio)>;
+    void readAudio(const QString& file, AudioHandler handler);
     // load an impulse response file into a convolver unit (jconv,
     // jconv_mono): like "reset" in gx_head's IR window, the whole file
     // with normalized gain
@@ -215,6 +239,7 @@ private:
     void pollOutputs();
     QList<Parameter*> unitParameters(const QString& id) const;
     void finishUnitUi(const QString& id, QVariantMap ui);
+    void fixSequencerLines(int n);
 
     static Machine *s_instance;
 
@@ -222,6 +247,7 @@ private:
     Tuner m_tuner;
     MidiMap m_midi;
     Skin m_skin;
+    Oscilloscope m_oscilloscope;
     QHash<QString, Parameter*> m_params;
     QHash<QString, QVariantMap> m_pluginInfo;
     QVariantList m_pluginList;
@@ -229,6 +255,7 @@ private:
     QSet<QString> m_unitUiPending;
     QHash<QString, int> m_watched;
     QTimer m_pollTimer;
+    int m_pollCount = 0;
     QTimer m_cpuTimer;
     QTimer m_rackTimer;
     QVariantList m_banks;
@@ -241,6 +268,7 @@ private:
     bool m_engineLocal = true;
     QVariantList m_filePlaces;
     QString m_irFactoryDir;
+    QString m_irUserDir;
     QString m_status;
     QString m_lastMessage;
     double m_cpuLoad = 0;

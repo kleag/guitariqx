@@ -17,7 +17,7 @@ target_compile_definitions(guitariqx_testlib PUBLIC
     GUITARIQX_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
 )
 target_link_libraries(guitariqx_testlib PUBLIC
-    Qt6::Core Qt6::Gui Qt6::Network Qt6::Qml Qt6::Test
+    Qt6::Core Qt6::Gui Qt6::Network Qt6::Qml Qt6::Quick Qt6::Test
 )
 
 function(guitariqx_add_test name)

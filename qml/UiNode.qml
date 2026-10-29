@@ -42,7 +42,10 @@ Item {
             Layout.column: modelData.column !== undefined ? modelData.column : 0
             Layout.rowSpan: modelData.rowSpan || 1
             Layout.columnSpan: modelData.columnSpan || 1
-            Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+            Layout.alignment: (modelData.halign === "start" ? Qt.AlignLeft
+                               : modelData.halign === "end" ? Qt.AlignRight : Qt.AlignHCenter)
+                              | (modelData.valign === "start" ? Qt.AlignTop
+                                 : modelData.valign === "end" ? Qt.AlignBottom : Qt.AlignVCenter)
             Component.onCompleted: {
                 if (modelData.type === "box")
                     setSource("UiNode.qml", { node: modelData, maxWidth: Qt.binding(() => root.childMaxWidth) })

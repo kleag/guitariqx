@@ -66,6 +66,13 @@ public:
     bool isOutput() const { return m_output; }
     bool isMaxlevel() const { return m_maxlevel; }
     bool isControllable() const { return m_controllable; }
+    // get_updates can poll the parameter: the engine handles float and
+    // oscilloscope parameters only (it asserts on the others)
+    bool isPollable() const {
+        return m_tag == QLatin1String("Float") || m_tag == QLatin1String("FloatEnum") || m_tag == QLatin1String("Osc");
+    }
+    // type tag of the parameterlist entry: Float, Int, Bool, JConv, Seq, Osc...
+    QString tag() const { return m_tag; }
     // gx_engine::Parameter::ctrl_type: 0 none, 1 continuous, 2 switch, 3 enum
     int controlType() const { return m_ctype; }
     QStringList valueLabels() const { return m_valueLabels; }
@@ -93,6 +100,7 @@ private:
     QVariant convert(const QJsonValue& v) const;
     QVariant clamp(const QVariant& v) const;
 
+    QString m_tag;
     QString m_id;
     QString m_name;
     QString m_group;
