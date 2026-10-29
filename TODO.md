@@ -67,6 +67,8 @@ Roughly in order of importance for live use. See README.md for what works.
 - [ ] Unit presets of the looper: gx_head sets dubber.filename and
       dubber.savefile before saving so that the loop files follow the
       preset (and removes them with it)
+- [ ] seq.npreset/ppreset changed by another client are followed (checked
+      against guitarix); not checked with a MIDI controller
 - [ ] Drum sequencer presets by MIDI: gx_head's "connect midi..." registers
       a seq.<preset> switch per preset (insert_param)
 - [ ] Unit presets of the amplifier (ampstack): its parameters are amp.*,

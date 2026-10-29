@@ -122,8 +122,9 @@ Some units have widgets of their own, as in gx_head:
   steps, the level of each drum, humanize, follow (keeps the play head in
   view), and buttons to move the stepper (to the start, a beat back, back
   on the beat, a beat forward). ◀ and ▶ load the previous or next of your
-  presets of the sequencer (also from MIDI, through the controls "Load
-  previous/next unit preset" of gx_head), **Presets…** lists them.
+  presets of the sequencer, **Presets…** lists them. guitariqx also follows
+  the sequencer's "Load next/previous unit preset" controls when another
+  client (or a MIDI controller assigned to them in gx_head) sets them.
 
 ![The looper](images/looper.png)
 
