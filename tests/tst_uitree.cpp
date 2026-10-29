@@ -63,6 +63,7 @@ private slots:
     void stackOps();
     void stackFlagsAndSwitches();
     void singleChildBoxesAreRemoved();
+    void skinKnobImages();
     void recordedStackLayouts_data();
     void recordedStackLayouts();
     void recordedGladeLayouts_data();
@@ -135,6 +136,31 @@ void TestUiTree::singleChildBoxesAreRemoved() {
     const QVariantMap main = uitree::fromStackOps(ops).value(QStringLiteral("main")).toMap();
     QCOMPARE(main.value(QStringLiteral("orientation")).toString(), QStringLiteral("h"));
     QCOMPARE(main.value(QStringLiteral("children")).toList().size(), 2);
+}
+
+void TestUiTree::skinKnobImages() {
+    // GxSmallKnob / create_small_rackknob use the smaller knob image of
+    // skins, the other small knobs the default one
+    const QJsonArray ops{
+        QJsonArray{QStringLiteral("openHorizontalBox"), QString()},
+        QJsonArray{QStringLiteral("create_small_rackknob"), QStringLiteral("u.a"), QStringLiteral("A")},
+        QJsonArray{QStringLiteral("create_small_rackknobr"), QStringLiteral("u.b"), QStringLiteral("B")},
+        QJsonArray{QStringLiteral("closeBox")},
+    };
+    QList<QVariantMap> c = controls(uitree::fromStackOps(ops).value(QStringLiteral("main")).toMap());
+    QCOMPARE(c.size(), 2);
+    QCOMPARE(c.at(0).value(QStringLiteral("knob")).toString(), QStringLiteral("smallknob"));
+    QVERIFY(!c.at(1).contains(QStringLiteral("knob")));
+
+    const QString xml = QStringLiteral(
+        "<interface><object class=\"GtkBox\" id=\"rackbox\"><property name=\"visible\">True</property>"
+        "<child><object class=\"GxSmallKnob\" id=\"k1\"><property name=\"visible\">True</property><property name=\"var_id\">u.a</property></object></child>"
+        "<child><object class=\"GxSmallKnobR\" id=\"k2\"><property name=\"visible\">True</property><property name=\"var_id\">u.b</property></object></child>"
+        "</object></interface>");
+    c = controls(uitree::fromGlade(xml).value(QStringLiteral("main")).toMap());
+    QCOMPARE(c.size(), 2);
+    QCOMPARE(c.at(0).value(QStringLiteral("knob")).toString(), QStringLiteral("smallknob"));
+    QVERIFY(!c.at(1).contains(QStringLiteral("knob")));
 }
 
 void TestUiTree::recordedStackLayouts_data() {

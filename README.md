@@ -74,10 +74,11 @@ tablet. Options:
 | `-H`, `--host HOST` | engine host (default: the last engine connected to, else `localhost`) |
 | `-p`, `--port PORT` | engine port (default: the last one, else `7000`) |
 | `-f`, `--fullscreen` | full screen, for touch screens |
+| `--skin NAME` | gx_head skin for this session, `""` for the flat look (default: the one chosen in the menu) |
 | `--size WxH` | initial window size (default: the size, or maximized state, of the last session, else 1280x800) |
 | `--dump` | print connection, preset and rack changes on the terminal |
 | `--screenshot FILE` | save a screenshot after `--screenshot-delay` ms and quit (testing) |
-| `--debug-state LIST` | testing without instrument or MIDI device: `tuner:HZ`, `switcher[:STATE]`, `learnmode`, `learn:PARAM`, `midimap`, `saveas`, `files:UNIT` |
+| `--debug-state LIST` | testing without instrument or MIDI device: `tuner:HZ`, `switcher[:STATE]`, `learnmode`, `learn:PARAM`, `midimap`, `saveas`, `files:UNIT`, `skins` |
 
 The connection indicator at the right of the top bar opens the connect
 dialog. guitariqx reconnects automatically when the engine restarts.
@@ -203,8 +204,8 @@ Working:
 
 Not yet:
 
-- gx_head's skins and images (the Glade layouts keep the arrangement, the
-  widgets are guitariqx's), the oscilloscope, drum sequencer and IR wave
-  view, LV2/LADSPA plugin management
+- gx_head's slider and meter images, its two-tone unit backgrounds and its
+  wallpapers, the oscilloscope, drum sequencer and IR wave view, LV2/LADSPA
+  plugin management
 
 The full list is in [TODO.md](TODO.md).

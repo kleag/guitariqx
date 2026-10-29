@@ -28,6 +28,8 @@ class Parameter;
  *   box:     {type: "box", orientation: "h"|"v"|"flow", label, frame, tabs, children: [...]}
  *   control: {type: "control", widget: "knob"|"slider"|"switch"|"selector"|"spin"|
  *             "meter"|"display"|"wheel", size: "small"|"mid"|"big", id, label, ...}
+ *            knob: "smallknob" for the small knobs drawn with that skin image
+ *            (GxSmallKnob), switchType: the icon set of a switch (base_name)
  *   spacer:  {type: "spacer"}
  *   label:   {type: "label", text}
  *

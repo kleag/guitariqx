@@ -244,7 +244,15 @@ private:
         const QString var = n.prop("var_id");
         if (cls == QLatin1String("GxSmallKnob") || cls == QLatin1String("GxSmallKnobR")
             || cls == QLatin1String("GxKnob")) {
-            return var.isEmpty() ? QVariantMap() : makeControl(QStringLiteral("knob"), var);
+            if (var.isEmpty()) {
+                return QVariantMap();
+            }
+            QVariantMap c = makeControl(QStringLiteral("knob"), var);
+            if (cls == QLatin1String("GxSmallKnob")) {
+                // the smaller knob image of skins (default: smallknobr)
+                c.insert(QStringLiteral("knob"), QStringLiteral("smallknob"));
+            }
+            return c;
         }
         if (cls == QLatin1String("GxMidKnob")) {
             return var.isEmpty() ? QVariantMap() : makeControl(QStringLiteral("knob"), var, QStringLiteral("mid"));

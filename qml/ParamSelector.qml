@@ -7,6 +7,9 @@ Item {
     id: root
     property Parameter param: null
     property string label: ""
+    property color labelColor: Theme.textDim
+    // dark box behind the combo box, for skin backgrounds
+    property bool solid: false
 
     implicitWidth: Math.max(combo.implicitWidth, labelText.implicitWidth)
     implicitHeight: (label ? labelText.height : 0) + combo.implicitHeight
@@ -16,8 +19,19 @@ Item {
         visible: root.label !== ""
         anchors.horizontalCenter: parent.horizontalCenter
         text: root.label
-        color: Theme.textDim
+        color: root.labelColor
         font.pixelSize: Theme.fontSmall
+    }
+
+    Rectangle {
+        visible: root.solid
+        anchors.fill: combo
+        anchors.topMargin: combo.topInset
+        anchors.bottomMargin: combo.bottomInset
+        anchors.leftMargin: combo.leftInset
+        anchors.rightMargin: combo.rightInset
+        radius: 4
+        color: "#e0141414"
     }
 
     ComboBox {

@@ -28,6 +28,8 @@ src/tuner.*       tuner display: note, cents and target string from the
                   engine's frequency (Gx.tuner)
 src/midimap.*     MIDI controller assignments and MIDI learn (Gx.midi)
 src/dirmodel.*    folder listing of the file chooser, local or by the engine
+src/skin.*        gx_head skins: style sheet values and images (Gx.skin)
+skins/            the built-in Guitarix skin and the libgxw images
 qml/              views and controls
 tests/            unit tests and the fake engine
 ```
@@ -122,6 +124,7 @@ MIDI device or clicks (comma separated):
 | `saveas` | the Save as dialog |
 | `files:UNIT` | the file chooser of a rack unit (which must be in the rack) |
 | `bankload`, `banksave:BANK` | the bank file choosers |
+| `skins` | the skin dialog |
 
 ### Without guitarix
 

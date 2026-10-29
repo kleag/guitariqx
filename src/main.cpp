@@ -91,9 +91,13 @@ int main(int argc, char *argv[]) {
                                QStringLiteral("Print engine state on the terminal (debugging)."));
     QCommandLineOption debugOpt(QStringLiteral("debug-state"),
                                 QStringLiteral("Comma separated UI states for testing without instrument or "
-                                               "MIDI device: tuner:HZ, switcher[:STATE], learnmode, learn:PARAM, midimap, saveas, files:UNIT (open the file chooser of UNIT), bankload, banksave:BANK."),
+                                               "MIDI device: tuner:HZ, switcher[:STATE], learnmode, learn:PARAM, midimap, saveas, files:UNIT (open the file chooser of UNIT), bankload, banksave:BANK, skins."),
                                 QStringLiteral("states"));
-    parser.addOptions({hostOpt, portOpt, fullOpt, shotOpt, delayOpt, sizeOpt, dumpOpt, debugOpt});
+    QCommandLineOption skinOpt(QStringLiteral("skin"),
+                               QStringLiteral("gx_head skin NAME for this session, \"\" for the flat look "
+                                              "(default: the one chosen in the menu)."),
+                               QStringLiteral("name"));
+    parser.addOptions({hostOpt, portOpt, fullOpt, shotOpt, delayOpt, sizeOpt, dumpOpt, debugOpt, skinOpt});
     parser.process(app);
 
     if (qEnvironmentVariableIsEmpty("QT_QUICK_CONTROLS_STYLE")) {
@@ -102,6 +106,14 @@ int main(int argc, char *argv[]) {
 
     Machine machine(nullptr);
     Machine::setInstance(&machine);
+    if (parser.isSet(skinOpt)) {
+        const QString skin = parser.value(skinOpt);
+        if (!skin.isEmpty() && !machine.skin()->names().contains(skin)) {
+            std::fprintf(stderr, "unknown skin %s (available: %s)\n", qPrintable(skin),
+                         qPrintable(machine.skin()->names().join(QStringLiteral(", "))));
+        }
+        machine.skin()->select(skin);
+    }
 
     if (parser.isSet(dumpOpt)) {
         QObject::connect(&machine, &Machine::statusChanged, [&machine]() {

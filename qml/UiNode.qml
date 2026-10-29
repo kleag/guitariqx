@@ -73,7 +73,7 @@ Item {
             Text {
                 visible: text !== ""
                 text: root.node.label || ""
-                color: Theme.accent
+                color: Theme.rackFrameLabel
                 font.pixelSize: Theme.fontSmall
                 font.bold: true
             }
@@ -94,7 +94,7 @@ Item {
             Text {
                 visible: text !== ""
                 text: root.node.label || ""
-                color: Theme.accent
+                color: Theme.rackFrameLabel
                 font.pixelSize: Theme.fontSmall
                 font.bold: true
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -129,7 +129,7 @@ Item {
                 Text {
                     visible: text !== ""
                     text: root.node.label || ""
-                    color: Theme.accent
+                    color: Theme.rackFrameLabel
                     font.pixelSize: Theme.fontSmall
                     font.bold: true
                 }

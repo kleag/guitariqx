@@ -1,5 +1,6 @@
 pragma Singleton
 import QtQuick
+import Guitariqx
 
 // Colors and sizes shared by all guitariqx views
 QtObject {
@@ -18,6 +19,27 @@ QtObject {
     readonly property color meterHigh: "#e5483d"
     readonly property color knobFace: "#3b3b42"
     readonly property color knobTrack: "#16161a"
+
+    // gx_head skin (Gx.skin): images and colors of the rack units
+    readonly property bool skinned: Gx.skin.active
+    // gx_head's images are drawn at this scale, which gives the knob sizes
+    // of the flat look
+    readonly property real skinScale: 0.8
+    // URL of a libgxw icon of the skin, "" without; reading Gx.skin.name
+    // makes bindings follow skin changes
+    function skinImage(icon) {
+        return Gx.skin.name !== "" ? Gx.skin.image(icon) : ""
+    }
+    function skinColor(key, fallback) {
+        const c = skinned ? Gx.skin.style[key] : undefined
+        return c !== undefined ? c : fallback
+    }
+    // texts drawn on a rack unit
+    readonly property color rackLabel: skinColor("label", textDim)
+    readonly property color rackTitle: skinColor("title", text)
+    readonly property color rackFrameLabel: skinColor("label", accent)
+    readonly property color rackValue: skinColor("value", text)
+    readonly property color rackValueBackground: skinColor("valueBackground", "transparent")
 
     // touch friendly minimum size of interactive items
     readonly property int touch: 40

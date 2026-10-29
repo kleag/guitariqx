@@ -19,7 +19,7 @@ Item {
 
     Component {
         id: knob
-        Knob { param: root.param; label: root.label; size: root.node.size || "small" }
+        Knob { param: root.param; label: root.label; size: root.node.size || "small"; image: root.node.knob || "" }
     }
     // create_fload_switch, and the impulse response of convolvers
     Component {
@@ -39,15 +39,16 @@ Item {
         ParamSwitch {
             param: root.param
             label: root.node.nameLabel && root.param ? root.param.name : (root.node.label || "")
+            switchType: root.node.switchType || ""
         }
     }
     Component {
         id: selector
-        ParamSelector { param: root.param; label: root.node.label || "" }
+        ParamSelector { param: root.param; label: root.node.label || ""; labelColor: Theme.rackLabel; solid: Theme.skinned }
     }
     Component {
         id: spin
-        ParamSpin { param: root.param; label: root.label }
+        ParamSpin { param: root.param; label: root.label; labelColor: Theme.rackLabel }
     }
     Component {
         id: meter
@@ -75,7 +76,7 @@ Item {
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: root.node.label || ""
-                color: Theme.textDim
+                color: Theme.rackLabel
                 font.pixelSize: Theme.fontSmall
             }
         }
@@ -86,13 +87,13 @@ Item {
             spacing: 2
             Text {
                 text: root.label
-                color: Theme.textDim
+                color: Theme.rackLabel
                 font.pixelSize: Theme.fontSmall
                 anchors.horizontalCenter: parent.horizontalCenter
             }
             Text {
                 text: root.param ? root.param.displayValue : ""
-                color: Theme.accent
+                color: Theme.skinned ? Theme.rackValue : Theme.accent
                 font.pixelSize: Theme.fontNormal
                 anchors.horizontalCenter: parent.horizontalCenter
             }

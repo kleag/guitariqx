@@ -41,6 +41,8 @@ set(GUITARIQX_SOURCES
     src/files.cpp
     src/dirmodel.cpp
     src/dirmodel.h
+    src/skin.cpp
+    src/skin.h
 )
 
 qt_add_executable(guitariqx
@@ -88,6 +90,14 @@ qt_add_qml_module(guitariqx
         qml/FileIcon.qml
         qml/FileChooserDialog.qml
         qml/FileButton.qml
+        qml/SkinDialog.qml
+)
+
+# the gx_head "Guitarix" skin and the libgxw icons (skins/README.md)
+file(GLOB GUITARIQX_SKIN_IMAGES RELATIVE "${PROJECT_SOURCE_DIR}" CONFIGURE_DEPENDS skins/gxw/*.png)
+qt_add_resources(guitariqx skins
+    PREFIX /Guitariqx
+    FILES skins/gx_head_Guitarix.css ${GUITARIQX_SKIN_IMAGES}
 )
 
 target_include_directories(guitariqx PRIVATE src)

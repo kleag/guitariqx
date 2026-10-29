@@ -21,6 +21,10 @@ Its automated tests run with Qt 6.4 and Qt 6.8 on x86_64 and arm64.
   guitariqx's widgets, else stack layouts, else a generic panel); units
   too wide for their rack wrap their controls onto several rows
 - main amplifier panel
+- gx_head's skins for the rack units (menu, Skin): background, rack
+  handles and screws, knob images with their LED rings, switch icons
+  (also the looper's), colors. The Guitarix skin is built in, the others
+  are read from an installed guitarix
 - tuner: note, deviation needle, frequency, string tunings of gx_head,
   temperaments, reference pitch, mute while tuning, MIDI controlled
 - preset by note (the engine's tuner switcher): the note played selects a
@@ -30,9 +34,9 @@ Its automated tests run with Qt 6.4 and Qt 6.8 on x86_64 and arm64.
 
 ## Not yet
 
-- gx_head's skins and images (the Glade layouts keep the arrangement, the
-  widgets are guitariqx's), the oscilloscope, drum sequencer and IR wave
-  view, LV2/LADSPA plugin management
+- gx_head's slider and meter images, its two-tone unit backgrounds and its
+  wallpapers, the oscilloscope, drum sequencer and IR wave view, LV2/LADSPA
+  plugin management
 
 The full list of what remains is in
 [TODO.md](https://github.com/kleag/guitariqx/blob/main/TODO.md).

@@ -11,6 +11,7 @@ Rectangle {
     signal connectRequested()
     signal midiMapRequested()
     signal fullScreenRequested()
+    signal skinsRequested()
     property bool compact: false
     property bool fullScreen: false
     property bool canToggleFullScreen: true
@@ -157,6 +158,10 @@ Rectangle {
                     text: qsTr("MIDI controllers ...")
                     enabled: Gx.ready
                     onTriggered: root.midiMapRequested()
+                }
+                MenuItem {
+                    text: qsTr("Skin ...")
+                    onTriggered: root.skinsRequested()
                 }
                 MenuItem {
                     text: qsTr("Connect to engine ...")

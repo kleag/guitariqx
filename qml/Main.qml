@@ -51,6 +51,7 @@ ApplicationWindow {
                 presetDrawer.open()
         }
         onConnectRequested: connectDialog.open()
+        onSkinsRequested: skinDialog.open()
         onMidiMapRequested: midiMapDialog.open()
     }
 
@@ -143,6 +144,10 @@ ApplicationWindow {
 
     ConnectDialog {
         id: connectDialog
+    }
+
+    SkinDialog {
+        id: skinDialog
     }
 
     TunerView {}

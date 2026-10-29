@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Controls.Material
 import Guitariqx
 
 // One effect unit in the rack: header with power switch, name and unit
@@ -16,6 +17,8 @@ Rectangle {
     readonly property Parameter onOff: Gx.ready ? Gx.param(unitId + ".on_off") : null
     readonly property bool on: onOff ? !!onOff.value : true
     property var layout: ({})
+    // width of the rack handles of a skin
+    readonly property real handle: Theme.skinned ? 22 : 0
 
     function fetchLayout() {
         if (!isAmp)
@@ -31,14 +34,55 @@ Rectangle {
     }
 
     implicitHeight: header.height + (body.visible ? body.height + 12 : 0) + 4
-    radius: Theme.radius
-    color: Theme.panel
-    border.color: on ? Theme.accentDim : Theme.panelBorder
+    radius: Theme.skinned ? 0 : Theme.radius
+    color: Theme.skinned ? "black" : Theme.panel
+    border.color: Theme.skinned ? "black" : on ? Theme.accentDim : Theme.panelBorder
+
+    // gx_head rack unit (GxPaintBox gx_rack_unit_expose): tiled skin
+    // background between two handles, screws in the corners
+    Item {
+        anchors.fill: parent
+        anchors.margins: 1
+        visible: Theme.skinned
+        clip: true
+        Image {
+            anchors.fill: parent
+            fillMode: Image.Tile
+            source: Theme.skinImage("background1")
+        }
+        Repeater {
+            model: ["handle_left", "handle_right"]
+            Image {
+                required property string modelData
+                required property int index
+                x: index === 0 ? 0 : parent.width - width
+                width: root.handle
+                height: parent.height
+                fillMode: Image.TileVertically
+                source: Theme.skinImage(modelData)
+            }
+        }
+        Repeater {
+            model: 4
+            Image {
+                required property int index
+                readonly property bool atRight: index % 2 === 1
+                readonly property bool atBottom: index >= 2
+                width: 14
+                height: 14
+                x: atRight ? parent.width - (root.handle + width) / 2 : (root.handle - width) / 2
+                y: atBottom ? parent.height - height - 4 : 4
+                source: Theme.skinImage("screw")
+                smooth: true
+                mipmap: true
+            }
+        }
+    }
 
     Item {
         id: header
-        x: 4
-        width: parent.width - 8
+        x: 4 + root.handle
+        width: parent.width - 8 - 2 * root.handle
         height: Theme.touch + 4
 
         Row {
@@ -52,9 +96,22 @@ Rectangle {
                 width: Theme.touch
                 height: Theme.touch
                 radius: Theme.radius
-                color: power.pressed ? Theme.panelBorder : Theme.panelRaised
+                color: Theme.skinned ? (power.pressed ? "#60000000" : "#30000000")
+                                     : power.pressed ? Theme.panelBorder : Theme.panelRaised
                 visible: root.onOff !== null && !root.info.fixed
+                // the skin's power icon (switch_on/off of libgxw)
+                Image {
+                    id: powerIcon
+                    anchors.centerIn: parent
+                    width: 24
+                    height: 24
+                    source: Theme.skinImage(root.on ? "switch_on" : "switch_off")
+                    visible: status === Image.Ready
+                    smooth: true
+                    mipmap: true
+                }
                 Rectangle {
+                    visible: !powerIcon.visible
                     anchors.centerIn: parent
                     width: 14
                     height: 14
@@ -76,7 +133,7 @@ Rectangle {
                                 - (powerButton.visible ? powerButton.width + Theme.spacing : 0))
                 elide: Text.ElideRight
                 text: root.info.name || root.unitId
-                color: root.on ? Theme.text : Theme.textDim
+                color: Theme.skinned ? Theme.rackTitle : root.on ? Theme.text : Theme.textDim
                 font.pixelSize: Theme.fontLarge
                 font.bold: true
             }
@@ -97,6 +154,8 @@ Rectangle {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             spacing: 2
+            // Material's dark theme foreground, else the skin's title color
+            Material.foreground: Theme.skinned ? Theme.rackTitle : "#ffffff"
 
             ToolButton {
                 text: "▲"
@@ -133,8 +192,8 @@ Rectangle {
         visible: root.expanded
         anchors.top: header.bottom
         anchors.topMargin: 4
-        x: 8
-        width: parent.width - 16
+        x: 8 + root.handle
+        width: parent.width - 16 - 2 * root.handle
         height: content.implicitHeight
         contentWidth: content.implicitWidth
         contentHeight: content.implicitHeight

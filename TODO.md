@@ -45,8 +45,13 @@ Roughly in order of importance for live use. See README.md for what works.
       their rows instead of scrolling sideways on small screens
 - [ ] Glade layouts: grid boxes do not wrap and still scroll sideways when
       too wide; packing expand/fill, alignment and margins are ignored
-- [ ] gx_head look: skins, knob images, GxPaintBox backgrounds, icons of
-      the looper switches (named by their parameter for now)
+- [x] gx_head skins (menu, Skin): unit background with rack handles and
+      screws, knob images and LED rings, switch icons (looper too), colors;
+      Guitarix built in, the others from an installed guitarix
+- [ ] More of gx_head's look: two-tone unit backgrounds (GxPaintBox
+      alternate-box needs labels placed as in gx_head to stay readable),
+      slider and meter images, wallpapers (amp, tuner), skinned top bar and
+      preset list
 - [ ] Special widgets: looper (dubber) transport, drum sequencer, oscilloscope,
       jconv gain line, IR wave view
 - [ ] Tall stacks of meters (e.g. Multi Band Compressor "Analyze")

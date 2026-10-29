@@ -209,6 +209,10 @@ QVariantMap fromStackOps(const QJsonArray& ops) {
             if (d.sw_type > 0) {
                 c.insert(QStringLiteral("switchType"), arg(op, d.sw_type));
             }
+            if (name == QLatin1String("create_small_rackknob")) {
+                // the smaller knob image of skins (default: smallknobr)
+                c.insert(QStringLiteral("knob"), QStringLiteral("smallknob"));
+            }
             if (d.id2 > 0) {
                 c.insert(QStringLiteral("id2"), arg(op, d.id2));
             }

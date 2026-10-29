@@ -19,6 +19,7 @@ laptop or tablet.
 | `-H`, `--host HOST` | engine host (default: the last engine connected to, else `localhost`) |
 | `-p`, `--port PORT` | engine port (default: the last one, else `7000`) |
 | `-f`, `--fullscreen` | full screen, for touch screens |
+| `--skin NAME` | gx_head skin for this session, `""` for the flat look (default: the one chosen in the menu) |
 | `--size WxH` | initial window size (default: the size, or maximized state, of the last session, else 1280x800) |
 | `--dump` | print connection, preset and rack changes on the terminal |
 | `--screenshot FILE` | save a screenshot after `--screenshot-delay` ms and quit (testing) |
@@ -79,6 +80,16 @@ Glade layout of the unit when it has one, else its stack layout, else a
 generic panel built from the unit's parameters.
 `GUITARIQX_FORM_STACK=1` uses the stack layouts, like `GUITARIX_FORM_STACK`
 for gx_head.
+
+**Skin ...** in the menu (⋮) switches the rack units between guitariqx's
+flat look and gx_head's skins: the skin's background between rack handles,
+its knob images with their LED rings, its switch icons and colors. The
+Guitarix skin is built into guitariqx; the other skins are those of an
+installed guitarix (`gx_head/skins` in the data directories, e.g.
+`/usr/share/gx_head/skins`), so they are offered only where guitarix is
+installed. The choice is remembered.
+
+![The Guitarix skin](images/skin.png)
 
 ## Files
 
