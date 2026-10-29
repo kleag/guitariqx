@@ -53,8 +53,9 @@ Roughly in order of importance for live use. See README.md for what works.
 
 - [ ] Tuner switcher (MIDI controlled tuner and preset display,
       tuner_switcher_* RPC, "display" and "tuner" listen tokens)
-- [ ] Switch the engine's tuner off when the UI quits while the tuner is shown
-      (the server does not do it when a connection closes)
+- [x] Switch the engine's tuner off when the UI quits while the tuner is shown
+      (the server does not do it when a connection closes); quitting also
+      unmutes the engine and leaves MIDI config mode
 - [ ] Strobe display option
 
 ## MIDI

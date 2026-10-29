@@ -107,7 +107,25 @@ void Tuner::setMuteWhileTuning(bool on) {
     }
     m_muteWhileTuning = on;
     QSettings().setValue(QLatin1String(muteKey), on);
+    if (m_active) {
+        on ? mute() : unmute();
+    }
     emit muteWhileTuningChanged();
+}
+
+void Tuner::mute() {
+    const QString state = m_machine.engineState();
+    if (m_savedState.isEmpty() && !state.isEmpty() && state != QLatin1String("stopped")) {
+        m_savedState = state;
+        m_machine.setEngineState(QStringLiteral("stopped"));
+    }
+}
+
+void Tuner::unmute() {
+    if (!m_savedState.isEmpty()) {
+        m_machine.setEngineState(m_savedState);
+        m_savedState.clear();
+    }
 }
 
 QString Tuner::midiNoteName(int note, bool flat) {
@@ -124,7 +142,12 @@ void Tuner::setActive(bool on) {
     m_active = on;
     // same call as GxMachineRemote::tuner_used_for_display
     m_rpc.notify(QStringLiteral("tuner_used_for_display"), {on ? 1 : 0});
-    if (!on) {
+    if (on) {
+        if (m_muteWhileTuning) {
+            mute();
+        }
+    } else {
+        unmute();
         m_hasPitch = false;
         emit pitchChanged();
     }

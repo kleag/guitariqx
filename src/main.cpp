@@ -186,5 +186,7 @@ int main(int argc, char *argv[]) {
         });
     }
 
-    return app.exec();
+    const int ret = app.exec();
+    machine.shutdown();
+    return ret;
 }

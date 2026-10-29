@@ -61,6 +61,8 @@ private slots:
     void tunerStrings();
     void tunerDisplayRequest();
     void tunerMuteIsSaved();
+    void tunerMutesEngine();
+    void shutdownRestoresEngine();
 
     void filePlacesOldEngine();
     void filePlacesRemote();
@@ -627,6 +629,53 @@ void TestMachine::tunerMuteIsSaved() {
     // a new session reads it back
     start();
     QVERIFY(!m_machine->tuner()->muteWhileTuning());
+}
+
+void TestMachine::tunerMutesEngine() {
+    start();
+    Machine& m = *m_machine;
+    Tuner *t = m.tuner();
+    t->setMuteWhileTuning(true);
+    m.setEngineState(QStringLiteral("bypassed"));
+    QTRY_COMPARE(m.engineState(), QStringLiteral("bypassed"));
+    t->setActive(true);
+    QTRY_COMPARE(m.engineState(), QStringLiteral("stopped"));
+    // the option applies at once while tuning
+    t->setMuteWhileTuning(false);
+    QTRY_COMPARE(m.engineState(), QStringLiteral("bypassed"));
+    t->setMuteWhileTuning(true);
+    QTRY_COMPARE(m.engineState(), QStringLiteral("stopped"));
+    t->setActive(false);
+    QTRY_COMPARE(m.engineState(), QStringLiteral("bypassed"));
+
+    // an engine already stopped stays so
+    m.setEngineState(QStringLiteral("stopped"));
+    QTRY_COMPARE(m.engineState(), QStringLiteral("stopped"));
+    const qsizetype sent = m_engine->received(QStringLiteral("setstate")).size();
+    t->setActive(true);
+    t->setActive(false);
+    QTRY_COMPARE(m_engine->received(QStringLiteral("tuner_used_for_display")).size(), 4);
+    QCOMPARE(m_engine->received(QStringLiteral("setstate")).size(), sent);
+}
+
+void TestMachine::shutdownRestoresEngine() {
+    start();
+    Machine& m = *m_machine;
+    m.tuner()->setMuteWhileTuning(true);
+    m.setEngineState(QStringLiteral("running"));
+    QTRY_COMPARE(m.engineState(), QStringLiteral("running"));
+    m.tuner()->setActive(true);
+    QTRY_COMPARE(m.engineState(), QStringLiteral("stopped"));
+    m.midi()->startLearn(QStringLiteral("fumaster.Level"));
+    QTRY_VERIFY(m_engine->midiConfigMode());
+
+    m.shutdown();
+    // the client is gone before the engine reads it
+    m_machine.reset();
+    Machine::setInstance(nullptr);
+    QTRY_VERIFY(!m_engine->midiConfigMode());
+    QTRY_COMPARE(m_engine->received(QStringLiteral("setstate")).last().params, QJsonArray{QStringLiteral("running")});
+    QCOMPARE(m_engine->received(QStringLiteral("tuner_used_for_display")).last().params, QJsonArray{0});
 }
 
 void TestMachine::filePlacesOldEngine() {

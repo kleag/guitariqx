@@ -46,7 +46,8 @@ class Tuner : public QObject {
     Q_PROPERTY(double range READ range NOTIFY pitchChanged)
     Q_PROPERTY(QStringList strings READ strings NOTIFY stringsChanged)
     Q_PROPERTY(int stringIndex READ stringIndex NOTIFY pitchChanged)
-    // mute the output while the tuner is shown (UI option, kept in QSettings)
+    // stop the engine while the tuner is active and restore its state
+    // afterwards (UI option, kept in QSettings)
     Q_PROPERTY(bool muteWhileTuning READ muteWhileTuning WRITE setMuteWhileTuning NOTIFY muteWhileTuningChanged)
 public:
     Tuner(Machine& machine, RpcClient& rpc, QObject *parent = nullptr);
@@ -82,6 +83,8 @@ signals:
 
 private:
     void connectParameters();
+    void mute();
+    void unmute();
     void update();
     void updateStrings();
     double reference() const;
@@ -102,4 +105,6 @@ private:
     bool m_flat = false;
     int m_stringIndex = -1;
     bool m_muteWhileTuning = true;
+    // engine state to restore, empty when not muted by the tuner
+    QString m_savedState;
 };

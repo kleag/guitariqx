@@ -121,6 +121,12 @@ void RpcClient::send(const QJsonObject& msg) {
     m_socket.write(data);
 }
 
+void RpcClient::flush(int msecs) {
+    if (isConnected() && m_socket.bytesToWrite() > 0) {
+        m_socket.waitForBytesWritten(msecs);
+    }
+}
+
 void RpcClient::onReadyRead() {
     m_buffer.append(m_socket.readAll());
     int start = 0;

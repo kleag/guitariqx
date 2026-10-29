@@ -94,6 +94,10 @@ public:
     MidiMap *midi() { return &m_midi; }
 
     Q_INVOKABLE void connectTo(const QString& host, int port);
+    // Before quitting: the engine does not clean up after a connection
+    // closes, so switch its tuner off (and unmute it), leave MIDI config
+    // mode and wait until this is sent.
+    void shutdown();
 
     Q_INVOKABLE Parameter *param(const QString& id) const;
     Q_INVOKABLE bool hasParam(const QString& id) const { return m_params.contains(id); }

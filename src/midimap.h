@@ -80,6 +80,8 @@ public:
 
     // called by the Machine
     void engineReady();
+    // leaves MIDI config mode if learning (quitting)
+    void stopLearn();
     void engineLost();
     void midiChanged(const QJsonArray& params);
 
@@ -91,7 +93,6 @@ signals:
 private:
     void load(const QJsonArray& map);
     void poll();
-    void stopLearn();
 
     Machine& m_machine;
     RpcClient& m_rpc;

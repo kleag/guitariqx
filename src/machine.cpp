@@ -104,6 +104,12 @@ void Machine::connectTo(const QString& host, int port) {
     m_rpc.connectToServer(host, quint16(port));
 }
 
+void Machine::shutdown() {
+    m_tuner.setActive(false);
+    m_midi.stopLearn();
+    m_rpc.flush(1000);
+}
+
 void Machine::onConnected() {
     // the engine's files can be read directly when it runs on this computer
     const QHostAddress peer = m_rpc.peerAddress();

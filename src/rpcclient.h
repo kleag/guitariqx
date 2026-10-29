@@ -53,6 +53,8 @@ public:
     void call(const QString& method, const QJsonArray& params, ResultHandler handler);
     // request without result
     void notify(const QString& method, const QJsonArray& params = QJsonArray());
+    // blocks until the requests sent are written (quitting)
+    void flush(int msecs);
 
 signals:
     void connected();

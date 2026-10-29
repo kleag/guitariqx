@@ -103,7 +103,9 @@ when the engine is local, for testing.
 **Tuner** opens the full window tuner: note, deviation, frequency, the
 string tunings of gx_head, temperaments, reference pitch, and mute while
 tuning. It follows the engine parameter `system.show_tuner`, so a MIDI foot
-switch assigned to the Tuner button opens and closes it.
+switch assigned to the Tuner button opens and closes it. Mute while tuning
+stops the engine while the tuner is shown and restores its state when the
+tuner closes, or when guitariqx quits with the tuner open.
 
 ## MIDI learn
 
