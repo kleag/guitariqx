@@ -1,6 +1,7 @@
 # Build, test and package on Debian bookworm (Qt 6.4, as Raspberry Pi OS
-# Bookworm) and trixie (Qt 6.8), for x86_64 and arm64 (Raspberry Pi 4/5),
-# then install each package in a clean container and start it.
+# Bookworm), trixie (Qt 6.8) and Ubuntu 26.04 resolute, for x86_64 and arm64
+# (Raspberry Pi 4/5), then install each package in a clean container and
+# start it.
 name: CI
 
 on:
@@ -21,15 +22,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distro: [bookworm, trixie]
+        distro: [bookworm, trixie, resolute]
         arch: [amd64, arm64]
         include:
+          - distro: bookworm
+            image: debian:bookworm
+          - distro: trixie
+            image: debian:trixie
+          - distro: resolute
+            image: ubuntu:26.04
           - arch: amd64
             runner: ubuntu-24.04
           - arch: arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
-    container: debian:${{ matrix.distro }}
+    container: ${{ matrix.image }}
     steps:
       - uses: actions/checkout@v7
       - name: Build, test and package
@@ -53,15 +60,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distro: [bookworm, trixie]
+        distro: [bookworm, trixie, resolute]
         arch: [amd64, arm64]
         include:
+          - distro: bookworm
+            image: debian:bookworm
+          - distro: trixie
+            image: debian:trixie
+          - distro: resolute
+            image: ubuntu:26.04
           - arch: amd64
             runner: ubuntu-24.04
           - arch: arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
-    container: debian:${{ matrix.distro }}
+    container: ${{ matrix.image }}
     steps:
       - uses: actions/download-artifact@v8
         with:

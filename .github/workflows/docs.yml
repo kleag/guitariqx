@@ -1,13 +1,17 @@
-# Build the documentation (MkDocs, docs/) and publish it on GitHub Pages.
-# Needs Settings > Pages > Source: "GitHub Actions" in the repository.
+# Build the documentation (MkDocs, docs/) and publish it on GitHub Pages,
+# with the apt repository (apt/) made from the packages of the latest
+# release. Needs Settings > Pages > Source: "GitHub Actions" in the
+# repository, and the secret APT_SIGNING_KEY (the armored private key that
+# signs the repository, the one of github.com/kleag/guitarix). The release
+# workflow runs this one once the release is published.
 name: Documentation
 
 on:
   push:
     branches: [main]
-    paths: [docs/**, mkdocs.yml, .github/workflows/docs.yml]
+    paths: [docs/**, mkdocs.yml, ci/apt-repo.sh, .github/workflows/docs.yml]
   pull_request:
-    paths: [docs/**, mkdocs.yml, .github/workflows/docs.yml]
+    paths: [docs/**, mkdocs.yml, ci/apt-repo.sh, .github/workflows/docs.yml]
   workflow_dispatch:
 
 permissions:
@@ -27,6 +31,21 @@ jobs:
           python-version: '3.12'
       - run: pip install -r docs/requirements.txt
       - run: mkdocs build --strict
+      - name: Apt repository
+        if: github.event_name != 'pull_request'
+        env:
+          APT_SIGNING_KEY: ${{ secrets.APT_SIGNING_KEY }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -z "$APT_SIGNING_KEY" ]; then
+            echo "::warning::secret APT_SIGNING_KEY is not set: no apt repository"
+            exit 0
+          fi
+          echo "$APT_SIGNING_KEY" | gpg --batch --import
+          # the latest release, pre-releases excluded
+          gh release download --pattern '*.deb' --dir debs
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends reprepro
+          ci/apt-repo.sh debs site/apt "https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/apt"
       - if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v5
         with:

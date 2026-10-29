@@ -3,7 +3,9 @@
 #   uvx bumpver update --minor && git push origin main 0.2.0
 #
 # The tag (0.2.0, or v0.2.0) must match project(VERSION) in CMakeLists.txt.
-# A tag with a suffix (0.2.0-rc1) makes a pre-release.
+# A tag with a suffix (0.2.0-rc1) makes a pre-release. The packages of a
+# release (not of a pre-release) then go to the apt repository, published
+# with the documentation (docs.yml).
 name: Release
 
 on:
@@ -65,3 +67,17 @@ jobs:
           case "$v" in *-*) prerelease=--prerelease ;; esac
           gh release create "$GITHUB_REF_NAME" dist/* \
             --verify-tag --title "guitariqx $v" --generate-notes $prerelease
+
+  apt:
+    needs: [version, release]
+    if: ${{ !contains(needs.version.outputs.version, '-') }}
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: write
+    steps:
+      # Pages only deploys from main: run the documentation workflow there,
+      # it builds the apt repository from the latest release
+      - name: Publish the packages in the apt repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run docs.yml --ref main --repo "$GITHUB_REPOSITORY"

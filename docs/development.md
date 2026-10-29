@@ -159,7 +159,7 @@ docs/update-screenshots.sh build
 `ci/check.sh` installs the build dependencies (`--deps`), builds, runs the
 tests and makes the Debian package (`--package`). The GitHub workflow
 `.github/workflows/ci.yml` runs it on each push and pull request in Debian
-bookworm (Qt 6.4) and trixie (Qt 6.8) containers, on x86_64 and arm64
+bookworm (Qt 6.4), trixie (Qt 6.8) and Ubuntu 26.04 containers, on x86_64 and arm64
 runners, then installs each package in a clean container and starts
 guitariqx. The same runs locally in a container:
 
@@ -192,10 +192,17 @@ package names in `README.md` and `docs/install.md`).
 
 `.github/workflows/release.yml` checks that the tag matches the CMake
 version, builds and tests the packages like the CI, and publishes a GitHub
-release with the four Debian packages, a source archive and `SHA256SUMS`;
+release with the Debian packages, a source archive and `SHA256SUMS`;
 the release notes list the changes since the previous tag. A tag with a
 suffix, such as `0.2.0-rc1` made by hand on the commit of version 0.2.0,
 makes a pre-release. Tags starting with `v` (`v0.2.0`) work too.
+
+After a release (not a pre-release), `release.yml` runs the documentation
+workflow, which publishes the packages of the latest release as the apt
+repository `https://kleag.github.io/guitariqx/apt/` with the site
+(`ci/apt-repo.sh`, reprepro). Each package goes to the suite of its
+`1~<codename>` release. The repository is signed with the key of the
+guitarix-kleag repository, kept in the `APT_SIGNING_KEY` secret.
 
 ## Documentation
 
