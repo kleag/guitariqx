@@ -12,6 +12,23 @@ Item {
     property real maxWidth: 1000
     readonly property string type: node.type || ""
     readonly property var children_: node.children || []
+    // available width for the children (less than maxWidth in a frame)
+    readonly property real childMaxWidth: node.frame ? maxWidth - 12 : maxWidth
+
+    // width of items laid out in a single row, counted like positioners
+    // do: invisible and empty items (the Repeater) take no room
+    function rowWidth(items, spacing) {
+        let w = 0
+        let n = 0
+        for (let i = 0; i < items.length; ++i) {
+            const it = items[i]
+            if (!it.visible || it.implicitWidth <= 0 || it.implicitHeight <= 0)
+                continue
+            w += it.implicitWidth
+            ++n
+        }
+        return n > 0 ? w + spacing * (n - 1) : 0
+    }
 
     implicitWidth: content.item ? content.item.implicitWidth : 0
     implicitHeight: content.item ? content.item.implicitHeight : 0
@@ -28,7 +45,7 @@ Item {
             Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
             Component.onCompleted: {
                 if (modelData.type === "box")
-                    setSource("UiNode.qml", { node: modelData, maxWidth: Qt.binding(() => root.maxWidth) })
+                    setSource("UiNode.qml", { node: modelData, maxWidth: Qt.binding(() => root.childMaxWidth) })
                 else if (modelData.type === "control")
                     setSource("Control.qml", { node: modelData })
                 else if (modelData.type === "label")
@@ -60,8 +77,11 @@ Item {
                 font.pixelSize: Theme.fontSmall
                 font.bold: true
             }
-            Row {
+            // a row that wraps when it does not fit (wide units on small
+            // screens); at its natural width it is laid out like a Row
+            Flow {
                 spacing: Theme.spacing
+                width: Math.min(root.maxWidth, root.rowWidth(children, spacing) + 1)
                 Repeater { model: root.children_; delegate: childDelegate }
             }
         }
@@ -86,15 +106,9 @@ Item {
     Component {
         id: flow
         Flow {
-            width: Math.min(root.maxWidth, implicitFlowWidth)
+            // Flow has no implicit width, it is estimated from the children
+            width: Math.min(root.maxWidth, Math.max(root.rowWidth(children, spacing), 1) + 1)
             spacing: Theme.spacing
-            // Flow has no implicit width, estimate it from the children
-            property real implicitFlowWidth: {
-                let w = 0
-                for (let i = 0; i < children.length; ++i)
-                    w += children[i].width + spacing
-                return Math.max(w, 1)
-            }
             Repeater { model: root.children_; delegate: childDelegate }
         }
     }
@@ -119,8 +133,9 @@ Item {
                     font.pixelSize: Theme.fontSmall
                     font.bold: true
                 }
-                Row {
+                Flow {
                     spacing: Theme.spacing
+                    width: Math.min(root.childMaxWidth, root.rowWidth(children, spacing) + 1)
                     Repeater { model: root.children_; delegate: childDelegate }
                 }
             }

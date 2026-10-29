@@ -47,7 +47,8 @@ QT_QPA_PLATFORM=eglfs guitariqx -f -p 7000
 ```
 
 Below 1100 pixels width (e.g. the official 7" 800x480 touch screen) the
-racks are shown as tabs and the preset list as a drawer. All interactive
+racks are shown as tabs and the preset list as a drawer, and rack units
+too wide for the screen wrap their controls onto several rows. All interactive
 items are at least 40 pixels for touch use.
 
 To try it without a sound card, run the engine against a dummy JACK server

@@ -3,10 +3,22 @@ import QtQuick.Controls
 import Guitariqx
 
 // Main amplifier controls ("ampstack" has no UiBuilder layout, gx_head
-// builds it from ampbox.glade)
-Row {
+// builds it from ampbox.glade); wraps when narrower than its controls
+Flow {
     id: root
+    property real maxWidth: 1000
     spacing: Theme.spacing * 2
+    width: {
+        let w = 0
+        let n = 0
+        for (let i = 0; i < children.length; ++i) {
+            if (children[i].visible && children[i].implicitWidth > 0) {
+                w += children[i].implicitWidth
+                ++n
+            }
+        }
+        return Math.min(maxWidth, w + spacing * Math.max(n - 1, 0) + 1)
+    }
 
     function p(id) { return Gx.ready ? Gx.param(id) : null }
 

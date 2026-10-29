@@ -48,6 +48,7 @@ Rectangle {
 
             // power: pedal style LED
             Rectangle {
+                id: powerButton
                 width: Theme.touch
                 height: Theme.touch
                 radius: Theme.radius
@@ -70,6 +71,10 @@ Rectangle {
 
             Text {
                 anchors.verticalCenter: parent.verticalCenter
+                // elided in narrow racks rather than hidden under the buttons
+                width: Math.min(implicitWidth, header.width - actions.width - Theme.spacing
+                                - (powerButton.visible ? powerButton.width + Theme.spacing : 0))
+                elide: Text.ElideRight
                 text: root.info.name || root.unitId
                 color: root.on ? Theme.text : Theme.textDim
                 font.pixelSize: Theme.fontLarge
@@ -88,6 +93,7 @@ Rectangle {
         }
 
         Row {
+            id: actions
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             spacing: 2
@@ -153,7 +159,7 @@ Rectangle {
 
         Component {
             id: ampPanel
-            AmpPanel {}
+            AmpPanel { maxWidth: body.width }
         }
     }
 

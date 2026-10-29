@@ -41,9 +41,10 @@ Roughly in order of importance for live use. See README.md for what works.
 ## Rack and plugin panels
 
 - [x] Glade layouts (`UI_FORM_GLADE`) of the 114 units with a Glade file
-- [ ] Glade layouts: wide units (Graphic EQ, Zita Rev1 in the stereo rack)
-      scroll sideways on small screens; a compact layout for 800x480 would
-      be better. Packing expand/fill, alignment and margins are ignored
+- [x] Wide units (Graphic EQ, Zita Rev1 in the stereo rack, the amp) wrap
+      their rows instead of scrolling sideways on small screens
+- [ ] Glade layouts: grid boxes do not wrap and still scroll sideways when
+      too wide; packing expand/fill, alignment and margins are ignored
 - [ ] gx_head look: skins, knob images, GxPaintBox backgrounds, icons of
       the looper switches (named by their parameter for now)
 - [ ] Special widgets: looper (dubber) transport, drum sequencer, oscilloscope,

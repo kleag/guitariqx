@@ -18,7 +18,8 @@ Its automated tests run with Qt 6.4 and Qt 6.8 on x86_64 and arm64.
   imports, chosen with a single click file chooser, on the engine's computer
 - mono and stereo racks: on/off, add, remove, reorder, collapse
 - rack unit panels with gx_head's arrangement (Glade layouts translated to
-  guitariqx's widgets, else stack layouts, else a generic panel)
+  guitariqx's widgets, else stack layouts, else a generic panel); units
+  too wide for their rack wrap their controls onto several rows
 - main amplifier panel
 - tuner: note, deviation needle, frequency, string tunings of gx_head,
   temperaments, reference pitch, mute while tuning, MIDI controlled
