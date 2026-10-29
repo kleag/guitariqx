@@ -15,12 +15,17 @@ Rectangle {
     property bool compact: false
     property bool fullScreen: false
     property bool canToggleFullScreen: true
+    // set by the window when it is taller than wide
+    property bool portrait: false
 
-    // portrait screen: the preset name gets its own, larger row above the
-    // buttons (presetRow), so that it can be read standing up
-    readonly property bool stacked: width < 640
+    // portrait or narrow screen: the preset name gets its own, larger row
+    // above the buttons (presetRow), so that it can be read standing up
+    readonly property bool stacked: portrait || width < 640
+    // stacked preset name size: grows with the width (55 px at 720)
+    readonly property int nameSize: Math.max(2 * Theme.fontLarge, Math.round(width / 13))
 
-    implicitHeight: stacked ? 2 * Theme.touch + 50 : Theme.touch + 20
+    implicitHeight: stacked ? presetRow.implicitHeight + 2 * Theme.spacing + Theme.touch + 20
+                            : Theme.touch + 20
     color: Theme.panel
 
     RowLayout {
@@ -210,16 +215,22 @@ Rectangle {
 
         Column {
             Layout.fillWidth: true
+            // two lines are always reserved so that the racks do not move
+            // when the preset changes; long names wrap, then shrink, before
+            // being elided
             Text {
                 width: parent.width
+                height: Math.ceil(2 * root.nameSize * 1.25)
                 text: Gx.currentPreset || (Gx.ready ? qsTr("(no preset)") : qsTr("Not connected"))
                 color: Theme.text
-                font.pixelSize: 2 * Theme.fontLarge
-                // long names shrink before being elided
-                fontSizeMode: Text.HorizontalFit
+                font.pixelSize: root.nameSize
+                fontSizeMode: Text.Fit
                 minimumPixelSize: Theme.fontLarge + 3
                 font.bold: true
+                wrapMode: Text.Wrap
+                maximumLineCount: 2
                 horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
                 elide: Text.ElideRight
             }
             Text {

@@ -48,6 +48,8 @@ void TestUi::states_data() {
     QTest::newRow("main-small") << QString() << QStringLiteral("800x480") << 2 << false << QString();
     // portrait: the preset name gets its own row
     QTest::newRow("main-portrait") << QString() << QStringLiteral("480x800") << 2 << false << QString();
+    // Raspberry Pi touch display 2 in portrait
+    QTest::newRow("main-portrait-pi") << QString() << QStringLiteral("720x1280") << 2 << false << QString();
     // narrowest side by side racks: wide units wrap
     QTest::newRow("main-narrow") << QString() << QStringLiteral("1100x800") << 2 << false << QString();
     QTest::newRow("tuner") << QStringLiteral("tuner:108") << QStringLiteral("1280x800") << 2 << false << QString();
