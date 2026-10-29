@@ -31,17 +31,17 @@ jobs:
     runs-on: ${{ matrix.runner }}
     container: debian:${{ matrix.distro }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build, test and package
         run: BUILD_DIR=_ci/build ci/check.sh --deps --package
       - name: Keep the test log
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: testlog-${{ matrix.distro }}-${{ matrix.arch }}
           path: _ci/build/Testing/Temporary/
           if-no-files-found: ignore
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: deb-${{ matrix.distro }}-${{ matrix.arch }}
           path: dist/*.deb
@@ -63,7 +63,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     container: debian:${{ matrix.distro }}
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: deb-${{ matrix.distro }}-${{ matrix.arch }}
           path: dist
