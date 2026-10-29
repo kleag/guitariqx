@@ -66,6 +66,27 @@ in the guitarix sources, which `guitarix -G` uses too. Notes:
 - `get_midi_feedback` (like `get_last_midi_control_value`) answers with an
   object without key, `"result": {0}`, which is not JSON; `RpcClient` turns
   such a result into an array. The option is not broadcast.
+- Some parameters have objects as values (parameterlist tags `JConv`,
+  `Seq`, `Osc`). `get_updates` only handles float parameters (also the
+  float-backed switches such as the looper's record and play, and
+  non-output floats such as `seq.pos`) and `Osc`; it asserts on any other.
+- `oscilloscope.info` (`Osc`) is
+  `[load, frames, is_rt, jack period, size, [samples]]`, the buffer holding
+  `get/set_oscilloscope_mul_buffer` (1 to 6) jack periods.
+- `<unit>.convolver` (`JConv`) is `{jconv.IRFile, jconv.IRDir, jconv.Gain,
+  jconv.GainCor, jconv.Offset, jconv.Length, jconv.Delay, jconv.gainline}`.
+  `IRDir` can start with `%S` (factory IRs) or `%U` (the user's), the first
+  two folders of `load_impresp_dirs`; it is sent back as received.
+  `Length` 0 means the whole file. The gain line is `[[sample, dB], ...]`,
+  linear in dB between the points; it must be empty or go from sample 0 to
+  the last one with strictly increasing samples, else the convolver reads
+  outside of it. `jconv.Gain` is the normalized gain
+  (`IRWindow::calc_normalized_gain`), used when `GainCor` is 1.
+- `read_audio` of a file the engine cannot read answers `"result": }`.
+- `seq.sequencer.<drum>` (`Seq`) is `{"seq.seqline": [0|1, ...]}`. The
+  sequencer plays as many steps as its shortest line has and breaks on an
+  empty line, which a fresh engine has until a line is edited: guitariqx
+  gives every line `seq.asequences` steps.
 
 The engine trusts its clients: unknown parameter ids (`get_updates`,
 `midi_modifyCurrent`, `midi_deleteParameter`), unknown plugin ids
@@ -125,6 +146,9 @@ MIDI device or clicks (comma separated):
 | `files:UNIT` | the file chooser of a rack unit (which must be in the rack) |
 | `bankload`, `banksave:BANK` | the bank file choosers |
 | `skins` | the skin dialog |
+| `unit:UNIT` | adds UNIT at the top of its rack (if missing) and switches it on |
+| `iredit:UNIT` | the IR editor of a convolver (`jconv`, `jconv_mono`) |
+| `sequencer` | the drum sequencer (with `unit:seq`) |
 
 ### Without guitarix
 
@@ -148,6 +172,10 @@ mkdir -p /tmp/gx/.config
 HOME=/tmp/gx XDG_CONFIG_HOME=/tmp/gx/.config pw-jack guitarix -N -J -K -M -n fixtures -p 7123 &
 tests/fixtures/capture.py --port 7123 > tests/fixtures/engine.json
 ```
+
+It records the layouts and parameters of the units in the rack and of a
+few more (`EXTRA_UNITS`: convolvers, neural units, looper, drum sequencer,
+oscilloscope).
 
 ### Screenshots
 

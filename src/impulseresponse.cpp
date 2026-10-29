@@ -125,6 +125,15 @@ void ImpulseResponse::reload() {
     if (!m_irFile.isEmpty()) {
         file = Machine::instance()->resolveIrDir(m_irDir) + QLatin1Char('/') + m_irFile;
     }
+    if (file.startsWith(QLatin1Char('%'))) {
+        // the folders of %S and %U are not known yet: read again with the
+        // file places (read_audio answers invalid JSON for a missing file)
+        m_file = file;
+        m_samples.clear();
+        m_error = tr("Waiting for the IR folders of the engine");
+        emit fileLoaded();
+        return;
+    }
     if (file != m_file || m_samples.isEmpty()) {
         readFile(file);
     } else {

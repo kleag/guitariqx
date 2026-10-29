@@ -1,4 +1,4 @@
-import QtQml
+import QtQuick
 import Guitariqx
 
 // Polls an engine parameter (Gx.watchOutput) while active: outputs the

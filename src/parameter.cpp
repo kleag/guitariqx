@@ -166,32 +166,6 @@ void Parameter::reset() {
     setValue(m_std);
 }
 
-namespace {
-
-// the engine's JSON parser has no true/false tokens
-QJsonValue withoutBools(const QJsonValue& v) {
-    if (v.isBool()) {
-        return v.toBool() ? 1 : 0;
-    }
-    if (v.isArray()) {
-        QJsonArray a;
-        for (const QJsonValue& e : v.toArray()) {
-            a.append(withoutBools(e));
-        }
-        return a;
-    }
-    if (v.isObject()) {
-        QJsonObject o = v.toObject();
-        for (auto it = o.begin(); it != o.end(); ++it) {
-            it.value() = withoutBools(it.value());
-        }
-        return o;
-    }
-    return v;
-}
-
-} // anonymous namespace
-
 QJsonValue Parameter::toJson() const {
     switch (m_kind) {
     case Float:
@@ -206,7 +180,7 @@ QJsonValue Parameter::toJson() const {
     case Other:
         break;
     }
-    return withoutBools(QJsonValue::fromVariant(m_value));
+    return QJsonValue::fromVariant(m_value);
 }
 
 double Parameter::normalized() const {
