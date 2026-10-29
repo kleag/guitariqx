@@ -59,8 +59,8 @@ cat > "$repo/index.html" <<HTML
 <pre>
 sudo install -d /etc/apt/keyrings
 sudo curl -fsSLo /etc/apt/keyrings/kleag-guitarix.asc $url/kleag-guitarix.asc
-printf 'Types: deb\\nURIs: $url\\nSuites: %s\\nComponents: main\\nSigned-By: /etc/apt/keyrings/kleag-guitarix.asc\\n' \\
-  "\$(. /etc/os-release; echo \$VERSION_CODENAME)" | sudo tee /etc/apt/sources.list.d/guitariqx.sources
+printf 'Types: deb\\nURIs: $url\\nSuites: %s\\nComponents: main\\nArchitectures: %s\\nSigned-By: /etc/apt/keyrings/kleag-guitarix.asc\\n' \\
+  "\$(. /etc/os-release; echo \$VERSION_CODENAME)" "\$(dpkg --print-architecture)" | sudo tee /etc/apt/sources.list.d/guitariqx.sources
 sudo apt update
 sudo apt install guitariqx
 </pre>
