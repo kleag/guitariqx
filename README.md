@@ -24,7 +24,7 @@ packages for Debian 12 "bookworm" and 13 "trixie" (also Raspberry Pi OS),
 on x86_64 and arm64 (Raspberry Pi 4/5):
 
 ```sh
-sudo apt install ./guitariqx_0.3.2-1.bookworm_arm64.deb
+sudo apt install ./guitariqx_0.3.3-1.bookworm_arm64.deb
 ```
 
 ## Build
