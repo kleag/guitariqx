@@ -17,7 +17,8 @@ Item {
     // outputs shown as values or switches (the looper's buffer time,
     // record and play) change in the engine without notification
     OutputWatch {
-        paramId: root.param && root.param.isOutput && root.widget !== "meter" && !root.node.id2 ? root.param.id : ""
+        paramId: root.param && root.param.isOutput && root.widget !== "meter" && root.widget !== "oscilloscope"
+                 && !root.node.id2 ? root.param.id : ""
         active: root.visible
     }
 
@@ -106,18 +107,27 @@ Item {
             clip: Gx.ready ? Gx.param(root.node.id3) : null
         }
     }
-    // the button opening the IR editor of a convolver
+    // the button opening the IR editor of a convolver; the dialogs are
+    // created when first opened
     Component {
         id: irEdit
         Button {
-            id: irButton
             readonly property string unit: (root.node.id || "").replace(/\.convolver$/, "")
             text: root.node.label || qsTr("Setup")
             implicitHeight: Math.max(Theme.touch, implicitContentHeight + topPadding + bottomPadding)
-            onClicked: editor.edit(unit)
-            IrEditor { id: editor }
+            property var editor: null
+            function show() {
+                if (!editor)
+                    editor = editorComponent.createObject(this)
+                editor.edit(unit)
+            }
+            onClicked: show()
+            Component {
+                id: editorComponent
+                IrEditor {}
+            }
             readonly property bool debugOpen: Gx.ready && visible && root.debugState("iredit:" + unit)
-            onDebugOpenChanged: if (debugOpen) editor.edit(unit)
+            onDebugOpenChanged: if (debugOpen) show()
         }
     }
     Component {
@@ -125,10 +135,19 @@ Item {
         Button {
             text: root.node.label || qsTr("Setup")
             implicitHeight: Math.max(Theme.touch, implicitContentHeight + topPadding + bottomPadding)
-            onClicked: dialog.open()
-            SequencerDialog { id: dialog }
+            property var dialog: null
+            function show() {
+                if (!dialog)
+                    dialog = dialogComponent.createObject(this)
+                dialog.open()
+            }
+            onClicked: show()
+            Component {
+                id: dialogComponent
+                SequencerDialog {}
+            }
             readonly property bool debugOpen: Gx.ready && visible && root.debugState("sequencer")
-            onDebugOpenChanged: if (debugOpen) dialog.open()
+            onDebugOpenChanged: if (debugOpen) show()
         }
     }
     Component {

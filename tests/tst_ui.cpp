@@ -73,7 +73,8 @@ void TestUi::states_data() {
     QTest::newRow("oscilloscope") << QStringLiteral("unit:oscilloscope") << QStringLiteral("1280x800") << 2 << false
                                   << QString();
     QTest::newRow("iredit") << QStringLiteral("iredit:jconv") << QStringLiteral("1280x800") << 2 << false << QString();
-    QTest::newRow("iredit-small") << QStringLiteral("iredit:jconv") << QStringLiteral("800x480") << 2 << false
+    // the mono rack is the tab shown
+    QTest::newRow("iredit-small") << QStringLiteral("iredit:jconv_mono") << QStringLiteral("800x480") << 2 << false
                                   << QString();
     QTest::newRow("sequencer") << QStringLiteral("unit:seq,sequencer") << QStringLiteral("1280x800") << 2 << false
                                << QString();

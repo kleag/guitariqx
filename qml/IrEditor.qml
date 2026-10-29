@@ -13,7 +13,6 @@ Dialog {
     // jconv or jconv_mono
     property string unit: ""
     property int selected: -1
-    readonly property bool wide: width >= 640
 
     title: qsTr("Impulse response")
     modal: true
@@ -41,6 +40,9 @@ Dialog {
         unit: root.unit
         onFileLoaded: root.selected = -1
     }
+    // closed, it does not follow the convolver (a preset change would read
+    // the new file); edit() reads it again
+    onClosed: unit = ""
 
     function ms(samples) {
         return ir.rate > 0 ? samples * 1000 / ir.rate : 0
@@ -94,18 +96,17 @@ Dialog {
             enabled: ir.loaded
             visible: ir.loaded
 
+            // a fixed model: a model that changes with the settings would
+            // recreate the handle being dragged
             Repeater {
-                model: [
-                    { name: qsTr("Start"), sample: ir.offset },
-                    { name: qsTr("End"), sample: ir.offset + ir.length - 1 },
-                ]
+                model: 2
                 Item {
                     id: handle
-                    required property var modelData
                     required property int index
+                    readonly property int sample: index === 0 ? ir.offset : ir.offset + ir.length - 1
                     width: Theme.touch
                     height: Theme.touch
-                    x: Math.max(0, Math.min(handles.width - width, view.xForSample(modelData.sample) - width / 2))
+                    x: Math.max(0, Math.min(handles.width - width, view.xForSample(sample) - width / 2))
                     Rectangle {
                         anchors.horizontalCenter: parent.horizontalCenter
                         anchors.bottom: parent.bottom
@@ -218,40 +219,62 @@ Dialog {
             }
         }
 
-        // the settings as numbers, in milliseconds
-        GridLayout {
+        // the settings as numbers, in milliseconds; wraps on small screens
+        Flow {
             Layout.fillWidth: true
-            columns: root.wide ? 8 : 4
-            columnSpacing: Theme.spacing
-            rowSpacing: 2
+            Layout.preferredHeight: childrenRect.height
+            spacing: Theme.spacing
             enabled: ir.loaded
 
-            Label { text: qsTr("Start (ms)"); font.pixelSize: Theme.fontSmall; color: Theme.textDim }
-            SpinBox {
-                from: 0
-                to: Math.max(0, Math.round(root.ms(ir.frames - 1)))
-                value: Math.round(root.ms(ir.offset))
-                editable: true
-                onValueModified: ir.offset = root.samples(value)
+            Row {
+                spacing: 4
+                Label {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: qsTr("Start (ms)")
+                    font.pixelSize: Theme.fontSmall
+                    color: Theme.textDim
+                }
+                SpinBox {
+                    from: 0
+                    to: Math.max(0, Math.round(root.ms(ir.frames - 1)))
+                    value: Math.round(root.ms(ir.offset))
+                    editable: true
+                    onValueModified: ir.offset = root.samples(value)
+                }
             }
-            Label { text: qsTr("Length (ms)"); font.pixelSize: Theme.fontSmall; color: Theme.textDim }
-            SpinBox {
-                from: 1
-                to: Math.max(1, Math.round(root.ms(ir.frames)))
-                value: Math.round(root.ms(ir.length))
-                editable: true
-                onValueModified: ir.length = root.samples(value)
+            Row {
+                spacing: 4
+                Label {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: qsTr("Length (ms)")
+                    font.pixelSize: Theme.fontSmall
+                    color: Theme.textDim
+                }
+                SpinBox {
+                    from: 1
+                    to: Math.max(1, Math.round(root.ms(ir.frames)))
+                    value: Math.round(root.ms(ir.length))
+                    editable: true
+                    onValueModified: ir.length = root.samples(value)
+                }
             }
-            Label { text: qsTr("Delay (ms)"); font.pixelSize: Theme.fontSmall; color: Theme.textDim }
-            SpinBox {
-                from: 0
-                to: 10000
-                value: Math.round(root.ms(ir.delay))
-                editable: true
-                onValueModified: ir.delay = root.samples(value)
+            Row {
+                spacing: 4
+                Label {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: qsTr("Delay (ms)")
+                    font.pixelSize: Theme.fontSmall
+                    color: Theme.textDim
+                }
+                SpinBox {
+                    from: 0
+                    to: 10000
+                    value: Math.round(root.ms(ir.delay))
+                    editable: true
+                    onValueModified: ir.delay = root.samples(value)
+                }
             }
             Switch {
-                Layout.columnSpan: 1
                 text: qsTr("Gain correction")
                 checked: ir.gainCorrection
                 onToggled: ir.gainCorrection = checked
