@@ -41,6 +41,7 @@ ApplicationWindow {
 
     header: TopBar {
         compact: !window.wide
+        portrait: window.height > window.width
         fullScreen: window.fullScreen
         canToggleFullScreen: window.canLeaveFullScreen
         onFullScreenRequested: window.toggleFullScreen()
