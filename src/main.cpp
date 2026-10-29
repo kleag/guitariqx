@@ -97,6 +97,11 @@ int main(int argc, char *argv[]) {
     }
 
     QQmlApplicationEngine engine;
+    // the QtHead module (and its qmldir declaring the Theme singleton) is
+    // embedded at qrc:/QtHead/, which is not a default import path. In the
+    // build directory the qmldir next to the binary hides this, but an
+    // installed qt_head would otherwise not find Theme.
+    engine.addImportPath(QStringLiteral("qrc:/"));
     QSize size(1280, 800);
     const QStringList wh = parser.value(sizeOpt).split(QLatin1Char('x'));
     if (wh.size() == 2) {

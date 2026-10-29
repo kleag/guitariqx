@@ -17,8 +17,12 @@ Debian / Ubuntu / Raspberry Pi OS (Bookworm or newer):
 ```sh
 sudo apt install cmake g++ qt6-base-dev qt6-declarative-dev \
     qml6-module-qtquick qml6-module-qtquick-controls qml6-module-qtquick-layouts \
-    qml6-module-qtquick-window qml6-module-qtquick-templates qml6-module-qtqml-workerscript
+    qml6-module-qtquick-window qml6-module-qtquick-templates qml6-module-qtqml-workerscript \
+    qt6-wayland
 ```
+
+`qt6-wayland` is only needed at run time, on Wayland desktops (e.g. Raspberry
+Pi OS Bookworm on a Pi 5); without it Qt falls back to X11 or shows no window.
 
 ```sh
 cd trunk/src/qt_head
@@ -118,8 +122,9 @@ Notes on the protocol, as used by qt_head:
 ## Status
 
 Tested with Qt 6.10 on x86_64 against guitarix 0.47.0 (also built with
-policy QTP0004 set to OLD, which is how Qt 6.4 behaves); not yet tested
-on a Raspberry Pi.
+policy QTP0004 set to OLD, which is how Qt 6.4 behaves), and with Qt 6.4.2
+on a Raspberry Pi 5 (Raspberry Pi OS Bookworm, arm64, Wayland desktop),
+where the tuner and, partially, MIDI control were also checked.
 
 Working:
 
