@@ -127,9 +127,52 @@ void MidiMap::engineReady() {
     m_rpc.call(QStringLiteral("get_midi_controller_map"), {}, [this](const QJsonValue& r) {
         load(r.toArray());
     });
+    refreshFeedback();
+}
+
+void MidiMap::refreshFeedback() {
+    // the engine answers {0} or {1}, which RpcClient turns into [0] or [1]
+    m_rpc.call(QStringLiteral("get_midi_feedback"), {}, [this](const QJsonValue& r) {
+        const QJsonValue v = r.isArray() ? r.toArray().at(0) : r;
+        const bool on = v.isBool() ? v.toBool() : v.toInt() != 0;
+        if (on != m_feedback) {
+            m_feedback = on;
+            emit feedbackChanged();
+        }
+    });
+}
+
+void MidiMap::setFeedback(bool on) {
+    if (on == m_feedback) {
+        return;
+    }
+    m_feedback = on;
+    m_rpc.notify(QStringLiteral("set_midi_feedback"), {on ? 1 : 0});
+    emit feedbackChanged();
+}
+
+// [ctl, value]: sent by the engine every 60 ms for the controllers that
+// moved (MidiControllerList::check_midi_values)
+void MidiMap::midiValueChanged(const QJsonArray& params) {
+    const int ctl = params.at(0).toInt(-1);
+    const int value = params.at(1).toInt(-1);
+    if (ctl < 0 || ctl > maxController) {
+        return;
+    }
+    if (value < 0) {
+        m_values.remove(ctl);
+    } else {
+        m_values.insert(ctl, value);
+    }
+    emit controllerValueChanged(ctl, value < 0 ? -1 : value);
 }
 
 void MidiMap::engineLost() {
+    const QList<int> ctls = m_values.keys();
+    m_values.clear();
+    for (int ctl : ctls) {
+        emit controllerValueChanged(ctl, -1);
+    }
     // the server leaves config mode when the connection closes
     // (CmdConnection::~CmdConnection)
     if (m_learning) {

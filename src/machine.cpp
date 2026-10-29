@@ -326,6 +326,8 @@ void Machine::onNotification(const QString& method, const QJsonArray& params) {
         m_tuner.tunerChanged(params);
     } else if (method == QLatin1String("midi_changed")) {
         m_midi.midiChanged(params);
+    } else if (method == QLatin1String("midi_value_changed")) {
+        m_midi.midiValueChanged(params);
     } else if (method == QLatin1String("presetlist_changed")) {
         requestBanks();
     } else if (method == QLatin1String("plugins_changed")) {

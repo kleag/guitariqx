@@ -17,6 +17,7 @@
 #include <QDeadlineTimer>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QRegularExpression>
 #include <QSignalSpy>
 #include <QTcpServer>
 #include <QTcpSocket>
@@ -35,6 +36,8 @@ private slots:
     void splitAndCoalescedLines();
     void notification();
     void errorResponse();
+    void keylessObjectResult();
+    void badJsonDoesNotHang();
     void pendingDroppedOnDisconnect();
     void reconnects();
 
@@ -100,6 +103,45 @@ void TestRpcClient::requestFormat() {
     QCOMPARE(notification.value(QStringLiteral("method")).toString(), QStringLiteral("listen"));
     // notifications have no id: the engine does not answer them
     QVERIFY(!notification.contains(QStringLiteral("id")));
+}
+
+// get_midi_feedback of guitarix 0.47.0, verbatim
+void TestRpcClient::keylessObjectResult() {
+    QJsonValue result;
+    bool called = false;
+    m_client->call(QStringLiteral("get_midi_feedback"), {}, [&](const QJsonValue& r) {
+        result = r;
+        called = true;
+    });
+    const QString id = readMessage().value(QStringLiteral("id")).toVariant().toString();
+    write(QStringLiteral("{\"jsonrpc\": \"2.0\",\"id\": \"%1\",\"result\": {1}}\n").arg(id).toUtf8());
+    QTRY_VERIFY(called);
+    QCOMPARE(result, QJsonValue(QJsonArray{1}));
+    // several values
+    called = false;
+    m_client->call(QStringLiteral("x"), {}, [&](const QJsonValue& r) {
+        result = r;
+        called = true;
+    });
+    const QString id2 = readMessage().value(QStringLiteral("id")).toVariant().toString();
+    write(QStringLiteral("{\"jsonrpc\": \"2.0\",\"id\": \"%1\",\"result\": {3, -1, 0.5}}\n").arg(id2).toUtf8());
+    QTRY_VERIFY(called);
+    QCOMPARE(result, QJsonValue(QJsonArray{3, -1, 0.5}));
+}
+
+// a response that cannot be read still releases its request
+void TestRpcClient::badJsonDoesNotHang() {
+    bool called = false;
+    QJsonValue result = 1;
+    m_client->call(QStringLiteral("x"), {}, [&](const QJsonValue& r) {
+        result = r;
+        called = true;
+    });
+    const QString id = readMessage().value(QStringLiteral("id")).toVariant().toString();
+    QTest::ignoreMessage(QtWarningMsg, QRegularExpression(QStringLiteral("bad JSON")));
+    write(QStringLiteral("{\"jsonrpc\": \"2.0\",\"id\": \"%1\",\"result\": {x}}\n").arg(id).toUtf8());
+    QTRY_VERIFY(called);
+    QVERIFY(result.isUndefined());
 }
 
 void TestRpcClient::booleansSentAsNumbers() {

@@ -47,6 +47,11 @@ class MidiMap : public QObject {
     Q_PROPERTY(bool learning READ learning NOTIFY learnChanged)
     Q_PROPERTY(QString learnParam READ learnParam NOTIFY learnChanged)
     Q_PROPERTY(int learnControl READ learnControl NOTIFY learnChanged)
+    // the engine sends the values of assigned parameters to its MIDI output
+    // (when a preset loads or a controller changes them), for controllers
+    // with LEDs or motor faders. Not broadcast: read again with
+    // refreshFeedback().
+    Q_PROPERTY(bool feedback READ feedback WRITE setFeedback NOTIFY feedbackChanged)
 public:
     // toggle behaviours of switch parameters (Parameter::toggle_type)
     enum ToggleType { OnOff = 0, Constant = 1, Toggle = 2, Commander = 3 };
@@ -61,6 +66,8 @@ public:
     bool learning() const { return m_learning; }
     QString learnParam() const { return m_learnParam; }
     int learnControl() const { return m_learnControl; }
+    bool feedback() const { return m_feedback; }
+    void setFeedback(bool on);
 
     // controller number assigned to a parameter, -1 if none
     Q_INVOKABLE int controllerFor(const QString& id) const;
@@ -77,6 +84,9 @@ public:
     Q_INVOKABLE void commitLearn(double lower, double upper, bool toggle, int behaviour);
     Q_INVOKABLE void cancelLearn();
     Q_INVOKABLE void remove(const QString& id);
+    Q_INVOKABLE void refreshFeedback();
+    // last value (0..127) received from a controller, -1 if none yet
+    Q_INVOKABLE int controllerValue(int ctl) const { return m_values.value(ctl, -1); }
 
     // called by the Machine
     void engineReady();
@@ -84,11 +94,14 @@ public:
     void stopLearn();
     void engineLost();
     void midiChanged(const QJsonArray& params);
+    void midiValueChanged(const QJsonArray& params);
 
 signals:
     void assignmentsChanged();
     void learnModeChanged();
     void learnChanged();
+    void feedbackChanged();
+    void controllerValueChanged(int ctl, int value);
 
 private:
     void load(const QJsonArray& map);
@@ -104,4 +117,6 @@ private:
     QString m_learnParam;
     int m_learnControl = -1;
     QTimer m_pollTimer;
+    bool m_feedback = false;
+    QHash<int, int> m_values;
 };

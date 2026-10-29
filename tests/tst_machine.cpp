@@ -55,6 +55,8 @@ private slots:
     void midiAssignments();
     void midiLearn();
     void midiLearnRefusesOutputs();
+    void midiFeedback();
+    void midiValues();
 
     void tunerTemperament();
     void tunerReferencePitch();
@@ -548,6 +550,50 @@ void TestMachine::midiLearnRefusesOutputs() {
     midi->commitLearn(0, 1, false, 0);
     QTest::qWait(100);
     QVERIFY(m_engine->received(QStringLiteral("midi_modifyCurrent")).isEmpty());
+}
+
+void TestMachine::midiFeedback() {
+    start();
+    MidiMap *midi = m_machine->midi();
+    // asked on connection; the answer is repaired JSON
+    QTRY_COMPARE(m_engine->received(QStringLiteral("get_midi_feedback")).size(), 1);
+    QTest::qWait(50);
+    QVERIFY(!midi->feedback());
+    QSignalSpy changed(midi, &MidiMap::feedbackChanged);
+    midi->setFeedback(true);
+    QCOMPARE(changed.count(), 1);
+    QTRY_VERIFY(m_engine->midiFeedback());
+    QCOMPARE(m_engine->received(QStringLiteral("set_midi_feedback")).at(0).params, QJsonArray{1});
+    // another UI turns it off: read again
+    m_engine->clearReceived();
+    m_machine.reset();
+    Machine::setInstance(nullptr);
+    m_machine = std::make_unique<Machine>(nullptr);
+    Machine::setInstance(m_machine.get());
+    m_machine->connectTo(QStringLiteral("127.0.0.1"), m_engine->port());
+    QTRY_VERIFY(m_machine->ready());
+    QTRY_VERIFY(m_machine->midi()->feedback());
+}
+
+void TestMachine::midiValues() {
+    start();
+    MidiMap *midi = m_machine->midi();
+    QCOMPARE(midi->controllerValue(12), -1);
+    QSignalSpy spy(midi, &MidiMap::controllerValueChanged);
+    m_engine->notifyClients(QStringLiteral("midi_value_changed"), {12, 64});
+    QTRY_COMPARE(midi->controllerValue(12), 64);
+    QCOMPARE(spy.count(), 1);
+    QCOMPARE(spy.at(0).at(0).toInt(), 12);
+    QCOMPARE(spy.at(0).at(1).toInt(), 64);
+    // out of range controllers are ignored
+    m_engine->notifyClients(QStringLiteral("midi_value_changed"), {1000, 3});
+    m_engine->notifyClients(QStringLiteral("midi_value_changed"), {12, 100});
+    QTRY_COMPARE(midi->controllerValue(12), 100);
+    QCOMPARE(spy.count(), 2);
+    // unknown again after a disconnection
+    m_engine.reset();
+    QTRY_VERIFY(!m_machine->connected());
+    QCOMPARE(midi->controllerValue(12), -1);
 }
 
 void TestMachine::tunerTemperament() {

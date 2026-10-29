@@ -52,6 +52,12 @@ in the guitarix sources, which `guitarix -G` uses too. Notes:
   by the client from the reference pitch and temperament parameters.
 - `midi_modifyCurrent` only works in MIDI config mode, which must be left
   again with `midi_set_config_mode`; `midi_changed` carries the whole map.
+- `midi_value_changed [ctl, value]` is sent every 60 ms for the controllers
+  that moved (to "midi" listeners); there is no RPC to ask for the current
+  values (gx_head's `request_midi_value_update` has no server side).
+- `get_midi_feedback` (like `get_last_midi_control_value`) answers with an
+  object without key, `"result": {0}`, which is not JSON; `RpcClient` turns
+  such a result into an array. The option is not broadcast.
 
 The engine trusts its clients: unknown parameter ids (`get_updates`,
 `midi_modifyCurrent`, `midi_deleteParameter`), unknown plugin ids

@@ -148,6 +148,14 @@ void FakeEngine::handle(QTcpSocket *s, const QJsonObject& msg) {
     const bool isCall = msg.contains(QStringLiteral("id"));
     checkNoBool(msg, method);
     m_received.append({method, params, isCall});
+    if (method == QLatin1String("get_midi_feedback") && isCall) {
+        // the engine's answer is not valid JSON: an object without key
+        s->write(QStringLiteral("{\"jsonrpc\": \"2.0\",\"id\": \"%1\",\"result\": {%2}}\n")
+                     .arg(msg.value(QStringLiteral("id")).toVariant().toString())
+                     .arg(m_midiFeedback ? 1 : 0).toUtf8());
+        emit messageReceived(method);
+        return;
+    }
     bool known = true;
     const QJsonValue result = dispatch(s, method, params, known);
     if (!known) {
@@ -490,6 +498,10 @@ QJsonValue FakeEngine::dispatch(QTcpSocket *s, const QString& method, const QJso
     if (method == QLatin1String("midi_set_config_mode")) {
         m_midiConfig = params.at(0).toInt() != 0;
         m_midiControl = params.at(1).toInt();
+        return {};
+    }
+    if (method == QLatin1String("set_midi_feedback")) {
+        m_midiFeedback = params.at(0).toInt() != 0;
         return {};
     }
     if (method == QLatin1String("midi_set_current_control")) {

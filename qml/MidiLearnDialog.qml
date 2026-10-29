@@ -106,6 +106,15 @@ Dialog {
                     onRunningChanged: if (!running) ctlLabel.opacity = 1
                 }
             }
+            // shows that the controller arrives
+            MidiValueBar {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                anchors.margins: Theme.spacing
+                visible: root.control >= 0
+                ctl: root.control
+            }
         }
 
         RowLayout {

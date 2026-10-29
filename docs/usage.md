@@ -118,11 +118,16 @@ time.
 
 Move a controller or type its number, set the range (for continuous
 controls) or the toggle behaviour (for switches), then connect or remove
-the assignment.
+the assignment. A bar shows the value the controller sends, to check that
+it arrives.
 
 ![The learn dialog](images/learn.png)
 
-"MIDI controllers" in the menu lists all assignments and sets the MIDI
-channel.
+"MIDI controllers" in the menu lists all assignments, with a bar showing
+the last value each controller sent, and sets the MIDI channel. **MIDI
+feedback** makes the engine send the values of the assigned parameters to
+its MIDI output when a preset loads or a controller changes them, so that
+controllers with LEDs or motor faders follow (changes made in the UI are
+not sent).
 
 ![The MIDI controllers](images/midimap.png)

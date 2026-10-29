@@ -22,7 +22,8 @@ Its automated tests run with Qt 6.4 and Qt 6.8 on x86_64 and arm64.
 - main amplifier panel
 - tuner: note, deviation needle, frequency, string tunings of gx_head,
   temperaments, reference pitch, mute while tuning, MIDI controlled
-- MIDI learn on every control, MIDI controller list and MIDI channel
+- MIDI learn on every control, MIDI controller list with live controller
+  values, MIDI channel, MIDI feedback
 
 ## Not yet
 

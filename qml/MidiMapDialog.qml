@@ -19,18 +19,36 @@ Dialog {
     height: Math.min(560, Overlay.overlay ? Overlay.overlay.height - 24 : 560)
     standardButtons: Dialog.Close
 
+    // the option is not broadcast by the engine
+    onOpened: Gx.midi.refreshFeedback()
+
     ColumnLayout {
         anchors.fill: parent
         spacing: Theme.spacing
 
-        RowLayout {
-            Label { text: qsTr("MIDI channel") }
-            ParamSelector { param: Gx.ready ? Gx.param("system.midi_channel") : null }
-            Item { Layout.fillWidth: true }
+        // wraps on small screens
+        Flow {
+            Layout.fillWidth: true
+            spacing: Theme.spacing
+            Row {
+                spacing: Theme.spacing
+                Label {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: qsTr("MIDI channel")
+                }
+                ParamSelector { param: Gx.ready ? Gx.param("system.midi_channel") : null }
+            }
             Switch {
                 text: qsTr("Learn mode")
                 checked: Gx.midi.learnMode
                 onToggled: Gx.midi.learnMode = checked
+            }
+            Switch {
+                text: qsTr("MIDI feedback")
+                checked: Gx.midi.feedback
+                onToggled: Gx.midi.feedback = checked
+                ToolTip.visible: hovered
+                ToolTip.text: qsTr("Send the values of the assigned parameters to the MIDI output when a preset loads or a controller changes them")
             }
         }
 
@@ -61,11 +79,20 @@ Dialog {
                 }
                 contentItem: RowLayout {
                     spacing: Theme.spacing
-                    Label {
+                    ColumnLayout {
                         Layout.preferredWidth: 150
-                        text: row.modelData.ctlName
-                        color: Theme.accent
-                        elide: Text.ElideRight
+                        Layout.fillWidth: false
+                        spacing: 4
+                        Label {
+                            Layout.fillWidth: true
+                            text: row.modelData.ctlName
+                            color: Theme.accent
+                            elide: Text.ElideRight
+                        }
+                        MidiValueBar {
+                            Layout.fillWidth: true
+                            ctl: row.modelData.ctl
+                        }
                     }
                     Label {
                         Layout.fillWidth: true

@@ -17,6 +17,7 @@
 #include <QDebug>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QRegularExpression>
 
 namespace {
 
@@ -43,6 +44,21 @@ QJsonValue sanitize(const QJsonValue& v) {
     default:
         return v;
     }
+}
+
+// Some engine functions (get_midi_feedback, get_last_midi_control_value)
+// write their values in an object without keys: "result": {0}. Turn such
+// a result into an array; empty if the line has none.
+QByteArray repairResult(const QByteArray& line) {
+    static const QRegularExpression keyless(QStringLiteral(
+        R"re("result":\s*\{(\s*-?[0-9.eE+-]+(?:\s*,\s*-?[0-9.eE+-]+)*\s*)\})re"));
+    const QString s = QString::fromUtf8(line);
+    const QRegularExpressionMatch m = keyless.match(s);
+    if (!m.hasMatch()) {
+        return {};
+    }
+    return QString(s.left(m.capturedStart()) + QStringLiteral("\"result\": [") + m.captured(1)
+                   + QLatin1Char(']') + s.mid(m.capturedEnd())).toUtf8();
 }
 
 } // anonymous namespace
@@ -148,7 +164,22 @@ void RpcClient::handleLine(const QByteArray& line) {
     QJsonParseError err;
     QJsonDocument doc = QJsonDocument::fromJson(line, &err);
     if (!doc.isObject()) {
+        const QByteArray repaired = repairResult(line);
+        if (!repaired.isEmpty()) {
+            doc = QJsonDocument::fromJson(repaired);
+        }
+    }
+    if (!doc.isObject()) {
         qWarning() << "guitariqx: bad JSON from server:" << err.errorString() << line.left(200);
+        // do not leave the request waiting forever
+        static const QRegularExpression idRe(QStringLiteral(R"re("id":\s*"?([0-9]+))re"));
+        const QRegularExpressionMatch m = idRe.match(QString::fromUtf8(line));
+        if (m.hasMatch()) {
+            const ResultHandler handler = m_pending.take(m.captured(1).toLongLong());
+            if (handler) {
+                handler(QJsonValue(QJsonValue::Undefined));
+            }
+        }
         return;
     }
     const QJsonObject msg = doc.object();
