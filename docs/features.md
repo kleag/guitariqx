@@ -1,0 +1,34 @@
+# Features and status
+
+guitariqx is tested with Qt 6.10 on x86_64 against guitarix 0.47.0, and
+with Qt 6.4.2 on a Raspberry Pi 5 (Raspberry Pi OS Bookworm, arm64, Wayland
+desktop), where the tuner and, partially, MIDI control were also checked.
+Its automated tests run with Qt 6.4 and Qt 6.8 on x86_64 and arm64.
+
+## Working
+
+- connection, engine state (on / bypass / mute), DSP load, output meters
+- preset banks and presets, previous/next preset
+- preset editing in the preset list: Save, Save as (to any writable bank,
+  with an explicit replace), and per preset save here, rename, copy to
+  bank, move up/down, delete; per bank new, rename, move up/down, delete.
+  Factory banks are read only, their presets can be copied
+- bank files: import a `.gx` file as a new bank, save a bank to a `.gx` file
+- files: NAM and RTNeural models, convolver impulse responses and looper
+  imports, chosen with a single click file chooser, on the engine's computer
+- mono and stereo racks: on/off, add, remove, reorder, collapse
+- rack unit panels with gx_head's arrangement (Glade layouts translated to
+  guitariqx's widgets, else stack layouts, else a generic panel)
+- main amplifier panel
+- tuner: note, deviation needle, frequency, string tunings of gx_head,
+  temperaments, reference pitch, mute while tuning, MIDI controlled
+- MIDI learn on every control, MIDI controller list and MIDI channel
+
+## Not yet
+
+- gx_head's skins and images (the Glade layouts keep the arrangement, the
+  widgets are guitariqx's), the oscilloscope, drum sequencer and IR wave
+  view, LV2/LADSPA plugin management
+
+The full list of what remains is in
+[TODO.md](https://github.com/kleag/guitariqx/blob/main/TODO.md).

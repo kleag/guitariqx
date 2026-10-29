@@ -56,3 +56,9 @@ compile_commands.json
 
 *_qmlcache.qrc
 
+
+# CI builds (ci/check.sh), packages and the documentation site
+_ci/
+dist/
+site/
+__pycache__/

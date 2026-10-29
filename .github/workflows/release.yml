@@ -1,0 +1,63 @@
+# Publish a release when a version tag is pushed (see docs/development.md):
+#
+#   git tag -a v0.2.0 -m "guitariqx 0.2.0" && git push origin v0.2.0
+#
+# The tag must match project(VERSION) in CMakeLists.txt. A tag with a
+# suffix (v0.2.0-rc1) makes a pre-release.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  version:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: check
+        name: Check the tag against CMakeLists.txt
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          cmake_version=$(sed -n 's/^project(guitariqx VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)
+          if [ "${tag%%-*}" != "$cmake_version" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match project(VERSION $cmake_version) in CMakeLists.txt"
+            exit 1
+          fi
+          echo "version=$tag" >> "$GITHUB_OUTPUT"
+
+  packages:
+    needs: version
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    needs: [version, packages]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: deb-*
+          path: dist
+          merge-multiple: true
+      - name: Source archive and checksums
+        run: |
+          v=${{ needs.version.outputs.version }}
+          git archive --format=tar.gz --prefix="guitariqx-$v/" -o "dist/guitariqx-$v.tar.gz" HEAD
+          cd dist && sha256sum * > SHA256SUMS && cat SHA256SUMS
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          v=${{ needs.version.outputs.version }}
+          prerelease=
+          case "$v" in *-*) prerelease=--prerelease ;; esac
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --verify-tag --title "guitariqx $v" --generate-notes $prerelease

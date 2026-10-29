@@ -1,0 +1,81 @@
+# Build, test and package on Debian bookworm (Qt 6.4, as Raspberry Pi OS
+# Bookworm) and trixie (Qt 6.8), for x86_64 and arm64 (Raspberry Pi 4/5),
+# then install each package in a clean container and start it.
+name: CI
+
+on:
+  # every branch (tags are the release workflow's)
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+  # the release workflow builds its packages with this one
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: build ${{ matrix.distro }} ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        distro: [bookworm, trixie]
+        arch: [amd64, arm64]
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    container: debian:${{ matrix.distro }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build, test and package
+        run: BUILD_DIR=_ci/build ci/check.sh --deps --package
+      - name: Keep the test log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testlog-${{ matrix.distro }}-${{ matrix.arch }}
+          path: _ci/build/Testing/Temporary/
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deb-${{ matrix.distro }}-${{ matrix.arch }}
+          path: dist/*.deb
+          if-no-files-found: error
+
+  install:
+    name: install ${{ matrix.distro }} ${{ matrix.arch }}
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        distro: [bookworm, trixie]
+        arch: [amd64, arm64]
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    container: debian:${{ matrix.distro }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: deb-${{ matrix.distro }}-${{ matrix.arch }}
+          path: dist
+      - name: Install the package without build dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends fonts-dejavu-core ./dist/guitariqx_*.deb
+      - name: Start guitariqx (no engine) and take a screenshot
+        # exits with 1 when the QML cannot be loaded, e.g. a missing module
+        run: |
+          QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software \
+            guitariqx -p 9 --screenshot /tmp/shot.png --screenshot-delay 2000 2> /tmp/stderr.txt || {
+              cat /tmp/stderr.txt; exit 1; }
+          cat /tmp/stderr.txt
+          ! grep -E "is not installed|Could not load the Qt platform plugin" /tmp/stderr.txt

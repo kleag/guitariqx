@@ -70,6 +70,8 @@ Roughly in order of importance for live use. See README.md for what works.
 - `get_updates`, `midi_modifyCurrent` and `midi_deleteParameter` crash the
   engine for unknown parameter ids (`ParamMap::operator[]` does not check);
   guitariqx only sends known ids
+- `plugin_load_ui` aborts the engine for an unknown plugin id ("lookup
+  plugin *** id not found"); guitariqx only asks for listed units
 - The server's JSON parser has no `true`/`false` tokens
 - `tools/check_rpc` is still Python 2 and does not run
 - The bank and preset procedures (erase_preset, reorder_preset, pf_append,
