@@ -1,5 +1,8 @@
 # guitariqx
 
+[![CI](https://github.com/kleag/guitariqx/actions/workflows/ci.yml/badge.svg)](https://github.com/kleag/guitariqx/actions/workflows/ci.yml)
+[![Documentation](https://github.com/kleag/guitariqx/actions/workflows/docs.yml/badge.svg)](https://kleag.github.io/guitariqx/)
+
 A Qt Quick/QML user interface for [guitarix](https://github.com/brummer10/guitarix),
 alongside its GTK `gx_head` one.
 
@@ -9,6 +12,20 @@ that `guitarix -G` already uses.
 It does not link against any guitarix library and is built with CMake,
 independently of guitarix's waf build. It only needs the free (LGPL) Qt 6 modules
 Core, Gui, Network, Qml, Quick and QuickControls2.
+
+Documentation: <https://kleag.github.io/guitariqx/>
+
+![guitariqx](docs/images/main.png)
+
+## Install
+
+The [releases](https://github.com/kleag/guitariqx/releases) have Debian
+packages for Debian 12 "bookworm" and 13 "trixie" (also Raspberry Pi OS),
+on x86_64 and arm64 (Raspberry Pi 4/5):
+
+```sh
+sudo apt install ./guitariqx_0.1.0-1~bookworm_arm64.deb
+```
 
 ## Build
 
@@ -33,6 +50,9 @@ cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j$(nproc)
 sudo cmake --install build    # optional, installs /usr/local/bin/guitariqx
 ```
+
+Tests: `ctest --test-dir build` (see the
+[development documentation](https://kleag.github.io/guitariqx/development/)).
 
 ## Run
 

@@ -1,0 +1,51 @@
+site_name: guitariqx
+site_description: Qt Quick user interface for the guitarix engine, for desktops and touch screens
+site_url: https://kleag.github.io/guitariqx/
+repo_url: https://github.com/kleag/guitariqx
+repo_name: kleag/guitariqx
+edit_uri: edit/main/docs/
+copyright: Copyright &copy; 2026 Gaël de Chalendar, GPL-2.0-or-later
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      accent: orange
+      toggle:
+        icon: material/brightness-4
+        name: Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: black
+      accent: deep orange
+      toggle:
+        icon: material/brightness-7
+        name: Dark mode
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - search.highlight
+
+nav:
+  - Home: index.md
+  - Installation: install.md
+  - Usage: usage.md
+  - Features: features.md
+  - Development: development.md
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.superfences
+
+validation:
+  links:
+    not_found: warn
+    anchors: warn

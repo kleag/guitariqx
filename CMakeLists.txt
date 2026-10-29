@@ -21,8 +21,8 @@ if(QT_KNOWN_POLICY_QTP0004)
     qt_policy(SET QTP0004 NEW)
 endif()
 
-qt_add_executable(guitariqx
-    src/main.cpp
+# everything but main(): also compiled into the tests (tests/CMakeLists.txt)
+set(GUITARIQX_SOURCES
     src/rpcclient.cpp
     src/rpcclient.h
     src/parameter.cpp
@@ -41,6 +41,11 @@ qt_add_executable(guitariqx
     src/files.cpp
     src/dirmodel.cpp
     src/dirmodel.h
+)
+
+qt_add_executable(guitariqx
+    src/main.cpp
+    ${GUITARIQX_SOURCES}
 )
 
 # must be set before qt_add_qml_module
@@ -98,3 +103,11 @@ install(TARGETS guitariqx
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 install(FILES guitariqx.desktop DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
+
+option(BUILD_TESTING "Build the tests (needs the Qt Test module)" ON)
+if(BUILD_TESTING)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
+
+include(cmake/Packaging.cmake)
