@@ -489,6 +489,18 @@ void Machine::insertUnit(const QString& id, const QString& before, bool stereo) 
     m_rackTimer.start();
 }
 
+void Machine::addUnit(const QString& id, bool stereo) {
+    // on top, below the units with a fixed place (PGN_FIXED_GUI) if any
+    QString before;
+    for (const QString& u : m_rack[stereo ? 1 : 0]) {
+        if (!pluginInfo(u).value(QStringLiteral("fixed")).toBool()) {
+            before = u;
+            break;
+        }
+    }
+    insertUnit(id, before, stereo);
+}
+
 void Machine::removeUnit(const QString& id, bool stereo) {
     m_rpc.notify(QStringLiteral("remove_rack_unit"), {id, stereo ? 1 : 0});
     m_rackTimer.start();
