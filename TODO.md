@@ -61,7 +61,7 @@ Roughly in order of importance for live use. See README.md for what works.
       grid are dropped, so the rows next to the notebook spanning them get
       its height)
 - [x] Drum sequencer: next/previous unit preset (seq.npreset/ppreset)
-- [ ] Tall stacks of meters (e.g. Multi Band Compressor "Analyze")
+- [x] Tall stacks of meters (e.g. Multi Band Compressor "Analyze")
 - [x] Drag and drop reordering of rack units (and up/down buttons)
 - [x] Unit presets (plugin_preset_list_*)
 - [ ] Unit presets of the looper: gx_head sets dubber.filename and

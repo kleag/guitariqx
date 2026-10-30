@@ -161,13 +161,19 @@ Item {
                     }
                 }
             }
-            StackLayout {
-                currentIndex: bar.currentIndex
-                implicitWidth: children.length > currentIndex && currentIndex >= 0
-                               ? children[currentIndex].implicitWidth : 0
-                implicitHeight: children.length > currentIndex && currentIndex >= 0
-                                ? children[currentIndex].implicitHeight : 0
-                Repeater { model: root.children_; delegate: childDelegate }
+            // sized by the current page only: in hidden pages the rows
+            // see no visible children and wrap into one tall column, so a
+            // StackLayout (sized by its largest page) gets far too tall
+            Item {
+                readonly property Item page: pages.count > 0 ? pages.itemAt(bar.currentIndex) : null
+                implicitWidth: page ? page.implicitWidth : 0
+                implicitHeight: page ? page.implicitHeight : 0
+                Repeater {
+                    id: pages
+                    model: root.children_
+                    delegate: childDelegate
+                    onItemAdded: (index, item) => item.visible = Qt.binding(() => index === bar.currentIndex)
+                }
             }
         }
     }

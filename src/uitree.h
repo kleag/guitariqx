@@ -31,6 +31,7 @@ class Parameter;
  *             size: "small"|"mid"|"big", id, label, ...}
  *            knob: "smallknob" for the small knobs drawn with that skin image
  *            (GxSmallKnob), switchType: the icon set of a switch (base_name)
+ *            meter: horizontal: true for a horizontal level meter
  *            display: id2 and id3 are the cut and clip parameters of a
  *            looper tape position (create_p_display)
  *            iredit: button opening the IR editor of a convolver (id
