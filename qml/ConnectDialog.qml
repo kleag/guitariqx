@@ -14,7 +14,10 @@ Dialog {
         radius: Theme.radius * 2
         border.color: Theme.panelBorder
     }
-    anchors.centerIn: Overlay.overlay
+    // near the top of short screens, above the on-screen keyboard
+    parent: Overlay.overlay
+    x: parent ? (parent.width - width) / 2 : 0
+    y: parent ? (parent.height < 600 ? 8 : (parent.height - height) / 2) : 0
     standardButtons: Dialog.Ok | Dialog.Cancel
 
     onOpened: {

@@ -51,6 +51,8 @@ set(GUITARIQX_SOURCES
     src/impulseresponse.h
     src/waveview.cpp
     src/waveview.h
+    src/systemkeyboard.cpp
+    src/systemkeyboard.h
 )
 
 qt_add_executable(guitariqx
