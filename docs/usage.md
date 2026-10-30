@@ -79,7 +79,10 @@ collapse it to a compact view and to remove it. A unit can also be dragged
 to another place of its rack by the grip (⠿) at the left of its title bar,
 or by holding its title bar for a moment and then dragging; a line shows
 where it goes, and the rack scrolls when the unit is held near its top or
-bottom. Units are shown with
+bottom. With **Then place it by hand** switched on in the **+ Add effect**
+dialog, an added unit starts in that dragged state: touching the rack moves
+it, lifting the finger drops it there, and **Keep here** leaves it at the
+top. Units are shown with
 gx_head's arrangement: the Glade layout of the unit when it has one, else
 its stack layout, else a generic panel built from the unit's parameters.
 `GUITARIQX_FORM_STACK=1` uses the stack layouts, like `GUITARIX_FORM_STACK`

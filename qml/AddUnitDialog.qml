@@ -3,11 +3,13 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Guitariqx
 
-// Pick an effect to append to a rack
+// Pick an effect to add to a rack
 Dialog {
     id: root
     property bool stereo: false
     property var exclude: []
+    // a unit was added, to be placed by hand (Gx.placeAddedUnits)
+    signal placeRequested(string id)
 
     title: stereo ? qsTr("Add stereo effect") : qsTr("Add mono effect")
     modal: true
@@ -70,11 +72,21 @@ Dialog {
                     text: entry.modelData.name
                     onClicked: {
                         Gx.addUnit(entry.modelData.id, root.stereo)
+                        if (Gx.placeAddedUnits)
+                            root.placeRequested(entry.modelData.id)
                         root.close()
                     }
                 }
             }
             ScrollBar.vertical: ScrollBar {}
+        }
+
+        // no options page yet: the option is set where it applies
+        Switch {
+            Layout.fillWidth: true
+            text: qsTr("Then place it by hand")
+            checked: Gx.placeAddedUnits
+            onToggled: Gx.placeAddedUnits = checked
         }
     }
 }

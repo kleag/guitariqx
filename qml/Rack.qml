@@ -17,6 +17,12 @@ Item {
     // the slots next to the dragged unit leave it in place
     readonly property bool dropMoves: dragIndex >= 0 && dropSlot >= 0
                                       && dropSlot !== dragIndex && dropSlot !== dragIndex + 1
+    // placing an added unit by hand (Gx.placeAddedUnits): it is dragged
+    // without a pointer down, a press on the rack moves it and the release
+    // drops it. pendingPlace waits for the unit to be in the rack.
+    property string placeId: ""
+    property string pendingPlace: ""
+    readonly property bool dragPressed: dragId !== "" && (placeId === "" || placeArea.pressed)
 
     function startDrag(id, sceneY) {
         dragId = id
@@ -31,6 +37,22 @@ Item {
             Gx.moveUnitTo(dragId, dropSlot, stereo)
         dragId = ""
         dropSlot = -1
+        placeId = ""
+    }
+    function startPlacing(id) {
+        dragId = id
+        dropSlot = -1
+        placeId = id
+        Qt.callLater(() => list.positionViewAtIndex(units.indexOf(id), ListView.Contain))
+    }
+    onUnitsChanged: {
+        if (pendingPlace !== "" && units.indexOf(pendingPlace) >= 0) {
+            startPlacing(pendingPlace)
+            pendingPlace = ""
+        } else if (placeId !== "" && units.indexOf(placeId) < 0) {
+            // removed meanwhile (preset change)
+            endDrag(false)
+        }
     }
     function updateSlot() {
         const y = list.mapToItem(list.contentItem, 0, dragY).y
@@ -45,21 +67,26 @@ Item {
         dropSlot = list.count
     }
 
-    // --debug-state rackdrag:UNIT drags UNIT to the top of its rack
-    readonly property string debugDragUnit: {
+    // --debug-state rackdrag:UNIT drags UNIT to the top of its rack,
+    // rackplace:UNIT starts placing UNIT as if just added
+    function debugStateUnit(name) {
         const args = Qt.application.arguments
         const i = args.indexOf("--debug-state")
         if (i < 0 || i + 1 >= args.length)
             return ""
-        const state = args[i + 1].split(",").find(s => s.startsWith("rackdrag:"))
-        return state ? state.slice(9) : ""
+        const state = args[i + 1].split(",").find(s => s.startsWith(name + ":"))
+        return state ? state.slice(name.length + 1) : ""
     }
+    readonly property string debugDragUnit: debugStateUnit("rackdrag")
     readonly property bool debugDrag: Gx.ready && debugDragUnit !== "" && units.indexOf(debugDragUnit) >= 0
     onDebugDragChanged: if (debugDrag) Qt.callLater(() => {
         dragId = debugDragUnit
         dragY = 0
         updateSlot()
     })
+    readonly property string debugPlaceUnit: debugStateUnit("rackplace")
+    readonly property bool debugPlace: Gx.ready && debugPlaceUnit !== "" && units.indexOf(debugPlaceUnit) >= 0
+    onDebugPlaceChanged: if (debugPlace) Qt.callLater(() => startPlacing(debugPlaceUnit))
 
     Item {
         id: title
@@ -69,20 +96,26 @@ Item {
         Text {
             anchors.left: parent.left
             anchors.leftMargin: 4
+            anchors.right: titleButton.left
+            anchors.rightMargin: Theme.spacing
             anchors.verticalCenter: parent.verticalCenter
-            text: root.stereo ? qsTr("Stereo rack") : qsTr("Mono rack")
-            color: Theme.textDim
+            elide: Text.ElideRight
+            text: root.placeId !== ""
+                  ? qsTr("Tap where %1 goes").arg(Gx.pluginInfo(root.placeId).name || root.placeId)
+                  : root.stereo ? qsTr("Stereo rack") : qsTr("Mono rack")
+            color: root.placeId !== "" ? Theme.accent : Theme.textDim
             font.pixelSize: Theme.fontNormal
-            font.capitalization: Font.AllUppercase
-            font.letterSpacing: 1.5
+            font.capitalization: root.placeId !== "" ? Font.MixedCase : Font.AllUppercase
+            font.letterSpacing: root.placeId !== "" ? 0 : 1.5
         }
 
         Button {
+            id: titleButton
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            text: qsTr("+ Add effect")
+            text: root.placeId !== "" ? qsTr("Keep here") : qsTr("+ Add effect")
             enabled: Gx.ready
-            onClicked: addDialog.open()
+            onClicked: root.placeId !== "" ? root.endDrag(false) : addDialog.open()
         }
     }
 
@@ -114,8 +147,9 @@ Item {
             onDragStarted: (sceneY) => root.startDrag(modelData, sceneY)
             onDragMoved: (sceneY) => root.moveDrag(sceneY)
             onDragEnded: (drop) => root.endDrag(drop)
-            // scrolled out of the cache buffer: the drag is lost
-            Component.onDestruction: if (dragging) root.endDrag(false)
+            // scrolled out of the cache buffer: the drag is lost (placing
+            // does not depend on the unit's item)
+            Component.onDestruction: if (dragging && root.placeId === "") root.endDrag(false)
         }
 
         // where the dragged unit goes
@@ -153,7 +187,7 @@ Item {
     Timer {
         interval: 16
         repeat: true
-        running: root.dragId !== "" && list.contentHeight > list.height
+        running: root.dragPressed && list.contentHeight > list.height
         onTriggered: {
             const edge = Theme.touch
             const step = 12
@@ -169,9 +203,21 @@ Item {
         }
     }
 
+    // placing an added unit: a press anywhere on the rack drags it
+    MouseArea {
+        id: placeArea
+        anchors.fill: list
+        enabled: root.placeId !== ""
+        preventStealing: true
+        onPressed: (mouse) => root.moveDrag(mapToItem(null, mouse.x, mouse.y).y)
+        onPositionChanged: (mouse) => root.moveDrag(mapToItem(null, mouse.x, mouse.y).y)
+        onReleased: root.endDrag(true)
+        onCanceled: root.dropSlot = -1
+    }
+
     // the name of the dragged unit follows the pointer
     Rectangle {
-        visible: root.dragId !== ""
+        visible: root.dragPressed
         z: 10
         x: (parent.width - width) / 2
         y: list.y + root.dragY - height / 2
@@ -197,5 +243,6 @@ Item {
         id: addDialog
         stereo: root.stereo
         exclude: root.units
+        onPlaceRequested: (id) => root.pendingPlace = id
     }
 }
