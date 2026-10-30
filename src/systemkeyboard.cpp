@@ -25,7 +25,9 @@
 
 void SystemKeyboard::install(QGuiApplication *app) {
     const QString mode = qEnvironmentVariable("GUITARIQX_SYSTEM_KEYBOARD");
-    if (!QGuiApplication::platformName().startsWith(QLatin1String("wayland"))
+    // xcb: under XWayland when qt6-wayland is missing
+    const QString platform = QGuiApplication::platformName();
+    if ((!platform.startsWith(QLatin1String("wayland")) && platform != QLatin1String("xcb"))
         || mode == QLatin1String("0")) {
         return;
     }
@@ -95,10 +97,17 @@ bool SystemKeyboard::acceptsText(QObject *object) {
 }
 
 void SystemKeyboard::focusChanged(QObject *focus) {
-    if (acceptsText(focus)) {
+    if (!acceptsText(focus)) {
+        if (m_visible) {
+            m_hideTimer.start();
+        }
+    } else if (!m_pressed && !focus->property("keyboardOnTap").toBool()) {
+        // given by the program (a dialog opening); during a press the
+        // release decides (a tap on the buttons of a SpinBox focuses its
+        // text but is no request to type)
         show();
-    } else if (m_visible) {
-        m_hideTimer.start();
+    } else {
+        m_hideTimer.stop();
     }
 }
 
@@ -121,11 +130,15 @@ void SystemKeyboard::hide() {
 }
 
 bool SystemKeyboard::eventFilter(QObject *watched, QEvent *event) {
-    // a tap into the focused text field shows the keyboard again
-    if (event->type() == QEvent::MouseButtonRelease || event->type() == QEvent::TouchEnd) {
+    const QEvent::Type type = event->type();
+    if (type == QEvent::MouseButtonPress || type == QEvent::TouchBegin) {
+        m_pressed = qobject_cast<QQuickWindow *>(watched) != nullptr || m_pressed;
+    } else if (type == QEvent::MouseButtonRelease || type == QEvent::TouchEnd) {
+        // a tap into the focused text field shows the keyboard (again)
         auto *window = qobject_cast<QQuickWindow *>(watched);
         auto *pointer = static_cast<QPointerEvent *>(event);
         if (window && pointer->pointCount() > 0) {
+            m_pressed = false;
             auto *item = qobject_cast<QQuickItem *>(window->focusObject());
             const QPointF pos = pointer->point(0).scenePosition();
             if (item && acceptsText(item) && item->contains(item->mapFromScene(pos))) {

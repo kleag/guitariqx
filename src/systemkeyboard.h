@@ -25,9 +25,9 @@ class QGuiApplication;
  * Shows the desktop's on-screen keyboard while a text field has the focus.
  *
  * On Wayland the keyboard (squeekboard on Raspberry Pi OS, Phosh...) pops
- * up by itself only for clients speaking text-input-unstable-v3, which Qt
- * lacks before 6.7 (Qt 6.4 of Debian 12 / Raspberry Pi OS Bookworm has v1,
- * v2 and v4 only). So the keyboard is driven explicitly through its D-Bus
+ * up by itself only for clients speaking text-input-unstable-v3, which the
+ * Qt 6.4 of Debian 12 / Raspberry Pi OS Bookworm lacks (it has v1, v2 and
+ * v4 only), as do X11 clients. So the keyboard is driven explicitly through its D-Bus
  * interface sm.puri.OSK0 (SetVisible), with busctl rather than Qt DBus,
  * which is not among the modules guitariqx may use.
  *
@@ -35,9 +35,11 @@ class QGuiApplication;
  * may be plugged in later): squeekboard types through a Wayland virtual
  * keyboard, not a kernel input device, so it does not count.
  *
- * The keyboard is shown when the focus goes to an item accepting input
- * method events (TextField...) and on a tap into the focused field (it may
- * have been closed by hand), and hidden shortly after the focus left text
+ * The keyboard is shown when the program gives the focus to an item
+ * accepting input method events (TextField...), unless that item has a
+ * property keyboardOnTap set to true, and on a tap into the focused field
+ * (it may have been closed by hand), but not when a tap elsewhere focuses
+ * a field (the buttons of an editable SpinBox). It is hidden shortly after the focus left text
  * fields (not at once: the focus may move to another field).
  */
 class SystemKeyboard : public QObject {
@@ -49,8 +51,8 @@ public:
     // tells whether the on-screen keyboard is wanted now
     using Needed = std::function<bool()>;
 
-    // Installs the busctl driven keyboard on Wayland when busctl exists;
-    // does nothing otherwise. GUITARIQX_SYSTEM_KEYBOARD=0 disables it, =1
+    // Installs the busctl driven keyboard on Wayland (or X11) when busctl
+    // exists; does nothing otherwise. GUITARIQX_SYSTEM_KEYBOARD=0 disables it, =1
     // shows it even with a physical keyboard.
     static void install(QGuiApplication *app);
 
@@ -78,6 +80,7 @@ private:
     Setter m_setter;
     Needed m_needed;
     bool m_visible = false;
+    bool m_pressed = false;
     QTimer m_hideTimer;
     QElapsedTimer m_lastShow; // a tap gives a touch and a mouse release
 };

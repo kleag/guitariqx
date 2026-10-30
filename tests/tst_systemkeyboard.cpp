@@ -34,6 +34,9 @@ private slots:
     void tapFocusedField();
     void readOnly();
     void notNeeded();
+    void keyboardOnTap();
+    void spinButtons();
+    void focusByTapElsewhere();
 
 private:
     QQuickItem *item(const char *name) const { return m_root->findChild<QQuickItem *>(name); }
@@ -78,16 +81,22 @@ void TestSystemKeyboard::init() {
     QQmlComponent component(m_engine);
     component.setData(R"(
         import QtQuick
+        import QtQuick.Controls
         Column {
             TextInput { objectName: "a"; width: 200; height: 40; text: "a" }
             TextInput { objectName: "b"; width: 200; height: 40; text: "b" }
             TextInput { objectName: "ro"; width: 200; height: 40; readOnly: true; text: "ro" }
+            TextInput { objectName: "onTap"; width: 200; height: 40; text: "t"
+                        property bool keyboardOnTap: true }
             Rectangle { objectName: "button"; width: 200; height: 40; activeFocusOnTab: true }
+            SpinBox { objectName: "spin"; width: 200; height: 40; editable: true }
+            MouseArea { objectName: "focuser"; width: 200; height: 40
+                        onPressed: parent.children[1].forceActiveFocus() }
         })", QUrl());
     m_root = qobject_cast<QQuickItem *>(component.create());
     QVERIFY2(m_root, qPrintable(component.errorString()));
     m_window = new QQuickWindow;
-    m_window->resize(200, 160);
+    m_window->resize(200, 320);
     m_root->setParentItem(m_window->contentItem());
     m_window->show();
     m_window->requestActivate();
@@ -148,6 +157,36 @@ void TestSystemKeyboard::notNeeded() {
     tap(item("a"));
     item("button")->forceActiveFocus();
     QTest::qWait(SystemKeyboard::hideDelay + 100);
+    QVERIFY(m_calls.isEmpty());
+}
+
+void TestSystemKeyboard::keyboardOnTap() {
+    // the search field of the add unit dialog: not when opening
+    item("onTap")->forceActiveFocus();
+    QVERIFY(m_calls.isEmpty());
+    tap(item("onTap"));
+    QCOMPARE(m_calls, QList<bool>{true});
+}
+
+void TestSystemKeyboard::spinButtons() {
+    // a tap on the + of an editable SpinBox (ParamSpin) does not show it
+    auto *spin = item("spin");
+    auto *up = spin->property("up").value<QObject *>()->property("indicator").value<QQuickItem *>();
+    QVERIFY(up);
+    tap(up);
+    QCOMPARE(spin->property("value").toInt(), 1);
+    QVERIFY(m_calls.isEmpty());
+    // a tap into its text does show the keyboard
+    auto *text = spin->property("contentItem").value<QQuickItem *>();
+    tap(text);
+    QVERIFY(text->hasActiveFocus());
+    QCOMPARE(m_calls, QList<bool>{true});
+}
+
+void TestSystemKeyboard::focusByTapElsewhere() {
+    // a press out of the field giving it the focus: no request to type
+    tap(item("focuser"));
+    QVERIFY(item("b")->hasActiveFocus());
     QVERIFY(m_calls.isEmpty());
 }
 

@@ -45,6 +45,9 @@ Dialog {
             id: filter
             Layout.fillWidth: true
             placeholderText: qsTr("Search")
+            // focused for typing on a physical keyboard; the on-screen one
+            // would hide the list: only when the field is tapped
+            property bool keyboardOnTap: true
         }
 
         ListView {
