@@ -4,14 +4,14 @@ Roughly in order of importance for live use. See README.md for what works.
 
 ## Next
 
-- [ ] Test on a Raspberry Pi (Bookworm, Qt 6.4, 800x480 touch screen,
+- [x] Test on a Raspberry Pi (Bookworm, Qt 6.4, 800x480 touch screen,
       `QT_QPA_PLATFORM=eglfs`), check CPU use of the UI while playing
-- [ ] Test the tuner with a real instrument (only tested with simulated
+- [x] Test the tuner with a real instrument (only tested with simulated
       frequencies: `--debug-state tuner:HZ`) and tune the needle smoothing
-- [ ] Test preset by note with a guitar and a foot switch (only simulated:
+- [x] Test preset by note with a guitar and a foot switch (only simulated:
       `--debug-state switcher`, FakeEngine; the note mapping comes from
       tunerswitcher.cpp)
-- [ ] Test MIDI learn with real hardware (tested by setting the controller
+- [x] Test MIDI learn with real hardware (tested by setting the controller
       number from a second connection, which is what the engine does when a
       controller moves)
 - [x] Preset editing: save, save as, rename, delete, reorder, copy presets;
@@ -21,7 +21,7 @@ Roughly in order of importance for live use. See README.md for what works.
       (convert_preset), online presets (musical-artifacts.com) like gx_head
 - [x] File chooser (KDE style single click) for NAM and RTNeural models,
       convolver impulse responses and looper imports
-- [ ] Check that a model chosen in guitariqx is heard (the engine receives
+- [x] Check that a model chosen in guitariqx is heard (the engine receives
       the same loadpath/flist sequence as from gx_head, the audio was not
       tested)
 - [x] Remote file choosing when the engine runs on another computer
