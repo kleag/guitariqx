@@ -6,7 +6,7 @@ Roughly in order of importance for live use. See README.md for what works.
 
 - [x] Test on a Raspberry Pi (Bookworm, Qt 6.4, 800x480 touch screen,
       `QT_QPA_PLATFORM=eglfs`), check CPU use of the UI while playing
-- [ ] Check the on-screen keyboard (squeekboard, shown over D-Bus) on the
+- [x] Check the on-screen keyboard (squeekboard, shown over D-Bus) on the
       Pi: dialogs not hidden behind it, in a window and full screen
 - [ ] An on-screen keyboard in QML for `eglfs`, where there is no desktop
       keyboard (Qt Virtual Keyboard is GPL-3, not among the allowed modules)
