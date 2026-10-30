@@ -119,6 +119,13 @@ qt_add_resources(guitariqx skins
     FILES skins/gx_head_Guitarix.css ${GUITARIQX_SKIN_IMAGES}
 )
 
+# the application icon, for the windows (QIcon has no SVG support without Qt Svg)
+file(GLOB GUITARIQX_ICONS RELATIVE "${PROJECT_SOURCE_DIR}" CONFIGURE_DEPENDS icons/hicolor/*/apps/guitariqx.png)
+qt_add_resources(guitariqx icons
+    PREFIX /Guitariqx
+    FILES ${GUITARIQX_ICONS}
+)
+
 target_include_directories(guitariqx PRIVATE src)
 
 target_compile_definitions(guitariqx PRIVATE
@@ -134,6 +141,8 @@ install(TARGETS guitariqx
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 install(FILES guitariqx.desktop DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
+install(FILES COPYING DESTINATION ${CMAKE_INSTALL_DOCDIR})
+install(DIRECTORY icons/hicolor DESTINATION ${CMAKE_INSTALL_DATADIR}/icons)
 
 option(BUILD_TESTING "Build the tests (needs the Qt Test module)" ON)
 if(BUILD_TESTING)

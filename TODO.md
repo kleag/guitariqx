@@ -10,7 +10,6 @@ Roughly in order of importance for live use. See README.md for what works.
       Pi: dialogs not hidden behind it, in a window and full screen
 - [ ] An on-screen keyboard in QML for `eglfs`, where there is no desktop
       keyboard (Qt Virtual Keyboard is GPL-3, not among the allowed modules)
-- [ ] Test the tuner with a real instrument (only tested with simulated
 - [x] Test the tuner with a real instrument (only tested with simulated
       frequencies: `--debug-state tuner:HZ`) and tune the needle smoothing
 - [x] Test preset by note with a guitar and a foot switch (only simulated:
@@ -151,6 +150,7 @@ Roughly in order of importance for live use. See README.md for what works.
 
 ## Packaging
 
-- [ ] Debian packaging (separate binary package, depends on the engine)
-- [ ] Icon and translations (qsTr is used everywhere, no .ts files yet)
+- [x] Debian packages and apt repository (the engine is only suggested)
+- [x] Icon and logo
+- [ ] Translations (qsTr is used everywhere, no .ts files yet)
 - [x] Remember window size, last host/port and "mute while tuning" (QSettings)

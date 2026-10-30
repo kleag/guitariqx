@@ -1,4 +1,9 @@
-# guitariqx
+---
+title: guitariqx
+---
+
+![guitariqx, guitar amplifier and effects](images/guitariqx-logo-light.png#only-light){ width="380" }
+![guitariqx, guitar amplifier and effects](images/guitariqx-logo-dark.png#only-dark){ width="380" }
 
 guitariqx is a Qt Quick user interface for the
 [guitarix](https://github.com/brummer10/guitarix) virtual guitar amplifier,

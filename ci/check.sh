@@ -1,4 +1,11 @@
 #!/bin/sh
+# Copyright (C) 2026 Gaël de Chalendar
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
 # Build, test and package guitariqx on Debian, Ubuntu or Raspberry Pi OS.
 # Used by the GitHub workflows; runs the same way locally in a container:
 #

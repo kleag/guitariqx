@@ -15,23 +15,33 @@ both Qt 6.4 and Qt 6.8.
 ## Design
 
 ```
-src/rpcclient.*   JSON-RPC over TCP: newline framed messages, request ids,
-                  notifications, reconnect
-src/parameter.*   client mirror of a gx_engine::Parameter (from "parameterlist")
-src/machine.*     engine proxy exposed to QML as the singleton "Gx"
-                  (counterpart of GxMachineRemote in gx_head/gui/machine.cpp);
-                  also presets.cpp, bankfiles.cpp and files.cpp
-src/uitree.*      rack unit layouts: converts the UiBuilder call list
-                  returned by plugin_load_ui into a tree for QML
-src/glade.cpp     the same for the Glade layouts of the units
-src/tuner.*       tuner display: note, cents and target string from the
-                  engine's frequency (Gx.tuner)
-src/midimap.*     MIDI controller assignments and MIDI learn (Gx.midi)
-src/dirmodel.*    folder listing of the file chooser, local or by the engine
-src/skin.*        gx_head skins: style sheet values and images (Gx.skin)
-skins/            the built-in Guitarix skin and the libgxw images
-qml/              views and controls
-tests/            unit tests and the fake engine
+src/rpcclient.*       JSON-RPC over TCP: newline framed messages, request ids,
+                      notifications, reconnect
+src/parameter.*       client mirror of a gx_engine::Parameter (from "parameterlist")
+src/machine.*         engine proxy exposed to QML as the singleton "Gx"
+                      (counterpart of GxMachineRemote in gx_head/gui/machine.cpp);
+                      split by topic: presets.cpp (bank and preset editing),
+                      bankfiles.cpp (.gx import/export), files.cpp (file places,
+                      IR and model loading), sequencer.cpp (drum sequencer lines),
+                      unitpresets.cpp (presets of one rack unit)
+src/uitree.*          rack unit layouts: converts the UiBuilder call list
+                      returned by plugin_load_ui into a tree for QML
+src/glade.cpp         the same for the Glade layouts of the units
+src/tuner.*           tuner display: note, cents and target string from the
+                      engine's frequency (Gx.tuner)
+src/midimap.*         MIDI controller assignments and MIDI learn (Gx.midi)
+src/dirmodel.*        folder listing of the file chooser, local or by the engine
+src/skin.*            gx_head skins: style sheet values and images (Gx.skin)
+src/pluginmanager.*   LADSPA/LV2 plugin list and settings (Gx.pluginManager)
+src/oscilloscope.*    oscilloscope frames (Gx.oscilloscope)
+src/impulseresponse.* convolver settings edited by the IR editor
+src/waveview.*        drawing of the oscilloscope and of impulse responses
+src/systemkeyboard.*  shows the desktop on-screen keyboard over D-Bus (squeekboard)
+skins/                the built-in Guitarix skin and the libgxw images
+icons/                the application icon (installed in the hicolor theme, also
+                      built in for the windows)
+qml/                  views and controls
+tests/                unit tests and the fake engine
 ```
 
 ## The engine's protocol
@@ -148,6 +158,8 @@ mode), and each test checks that there are none.
 | `tst_rpcclient` | framing, ids, notifications, errors, reconnection |
 | `tst_machine` | `Machine`, `Tuner` and `MidiMap` against FakeEngine |
 | `tst_dirmodel` | the file chooser's folder listing |
+| `tst_skin` | gx_head skins: style sheet values and images |
+| `tst_systemkeyboard` | the on-screen keyboard: keyboard detection, when it is shown and hidden |
 | `tst_ui` | runs `guitariqx` against FakeEngine in each UI state below, offscreen, and fails on any QML warning |
 
 QML errors only show at run time, and some only with the oldest supported

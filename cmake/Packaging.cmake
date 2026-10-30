@@ -20,6 +20,7 @@ JSON-RPC interface, on the same computer or over the network. It is made
 for touch screens, such as the Raspberry Pi ones, as well as desktops.")
 set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/kleag/guitariqx")
 set(CPACK_RESOURCE_FILE_README "${PROJECT_SOURCE_DIR}/README.md")
+set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/COPYING")
 set(CPACK_STRIP_FILES ON)
 
 set(CPACK_DEBIAN_PACKAGE_SECTION sound)

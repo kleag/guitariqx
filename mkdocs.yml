@@ -8,6 +8,8 @@ copyright: Copyright &copy; 2026 Gaël de Chalendar, GPL-2.0-or-later
 
 theme:
   name: material
+  logo: images/guitariqx.svg
+  favicon: images/guitariqx.svg
   palette:
     - media: "(prefers-color-scheme: dark)"
       scheme: slate

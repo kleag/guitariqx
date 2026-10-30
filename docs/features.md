@@ -16,7 +16,11 @@ Its automated tests run with Qt 6.4 and Qt 6.8 on x86_64 and arm64.
 - bank files: import a `.gx` file as a new bank, save a bank to a `.gx` file
 - files: NAM and RTNeural models, convolver impulse responses and looper
   imports, chosen with a single click file chooser, on the engine's computer
-- mono and stereo racks: on/off, add, remove, reorder, collapse
+- mono and stereo racks: on/off, add (at the top, or placed by hand),
+  remove, reorder (by drag and drop or up/down buttons), collapse
+- LADSPA/LV2 plugins: choose which plugins of the engine's computer are
+  rack units, with their name, category, master slider, dry/wet control
+  and stereo to mono option
 - unit presets: load, save and remove the settings of one rack unit,
   factory presets, standard values; previous/next preset of the drum
   sequencer
@@ -38,11 +42,34 @@ Its automated tests run with Qt 6.4 and Qt 6.8 on x86_64 and arm64.
   bank or preset, started from the menu or a MIDI foot switch
 - MIDI learn on every control, MIDI controller list with live controller
   values, MIDI channel, MIDI feedback
+- the desktop's on-screen keyboard (squeekboard) for text fields on
+  computers without a physical keyboard
+- reconnection when the engine restarts, or when it stops answering after
+  loading a preset
 
 ## Not yet
 
 - gx_head's slider and meter images, its two-tone unit backgrounds and its
-  wallpapers, LV2/LADSPA plugin management
+  wallpapers
+- the editor of the LADSPA/LV2 plugins' controls (gx_head's port list)
+- online presets (musical-artifacts.com), the conversion of banks with an
+  old file version
+- an on-screen keyboard under `eglfs`, where there is no desktop
+- translations
+
+## Known problems
+
+These come from the engine (guitarix 0.47.0 and older), see
+[Development](development.md#the-engines-protocol):
+
+- Loading a preset whose name is not plain ASCII (accents, symbols) leaves
+  the headless engine silent and stops it sending updates. guitariqx
+  notices it, connects again and asks to select another preset, which
+  brings the sound back, and then no longer loads such presets; the engine
+  has to be restarted once guitariqx quits. Renaming such presets avoids
+  the problem.
+- Preset and bank edits are not broadcast: other interfaces connected to
+  the same engine only see them after reloading.
 
 The full list of what remains is in
 [TODO.md](https://github.com/kleag/guitariqx/blob/main/TODO.md).

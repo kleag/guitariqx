@@ -17,6 +17,7 @@
 
 #include <QCommandLineParser>
 #include <QGuiApplication>
+#include <QIcon>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickStyle>
@@ -64,6 +65,13 @@ int main(int argc, char *argv[]) {
     QGuiApplication::setApplicationName(QStringLiteral("guitariqx"));
     QGuiApplication::setOrganizationName(QStringLiteral("guitarix"));
     QGuiApplication::setApplicationVersion(QStringLiteral(GUITARIQX_VERSION));
+    // the Wayland compositors take the icon from the desktop file
+    QGuiApplication::setDesktopFileName(QStringLiteral("guitariqx"));
+    QIcon icon;
+    for (int size : {16, 22, 24, 32, 48, 64, 128, 256, 512}) {
+        icon.addFile(QStringLiteral(":/Guitariqx/icons/hicolor/%1x%1/apps/guitariqx.png").arg(size));
+    }
+    QGuiApplication::setWindowIcon(icon);
 
     QCommandLineParser parser;
     parser.setApplicationDescription(QStringLiteral(
