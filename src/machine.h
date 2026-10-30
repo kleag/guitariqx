@@ -67,6 +67,9 @@ class Machine : public QObject {
     // the engine runs on this computer: its files can be read directly
     Q_PROPERTY(bool engineLocal READ engineLocal NOTIFY connectedChanged)
     Q_PROPERTY(QVariantList filePlaces READ filePlaces NOTIFY filePlacesChanged)
+    // an added unit is then placed by hand, the rack starting a drag of it
+    // (UI option, kept in QSettings)
+    Q_PROPERTY(bool placeAddedUnits READ placeAddedUnits WRITE setPlaceAddedUnits NOTIFY placeAddedUnitsChanged)
 public:
     // no default argument: a default constructible class would be
     // instantiated by the QML engine instead of calling create()
@@ -153,6 +156,8 @@ public:
     // moves a unit to slot (0 to the rack size) of the current rack, before
     // the unit there: drag and drop
     Q_INVOKABLE void moveUnitTo(const QString& id, int slot, bool stereo);
+    bool placeAddedUnits() const { return m_placeAddedUnits; }
+    void setPlaceAddedUnits(bool on);
 
     // Output parameters (meters, looper position, oscilloscope) are
     // polled while registered. Float parameters that the engine changes
@@ -232,6 +237,7 @@ signals:
     void bankImported(const QString& file, const QString& name, const QString& error);
     void bankExported(const QString& name, const QString& file, const QString& error);
     void rackChanged();
+    void placeAddedUnitsChanged();
     void pluginsChanged();
     void unitUiReady(const QString& id);
     void filePlacesChanged();
@@ -293,6 +299,7 @@ private:
     QString m_serverVersion;
     int m_interfaceMinor = 0;
     bool m_engineLocal = true;
+    bool m_placeAddedUnits = false;
     QVariantList m_filePlaces;
     QString m_irFactoryDir;
     QString m_irUserDir;

@@ -160,6 +160,7 @@ MIDI device or clicks (comma separated):
 | `sequencer` | the drum sequencer (with `unit:seq`) |
 | `unitpresets:UNIT` | the presets of a rack unit (which must be in the rack) |
 | `rackdrag:UNIT` | a rack unit dragged to the top of its rack (which must be in the rack) |
+| `rackplace:UNIT` | a rack unit being placed by hand, as if just added (which must be in the rack) |
 
 ### Without guitarix
 

@@ -67,6 +67,7 @@ private slots:
     void tunerStrings();
     void tunerDisplayRequest();
     void tunerMuteIsSaved();
+    void placeAddedUnitsIsSaved();
     void tunerMutesEngine();
     void shutdownRestoresEngine();
     void switcherDisplay();
@@ -770,6 +771,20 @@ void TestMachine::tunerMuteIsSaved() {
     // a new session reads it back
     start();
     QVERIFY(!m_machine->tuner()->muteWhileTuning());
+}
+
+void TestMachine::placeAddedUnitsIsSaved() {
+    QSettings().clear();
+    start();
+    QVERIFY(!m_machine->placeAddedUnits());
+    QSignalSpy changed(m_machine.get(), &Machine::placeAddedUnitsChanged);
+    m_machine->setPlaceAddedUnits(true);
+    m_machine->setPlaceAddedUnits(true);
+    QCOMPARE(changed.size(), 1);
+    cleanup();
+    // a new session reads it back
+    start();
+    QVERIFY(m_machine->placeAddedUnits());
 }
 
 void TestMachine::tunerMutesEngine() {

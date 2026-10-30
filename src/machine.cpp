@@ -46,6 +46,8 @@ const char *listenTokens[] = {
     "logger", "units_changed", "misc", "freq", "midi", "display", "tuner",
 };
 
+const char *placeAddedUnitsKey = "ui/placeAddedUnits";
+
 } // anonymous namespace
 
 Machine *Machine::s_instance = nullptr;
@@ -54,7 +56,8 @@ Machine::Machine(QObject *parent)
     : QObject(parent),
       m_tuner(*this, m_rpc),
       m_midi(*this, m_rpc),
-      m_oscilloscope(this) {
+      m_oscilloscope(this),
+      m_placeAddedUnits(QSettings().value(QLatin1String(placeAddedUnitsKey), false).toBool()) {
     QQmlEngine::setObjectOwnership(&m_tuner, QQmlEngine::CppOwnership);
     QQmlEngine::setObjectOwnership(&m_midi, QQmlEngine::CppOwnership);
     QQmlEngine::setObjectOwnership(&m_oscilloscope, QQmlEngine::CppOwnership);
@@ -528,6 +531,15 @@ void Machine::moveUnitTo(const QString& id, int slot, bool stereo) {
     }
     // insert before the unit at the slot, at the end past the last one
     insertUnit(id, slot < rack.size() ? rack.at(slot) : QString(), stereo);
+}
+
+void Machine::setPlaceAddedUnits(bool on) {
+    if (on == m_placeAddedUnits) {
+        return;
+    }
+    m_placeAddedUnits = on;
+    QSettings().setValue(QLatin1String(placeAddedUnitsKey), on);
+    emit placeAddedUnitsChanged();
 }
 
 void Machine::watchOutput(const QString& id) {
