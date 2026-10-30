@@ -4,18 +4,19 @@ Roughly in order of importance for live use. See README.md for what works.
 
 ## Next
 
-- [ ] Test on a Raspberry Pi (Bookworm, Qt 6.4, 800x480 touch screen,
+- [x] Test on a Raspberry Pi (Bookworm, Qt 6.4, 800x480 touch screen,
       `QT_QPA_PLATFORM=eglfs`), check CPU use of the UI while playing
 - [ ] Check the on-screen keyboard (squeekboard, shown over D-Bus) on the
       Pi: dialogs not hidden behind it, in a window and full screen
 - [ ] An on-screen keyboard in QML for `eglfs`, where there is no desktop
       keyboard (Qt Virtual Keyboard is GPL-3, not among the allowed modules)
 - [ ] Test the tuner with a real instrument (only tested with simulated
+- [x] Test the tuner with a real instrument (only tested with simulated
       frequencies: `--debug-state tuner:HZ`) and tune the needle smoothing
-- [ ] Test preset by note with a guitar and a foot switch (only simulated:
+- [x] Test preset by note with a guitar and a foot switch (only simulated:
       `--debug-state switcher`, FakeEngine; the note mapping comes from
       tunerswitcher.cpp)
-- [ ] Test MIDI learn with real hardware (tested by setting the controller
+- [x] Test MIDI learn with real hardware (tested by setting the controller
       number from a second connection, which is what the engine does when a
       controller moves)
 - [x] Preset editing: save, save as, rename, delete, reorder, copy presets;
@@ -25,7 +26,7 @@ Roughly in order of importance for live use. See README.md for what works.
       (convert_preset), online presets (musical-artifacts.com) like gx_head
 - [x] File chooser (KDE style single click) for NAM and RTNeural models,
       convolver impulse responses and looper imports
-- [ ] Check that a model chosen in guitariqx is heard (the engine receives
+- [x] Check that a model chosen in guitariqx is heard (the engine receives
       the same loadpath/flist sequence as from gx_head, the audio was not
       tested)
 - [x] Remote file choosing when the engine runs on another computer
@@ -77,7 +78,11 @@ Roughly in order of importance for live use. See README.md for what works.
       a seq.<preset> switch per preset (insert_param)
 - [ ] Unit presets of the amplifier (ampstack): its parameters are amp.*,
       not ampstack.*, so the client side reset does not apply; no ≡ button
-- [ ] LV2/LADSPA plugin management (load_ladspalist, ladspaloader_update_plugins)
+- [x] LV2/LADSPA plugin management (load_ladspalist, save_ladspalist,
+      ladspaloader_update_plugins): selection, name, category, quirks,
+      master slider, dry/wet, stereo to mono, factory settings
+- [ ] LV2/LADSPA plugin controls editor (gx_head's port list: order, name,
+      display type, default/range, step, enum labels, new row, caption)
 
 ## Tuner
 
@@ -119,6 +124,10 @@ Roughly in order of importance for live use. See README.md for what works.
 - The RTNeural stack layout names its file parameter `rtneuralloadfile`
   instead of `rtneural.loadfile` (guitariqx fixes the id, gx_head shows no
   file button in the stack layout)
+- `load_ladspalist` writes two values as its result (`"result": [...],[...]`,
+  invalid JSON); RpcClient wraps them in an array. `ladspaloader_update_plugins`
+  queues its `plugins_changed` broadcast under the logger flag, and the
+  rack order keeps the ids of the plugins it unloads (guitariqx hides them)
 - `read_audio` of a file it cannot read answers `"result": }` (invalid
   JSON); guitariqx only asks for resolved paths
 - The drum sequencer's lines (`seq.sequencer.*`) are empty in a fresh

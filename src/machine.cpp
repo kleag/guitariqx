@@ -57,8 +57,10 @@ Machine::Machine(QObject *parent)
       m_tuner(*this, m_rpc),
       m_midi(*this, m_rpc),
       m_oscilloscope(this),
+      m_pluginManager(*this, m_rpc),
       m_placeAddedUnits(QSettings().value(QLatin1String(placeAddedUnitsKey), false).toBool()) {
     QQmlEngine::setObjectOwnership(&m_tuner, QQmlEngine::CppOwnership);
+    QQmlEngine::setObjectOwnership(&m_pluginManager, QQmlEngine::CppOwnership);
     QQmlEngine::setObjectOwnership(&m_midi, QQmlEngine::CppOwnership);
     QQmlEngine::setObjectOwnership(&m_oscilloscope, QQmlEngine::CppOwnership);
     connect(&m_oscilloscope, &Oscilloscope::mulBufferRequested, this, [this](int n) {
@@ -181,6 +183,7 @@ void Machine::onDisconnected() {
     m_unitUiPending.clear();
     m_editQueue.clear();
     m_editRunning = false;
+    m_pluginsChanging = false;
     m_tuner.engineLost();
     m_midi.engineLost();
     if (m_ready) {
@@ -276,6 +279,50 @@ void Machine::loadPlugins(const QJsonArray& list) {
     emit pluginsChanged();
 }
 
+void Machine::updatePlugins(std::function<void()> done) {
+    // the parameters of removed plugins are gone as soon as the engine
+    // handled the call: polling them would crash it
+    m_pluginsChanging = true;
+    m_pollTimer.stop();
+    m_rpc.call(QStringLiteral("ladspaloader_update_plugins"), {}, [this, done](const QJsonValue& r) {
+        reloadPlugins(r.toArray(), done);
+    });
+}
+
+void Machine::reloadPlugins(const QJsonArray& params, std::function<void()> done) {
+    m_pluginsChanging = true;
+    m_pollTimer.stop();
+    for (const QJsonValue& id : params.at(0).toArray()) {
+        m_watched.remove(id.toString());
+    }
+    // the layouts of the plugins changed (PluginChange::update and
+    // update_category) are fetched again
+    QStringList changed;
+    for (const QJsonValue& v : params.at(2).toArray()) {
+        const QJsonArray c = v.toArray();
+        if (c.at(0).toInt() != 0 && c.at(1).isObject()) {
+            changed.append(c.at(1).toObject().value(QStringLiteral("id")).toString());
+        }
+    }
+    m_rpc.call(QStringLiteral("parameterlist"), {}, [this, changed, done](const QJsonValue& r) {
+        loadParameters(r.toArray());
+        m_rpc.call(QStringLiteral("pluginlist"), {}, [this, changed, done](const QJsonValue& r) {
+            loadPlugins(r.toArray());
+            requestRack();
+            m_pluginsChanging = false;
+            if (!m_watched.isEmpty()) {
+                m_pollTimer.start();
+            }
+            for (const QString& id : changed) {
+                emit unitUiReady(id);
+            }
+            if (done) {
+                done();
+            }
+        });
+    });
+}
+
 void Machine::requestBanks() {
     m_rpc.call(QStringLiteral("banks"), {}, [this](const QJsonValue& r) {
         m_banks = r.toArray().toVariantList();
@@ -283,12 +330,21 @@ void Machine::requestBanks() {
     });
 }
 
+// the rack order keeps the units of LADSPA/LV2 plugins no longer loaded
+// (they come back if the plugin is loaded again): they are not shown, and
+// no rack call names them
+bool Machine::knownUnit(const QString& id) const {
+    return m_pluginInfo.isEmpty() || m_pluginInfo.contains(id);
+}
+
 void Machine::requestRack() {
     for (int stereo = 0; stereo < 2; ++stereo) {
         m_rpc.call(QStringLiteral("get_rack_unit_order"), {stereo}, [this, stereo](const QJsonValue& r) {
             QStringList l;
             for (const QJsonValue& v : r.toArray()) {
-                l.append(v.toString());
+                if (knownUnit(v.toString())) {
+                    l.append(v.toString());
+                }
             }
             if (l != m_rack[stereo]) {
                 m_rack[stereo] = l;
@@ -335,7 +391,9 @@ void Machine::onNotification(const QString& method, const QJsonArray& params) {
         const int stereo = a.at(0).toInt() ? 1 : 0;
         QStringList l;
         for (int i = 1; i < a.size(); ++i) {
-            l.append(a.at(i).toString());
+            if (knownUnit(a.at(i).toString())) {
+                l.append(a.at(i).toString());
+            }
         }
         m_rack[stereo] = l;
         emit rackChanged();
@@ -351,9 +409,11 @@ void Machine::onNotification(const QString& method, const QJsonArray& params) {
     } else if (method == QLatin1String("presetlist_changed")) {
         requestBanks();
     } else if (method == QLatin1String("plugins_changed")) {
-        m_rpc.call(QStringLiteral("pluginlist"), {}, [this](const QJsonValue& r) {
-            loadPlugins(r.toArray());
-        });
+        // another client changed the LADSPA/LV2 plugins (our own changes
+        // are handled by updatePlugins())
+        if (!m_pluginsChanging) {
+            reloadPlugins(params, nullptr);
+        }
     } else if (method == QLatin1String("message")) {
         m_lastMessage = params.at(1).toString();
         emit messageReceived(params.at(0).toString(), m_lastMessage);
@@ -406,7 +466,9 @@ QVariantMap Machine::unitUi(const QString& id) {
     if (it != m_unitUi.constEnd()) {
         return it.value();
     }
-    if (m_unitUiPending.contains(id) || !m_rpc.isConnected()) {
+    // plugin_load_ui aborts the engine for an unknown plugin (a rack unit
+    // of a LADSPA plugin just removed)
+    if (m_unitUiPending.contains(id) || !m_rpc.isConnected() || !m_pluginInfo.contains(id)) {
         return QVariantMap();
     }
     m_unitUiPending.insert(id);
@@ -553,7 +615,7 @@ void Machine::watchOutput(const QString& id) {
         });
     }
     m_watched[id] += 1;
-    if (m_ready && !m_pollTimer.isActive()) {
+    if (m_ready && !m_pluginsChanging && !m_pollTimer.isActive()) {
         m_pollTimer.start();
     }
 }
@@ -572,7 +634,7 @@ void Machine::unwatchOutput(const QString& id) {
 }
 
 void Machine::pollOutputs() {
-    if (m_watched.isEmpty() || !m_rpc.isConnected()) {
+    if (m_watched.isEmpty() || !m_rpc.isConnected() || m_pluginsChanging) {
         return;
     }
     // the oscilloscope frames (up to 6 jack periods) at half the rate

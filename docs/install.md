@@ -45,7 +45,7 @@ On other distributions, [build it from source](#from-source).
 Install the package with apt, which also installs the Qt modules it needs:
 
 ```sh
-sudo apt install ./guitariqx_0.7.0-1.bookworm_arm64.deb
+sudo apt install ./guitariqx_0.8.0-1.bookworm_arm64.deb
 ```
 
 `SHA256SUMS` in the release lists the checksums of the files.
