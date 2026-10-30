@@ -121,6 +121,8 @@ private:
     QTcpServer m_server;
     QList<QTcpSocket*> m_clients;
     QHash<QTcpSocket*, QByteArray> m_buffers;
+    // connections no longer read (see setpreset)
+    QSet<QTcpSocket*> m_deaf;
     QList<QTcpSocket*> m_listeners;
     int m_major = 1;
     int m_minor;

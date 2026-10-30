@@ -43,6 +43,9 @@ public:
 
     void connectToServer(const QString& host, quint16 port);
     void disconnectFromServer();
+    // drops the connection and connects again (a server that no longer
+    // reads it)
+    void reconnect();
     bool isConnected() const;
     QString host() const { return m_host; }
     QHostAddress peerAddress() const { return m_socket.peerAddress(); }

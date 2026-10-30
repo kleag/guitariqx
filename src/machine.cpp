@@ -89,6 +89,9 @@ Machine::Machine(QObject *parent)
     m_rackTimer.setInterval(50);
     m_rackTimer.setSingleShot(true);
     connect(&m_rackTimer, &QTimer::timeout, this, &Machine::requestRack);
+    m_presetTimer.setInterval(8000);
+    m_presetTimer.setSingleShot(true);
+    connect(&m_presetTimer, &QTimer::timeout, this, &Machine::onPresetTimeout);
 }
 
 Machine::~Machine() {
@@ -179,6 +182,7 @@ void Machine::onConnected() {
 void Machine::onDisconnected() {
     m_pollTimer.stop();
     m_cpuTimer.stop();
+    m_presetTimer.stop();
     // requests in flight are lost
     m_unitUiPending.clear();
     m_editQueue.clear();
@@ -525,6 +529,25 @@ void Machine::finishUnitUi(const QString& id, QVariantMap ui) {
 
 void Machine::setPreset(const QString& bank, const QString& preset) {
     m_rpc.notify(QStringLiteral("setpreset"), {bank, preset});
+    // The engine handles the requests of a connection in order, so this
+    // get is answered once the preset is loaded. No answer means that the
+    // engine stopped reading the connection: it does when loading a preset
+    // with a non-ASCII name throws (TODO.md), and then also stays silent.
+    const quint64 probe = ++m_presetProbe;
+    m_presetLoading = preset;
+    m_rpc.call(QStringLiteral("get"), {QStringLiteral("system.current_preset")}, [this, probe](const QJsonValue&) {
+        if (probe == m_presetProbe) {
+            m_presetTimer.stop();
+        }
+    });
+    m_presetTimer.start();
+}
+
+void Machine::onPresetTimeout() {
+    m_lastMessage = tr("The engine stopped answering while loading preset \"%1\" and may be silent; "
+                       "reconnected. Select another preset to get the sound back.").arg(m_presetLoading);
+    emit messageReceived(QStringLiteral("error"), m_lastMessage);
+    m_rpc.reconnect();
 }
 
 void Machine::stepPreset(int delta) {

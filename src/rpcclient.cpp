@@ -115,6 +115,13 @@ void RpcClient::disconnectFromServer() {
     m_socket.disconnectFromHost();
 }
 
+void RpcClient::reconnect() {
+    if (isConnected()) {
+        // emits disconnected(), which starts the reconnect timer
+        m_socket.abort();
+    }
+}
+
 bool RpcClient::isConnected() const {
     return m_socket.state() == QAbstractSocket::ConnectedState;
 }

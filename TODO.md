@@ -128,6 +128,13 @@ Roughly in order of importance for live use. See README.md for what works.
   invalid JSON); RpcClient wraps them in an array. `ladspaloader_update_plugins`
   queues its `plugins_changed` broadcast under the logger flag, and the
   rack order keeps the ids of the plugins it unloads (guitariqx hides them)
+- `setpreset` of a preset whose name is not ASCII throws a
+  `Glib::ConvertError` in the headless engine (no `setlocale()`, and
+  `loadsetting()` streams the `Glib::ustring` name into `boost::format`):
+  the sound stays ramped down, and the exception leaves `on_data_in()`, so
+  that connection is never read again. guitariqx reconnects when its probe
+  `get` is not answered. Fixed by the `jsonrpc-utf8-names` branch (`.raw()`,
+  and `Glib::Error` caught in `CmdConnection::process`)
 - `read_audio` of a file it cannot read answers `"result": }` (invalid
   JSON); guitariqx only asks for resolved paths
 - The drum sequencer's lines (`seq.sequencer.*`) are empty in a fresh

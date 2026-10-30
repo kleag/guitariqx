@@ -44,6 +44,7 @@ private slots:
     void engineChangesAreNotSentBack();
     void presetNotifications();
     void stepPresetWraps();
+    void stuckPresetReconnects();
     void readOnlyBanksAreRefused();
     void presetEditing();
     void bankEditing();
@@ -258,6 +259,29 @@ void TestMachine::stepPresetWraps() {
     QTRY_COMPARE(m_machine->currentPreset(), QStringLiteral("Acoustic - Angie"));
     m_machine->stepPreset(-1);
     QTRY_COMPARE(m_machine->currentPreset(), QStringLiteral("Lead - Still Got The Blues"));
+}
+
+void TestMachine::stuckPresetReconnects() {
+    start();
+    m_machine->setPresetTimeout(500);
+    const QString name = QStringLiteral("Les \u00c9corch\u00e9s");
+    QCOMPARE(m_machine->savePreset(QStringLiteral("Scratchpad"), name), QString());
+    QTRY_VERIFY(bankPresets(QStringLiteral("Scratchpad")).contains(name));
+    // an answered preset change keeps the connection
+    m_machine->setPreset(QStringLiteral("Musiclab"), QStringLiteral("Acoustic - Angie"));
+    QTRY_COMPARE(m_machine->currentPreset(), QStringLiteral("Acoustic - Angie"));
+    QTest::qWait(800);
+    QVERIFY(m_machine->ready());
+    QVERIFY(m_machine->lastMessage().isEmpty());
+
+    // the engine stops reading the connection: guitariqx connects again
+    // and says why
+    m_machine->setPreset(QStringLiteral("Scratchpad"), name);
+    QTRY_VERIFY(!m_machine->ready());
+    QVERIFY(m_machine->lastMessage().contains(name));
+    QTRY_VERIFY_WITH_TIMEOUT(m_machine->ready(), 10000);
+    m_machine->setPreset(QStringLiteral("Musiclab"), QStringLiteral("Acoustic - Angie"));
+    QTRY_COMPARE(m_machine->currentPreset(), QStringLiteral("Acoustic - Angie"));
 }
 
 void TestMachine::readOnlyBanksAreRefused() {
