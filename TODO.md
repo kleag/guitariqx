@@ -151,7 +151,6 @@ Roughly in order of importance for live use. See README.md for what works.
 ## Packaging
 
 - [x] Debian packages and apt repository (the engine is only suggested)
-- [ ] Icon of its own (the desktop file uses guitarix's, missing without
-      guitarix)
+- [x] Icon and logo
 - [ ] Translations (qsTr is used everywhere, no .ts files yet)
 - [x] Remember window size, last host/port and "mute while tuning" (QSettings)

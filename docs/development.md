@@ -38,6 +38,8 @@ src/impulseresponse.* convolver settings edited by the IR editor
 src/waveview.*        drawing of the oscilloscope and of impulse responses
 src/systemkeyboard.*  shows the desktop on-screen keyboard over D-Bus (squeekboard)
 skins/                the built-in Guitarix skin and the libgxw images
+icons/                the application icon (installed in the hicolor theme, also
+                      built in for the windows)
 qml/                  views and controls
 tests/                unit tests and the fake engine
 ```

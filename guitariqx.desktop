@@ -4,6 +4,6 @@ Name=Guitariqx
 GenericName=Virtual guitar amplifier
 Comment=Qt Quick user interface for the guitarix engine
 Exec=guitariqx
-Icon=guitarix
+Icon=guitariqx
 Terminal=false
 Categories=AudioVideo;Audio;

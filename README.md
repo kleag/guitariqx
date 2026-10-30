@@ -1,5 +1,10 @@
 # guitariqx
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/guitariqx-logo-dark.png">
+  <img alt="guitariqx, guitar amplifier and effects" src="docs/images/guitariqx-logo-light.png" width="380">
+</picture>
+
 [![CI](https://github.com/kleag/guitariqx/actions/workflows/ci.yml/badge.svg)](https://github.com/kleag/guitariqx/actions/workflows/ci.yml)
 [![Documentation](https://github.com/kleag/guitariqx/actions/workflows/docs.yml/badge.svg)](https://kleag.github.io/guitariqx/)
 
