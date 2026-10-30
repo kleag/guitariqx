@@ -395,6 +395,27 @@ void TestMachine::rackEditing() {
     QTest::qWait(100);
     QVERIFY(m_engine->received(QStringLiteral("insert_rack_unit")).isEmpty());
 
+    // drag and drop: to a slot of the rack
+    const QString unit = mono.at(1);
+    m.moveUnitTo(unit, mono.size(), false);
+    mono.move(1, mono.size() - 1);
+    QTRY_COMPARE(m.monoRack(), mono);
+    m.moveUnitTo(unit, 0, false);
+    mono.move(mono.size() - 1, 0);
+    QTRY_COMPARE(m.monoRack(), mono);
+    m.moveUnitTo(unit, 3, false);
+    mono.move(0, 2);
+    QTRY_COMPARE(m.monoRack(), mono);
+    // its own place, out of range, not in the rack: nothing sent
+    m_engine->clearReceived();
+    m.moveUnitTo(unit, 2, false);
+    m.moveUnitTo(unit, 3, false);
+    m.moveUnitTo(unit, -1, false);
+    m.moveUnitTo(unit, mono.size() + 1, false);
+    m.moveUnitTo(QStringLiteral("not_in_rack"), 0, false);
+    QTest::qWait(100);
+    QVERIFY(m_engine->received(QStringLiteral("insert_rack_unit")).isEmpty());
+
     m.insertUnit(QStringLiteral("chorus"), QString(), true);
     QTRY_COMPARE(m.stereoRack().last(), QStringLiteral("chorus"));
     m.removeUnit(QStringLiteral("chorus"), true);

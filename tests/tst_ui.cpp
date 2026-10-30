@@ -86,6 +86,10 @@ void TestUi::states_data() {
                                  << QString();
     QTest::newRow("unitpresets-small") << QStringLiteral("unitpresets:graphiceq") << QStringLiteral("800x480") << 2
                                        << false << QStringLiteral("Guitarix");
+    QTest::newRow("rackdrag") << QStringLiteral("rackdrag:fumaster") << QStringLiteral("1280x800") << 2 << false
+                              << QString();
+    QTest::newRow("rackdrag-small") << QStringLiteral("rackdrag:fumaster") << QStringLiteral("800x480") << 2 << false
+                                    << QStringLiteral("Guitarix");
     QTest::newRow("files-remote-old-engine") << QStringLiteral("files:nam") << QStringLiteral("800x480") << 1 << true << QString();
 }
 

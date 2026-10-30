@@ -148,6 +148,9 @@ public:
     Q_INVOKABLE void insertUnit(const QString& id, const QString& before, bool stereo);
     Q_INVOKABLE void removeUnit(const QString& id, bool stereo);
     Q_INVOKABLE void moveUnit(const QString& id, int delta, bool stereo);
+    // moves a unit to slot (0 to the rack size) of the current rack, before
+    // the unit there: drag and drop
+    Q_INVOKABLE void moveUnitTo(const QString& id, int slot, bool stereo);
 
     // Output parameters (meters, looper position, oscilloscope) are
     // polled while registered. Float parameters that the engine changes

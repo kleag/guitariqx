@@ -495,23 +495,27 @@ void Machine::removeUnit(const QString& id, bool stereo) {
 }
 
 void Machine::moveUnit(const QString& id, int delta, bool stereo) {
-    const QStringList& rack = m_rack[stereo ? 1 : 0];
-    int idx = rack.indexOf(id);
+    const int idx = m_rack[stereo ? 1 : 0].indexOf(id);
     if (idx < 0) {
         return;
     }
-    int target = idx + delta;
-    if (target < 0 || target >= rack.size()) {
+    const int target = idx + delta;
+    if (target < 0 || target >= m_rack[stereo ? 1 : 0].size()) {
         return;
     }
-    // insert before the unit that follows the target slot
-    QString before;
-    if (delta > 0) {
-        before = target + 1 < rack.size() ? rack.at(target + 1) : QString();
-    } else {
-        before = rack.at(target);
+    // the slot after the target when moving down
+    moveUnitTo(id, delta > 0 ? target + 1 : target, stereo);
+}
+
+void Machine::moveUnitTo(const QString& id, int slot, bool stereo) {
+    const QStringList& rack = m_rack[stereo ? 1 : 0];
+    const int idx = rack.indexOf(id);
+    // the slots just before and after the unit are its own place
+    if (idx < 0 || slot < 0 || slot > rack.size() || slot == idx || slot == idx + 1) {
+        return;
     }
-    insertUnit(id, before, stereo);
+    // insert before the unit at the slot, at the end past the last one
+    insertUnit(id, slot < rack.size() ? rack.at(slot) : QString(), stereo);
 }
 
 void Machine::watchOutput(const QString& id) {
