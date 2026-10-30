@@ -37,6 +37,7 @@ private slots:
     void keyboardOnTap();
     void spinButtons();
     void focusByTapElsewhere();
+    void fullScreen();
 
 private:
     QQuickItem *item(const char *name) const { return m_root->findChild<QQuickItem *>(name); }
@@ -188,6 +189,26 @@ void TestSystemKeyboard::focusByTapElsewhere() {
     tap(item("focuser"));
     QVERIFY(item("b")->hasActiveFocus());
     QVERIFY(m_calls.isEmpty());
+}
+
+void TestSystemKeyboard::fullScreen() {
+    // the keyboard would be behind a full screen window
+    m_window->showFullScreen();
+    QTRY_COMPARE(m_window->visibility(), QWindow::FullScreen);
+    item("a")->forceActiveFocus();
+    QCOMPARE(m_calls, QList<bool>{true});
+    QTRY_COMPARE(m_window->visibility(), QWindow::Maximized);
+    item("button")->forceActiveFocus();
+    QTRY_COMPARE(m_calls, (QList<bool>{true, false}));
+    QTRY_COMPARE(m_window->visibility(), QWindow::FullScreen);
+    // a window that was not full screen stays as it is
+    m_window->showNormal();
+    QTRY_COMPARE(m_window->visibility(), QWindow::Windowed);
+    item("a")->forceActiveFocus();
+    QTRY_COMPARE(m_calls, (QList<bool>{true, false, true}));
+    item("button")->forceActiveFocus();
+    QTRY_COMPARE(m_calls, (QList<bool>{true, false, true, false}));
+    QCOMPARE(m_window->visibility(), QWindow::Windowed);
 }
 
 QTEST_MAIN(TestSystemKeyboard)
