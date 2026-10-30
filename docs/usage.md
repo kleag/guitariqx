@@ -73,7 +73,7 @@ also when the engine runs elsewhere.
 
 ## Racks
 
-**+ Add effect** adds a unit to the mono or stereo rack. Each unit has its
+**+ Add effect** adds a unit at the top of the mono or stereo rack. Each unit has its
 power switch, buttons to open its presets (≡), to move it up and down, to
 collapse it to a compact view and to remove it. A unit can also be dragged
 to another place of its rack by the grip (⠿) at the left of its title bar,

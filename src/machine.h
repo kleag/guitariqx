@@ -146,6 +146,8 @@ public:
     Q_INVOKABLE void setEngineState(const QString& state);
 
     Q_INVOKABLE void insertUnit(const QString& id, const QString& before, bool stereo);
+    // adds a unit at the top of its rack
+    Q_INVOKABLE void addUnit(const QString& id, bool stereo);
     Q_INVOKABLE void removeUnit(const QString& id, bool stereo);
     Q_INVOKABLE void moveUnit(const QString& id, int delta, bool stereo);
     // moves a unit to slot (0 to the rack size) of the current rack, before

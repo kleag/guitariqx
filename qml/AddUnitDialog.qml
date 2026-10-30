@@ -69,7 +69,7 @@ Dialog {
                     width: parent.width
                     text: entry.modelData.name
                     onClicked: {
-                        Gx.insertUnit(entry.modelData.id, "", root.stereo)
+                        Gx.addUnit(entry.modelData.id, root.stereo)
                         root.close()
                     }
                 }

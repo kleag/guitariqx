@@ -420,6 +420,13 @@ void TestMachine::rackEditing() {
     QTRY_COMPARE(m.stereoRack().last(), QStringLiteral("chorus"));
     m.removeUnit(QStringLiteral("chorus"), true);
     QTRY_VERIFY(!m.stereoRack().contains(QStringLiteral("chorus")));
+    // added on top
+    m.addUnit(QStringLiteral("chorus"), true);
+    QTRY_COMPARE(m.stereoRack().first(), QStringLiteral("chorus"));
+    m.addUnit(QStringLiteral("overdrive"), false);
+    QTRY_COMPARE(m.monoRack().first(), QStringLiteral("overdrive"));
+    m.removeUnit(QStringLiteral("chorus"), true);
+    QTRY_VERIFY(!m.stereoRack().contains(QStringLiteral("chorus")));
 
     QJsonArray changed;
     changed.append(QJsonArray{1, QStringLiteral("jconv"), QStringLiteral("pre_st")});

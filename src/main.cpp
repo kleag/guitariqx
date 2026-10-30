@@ -217,16 +217,7 @@ int main(int argc, char *argv[]) {
                         const bool stereo = info.value(QStringLiteral("stereo")).toBool();
                         const QStringList rack = stereo ? machine.stereoRack() : machine.monoRack();
                         if (!rack.contains(arg)) {
-                            // before the first unit that can move (the amp
-                            // cannot)
-                            QString before;
-                            for (const QString& u : rack) {
-                                if (!machine.pluginInfo(u).value(QStringLiteral("fixed")).toBool()) {
-                                    before = u;
-                                    break;
-                                }
-                            }
-                            machine.insertUnit(arg, before, stereo);
+                            machine.addUnit(arg, stereo);
                         }
                         if (Parameter *on = machine.param(arg + QStringLiteral(".on_off"))) {
                             on->setValue(true);
