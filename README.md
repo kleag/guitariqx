@@ -109,6 +109,14 @@ Below 1100 px width (e.g. the official 7" 800x480 touch screen) the racks are
 shown as tabs and the preset list as a drawer. All interactive items are at
 least 40 px for touch use.
 
+Without a physical keyboard, the desktop's on-screen keyboard (squeekboard
+on Raspberry Pi OS) pops up when a text field gets the focus, and again on a
+tap into the field after closing it. guitariqx asks for it over D-Bus
+(`sm.puri.OSK0`, with `busctl`), as Qt before 6.7 (Bookworm has 6.4) cannot
+make it appear by itself; on short screens the name dialogs open at the top,
+above it. `GUITARIQX_SYSTEM_KEYBOARD=1` shows it even with a physical
+keyboard, `=0` never. There is no on-screen keyboard under `eglfs`.
+
 To test without a sound card, run the engine against a dummy JACK server
 (`jackd -ddummy`) or PipeWire's JACK (`pw-jack guitarix -N -p 7000`).
 `QT_QPA_PLATFORM=offscreen` runs the UI without a display.

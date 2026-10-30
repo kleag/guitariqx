@@ -13,6 +13,7 @@
  */
 
 #include "machine.h"
+#include "systemkeyboard.h"
 
 #include <QCommandLineParser>
 #include <QGuiApplication>
@@ -142,6 +143,8 @@ int main(int argc, char *argv[]) {
             std::fflush(stdout);
         });
     }
+
+    SystemKeyboard::install(&app);
 
     QQmlApplicationEngine engine;
     // the Guitariqx module (and its qmldir declaring the Theme singleton) is
