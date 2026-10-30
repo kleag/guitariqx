@@ -84,6 +84,7 @@ private slots:
     void stackFlagsAndSwitches();
     void singleChildBoxesAreRemoved();
     void skinKnobImages();
+    void stackMeters();
     void recordedStackLayouts_data();
     void recordedStackLayouts();
     void recordedGladeLayouts_data();
@@ -158,6 +159,24 @@ void TestUiTree::singleChildBoxesAreRemoved() {
     const QVariantMap main = uitree::fromStackOps(ops).value(QStringLiteral("main")).toMap();
     QCOMPARE(main.value(QStringLiteral("orientation")).toString(), QStringLiteral("h"));
     QCOMPARE(main.value(QStringLiteral("children")).toList().size(), 2);
+}
+
+void TestUiTree::stackMeters() {
+    // the "Analyze" box of the multiband units: gx_head draws simple meters
+    // horizontally, a vertical box of them must not become a tall column
+    const QJsonArray ops{
+        QJsonArray{QStringLiteral("openVerticalBox2"), QStringLiteral("Analyze")},
+        QJsonArray{QStringLiteral("create_simple_meter"), QStringLiteral("u.v1")},
+        QJsonArray{QStringLiteral("create_simple_meter"), QStringLiteral("u.v2")},
+        QJsonArray{QStringLiteral("create_simple_c_meter"), QStringLiteral("u.v3"), QStringLiteral("u.g"), QStringLiteral("Gain")},
+        QJsonArray{QStringLiteral("closeBox")},
+    };
+    const QList<QVariantMap> c = controls(uitree::fromStackOps(ops).value(QStringLiteral("main")).toMap());
+    QCOMPARE(c.size(), 3);
+    QVERIFY(c.at(0).value(QStringLiteral("horizontal")).toBool());
+    QVERIFY(c.at(1).value(QStringLiteral("horizontal")).toBool());
+    // the meter next to a gain slider stays vertical
+    QVERIFY(!c.at(2).value(QStringLiteral("horizontal")).toBool());
 }
 
 void TestUiTree::skinKnobImages() {

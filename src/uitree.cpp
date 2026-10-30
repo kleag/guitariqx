@@ -213,6 +213,10 @@ QVariantMap fromStackOps(const QJsonArray& ops) {
                 // the smaller knob image of skins (default: smallknobr)
                 c.insert(QStringLiteral("knob"), QStringLiteral("smallknob"));
             }
+            if (name == QLatin1String("create_simple_meter")) {
+                // a Gxw::FastMeter is horizontal unless told otherwise
+                c.insert(QStringLiteral("horizontal"), true);
+            }
             if (d.id2 > 0) {
                 c.insert(QStringLiteral("id2"), arg(op, d.id2));
             }
