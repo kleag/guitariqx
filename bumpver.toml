@@ -3,7 +3,7 @@
 # versions, hence no pre-release tags in the pattern. The git tag is the
 # version (0.2.0), which starts release.yml.
 [bumpver]
-current_version = "0.9.1"
+current_version = "0.9.2"
 version_pattern = "MAJOR.MINOR.PATCH"
 commit_message = "Release {new_version}"
 tag_message = "guitariqx {new_version}"
