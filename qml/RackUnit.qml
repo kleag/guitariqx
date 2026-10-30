@@ -12,7 +12,7 @@ Rectangle {
     property bool first: false
     property bool last: false
     property bool expanded: true
-    readonly property var info: Gx.pluginInfo(unitId)
+    readonly property var info: Gx.plugins, Gx.pluginInfo(unitId)
     readonly property bool isAmp: unitId === "ampstack"
     readonly property Parameter onOff: Gx.ready ? Gx.param(unitId + ".on_off") : null
     readonly property bool on: onOff ? !!onOff.value : true

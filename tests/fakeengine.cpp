@@ -25,12 +25,26 @@
 
 namespace {
 
-QJsonObject loadFixture() {
-    QFile f(QStringLiteral(GUITARIQX_FIXTURES "/engine.json"));
+QJsonDocument loadFixture(const char *name) {
+    QFile f(QStringLiteral(GUITARIQX_FIXTURES "/") + QLatin1String(name));
     if (!f.open(QIODevice::ReadOnly)) {
         qFatal("cannot read %s", qPrintable(f.fileName()));
     }
-    return QJsonDocument::fromJson(f.readAll()).object();
+    return QJsonDocument::fromJson(f.readAll());
+}
+
+// PluginDesc::tp (0 mono, 1 stereo) of a LADSPA/LV2 plugin description, as
+// loaded: stereo_to_mono makes a stereo plugin a mono one
+bool ladspaStereo(const QJsonObject& desc) {
+    return desc.value(QStringLiteral("tp")).toInt() == 1 && !desc.value(QStringLiteral("stereo_to_mono")).toInt();
+}
+
+// LadspaLoader: "ladspa_" + UniqueID, "lv2_" + encoded URI
+QString ladspaId(const QJsonObject& desc) {
+    if (desc.value(QStringLiteral("is_lv2")).toInt()) {
+        return QStringLiteral("lv2_") + QString::fromLatin1(QUrl::toPercentEncoding(desc.value(QStringLiteral("path")).toString()));
+    }
+    return QStringLiteral("ladspa_%1").arg(desc.value(QStringLiteral("UniqueID")).toInteger());
 }
 
 // see Parameter::fromJson
@@ -55,12 +69,19 @@ QStringList toStringList(const QJsonArray& a, int from = 0) {
 } // anonymous namespace
 
 FakeEngine::FakeEngine(int interfaceMinor, QObject *parent)
-    : QObject(parent), m_minor(interfaceMinor), m_fixture(loadFixture()) {
+    : QObject(parent), m_minor(interfaceMinor), m_fixture(loadFixture("engine.json").object()) {
     connect(&m_server, &QTcpServer::newConnection, this, &FakeEngine::onNewConnection);
-    loadParameterValues(m_fixture.value(QStringLiteral("parameterlist")).toArray());
-    for (const QJsonValue& p : m_fixture.value(QStringLiteral("pluginlist")).toArray()) {
+    m_paramList = m_fixture.value(QStringLiteral("parameterlist")).toArray();
+    m_pluginList = m_fixture.value(QStringLiteral("pluginlist")).toArray();
+    loadParameterValues(m_paramList);
+    for (const QJsonValue& p : std::as_const(m_pluginList)) {
         m_plugins.insert(p.toObject().value(QStringLiteral("id")).toString());
     }
+    // trimmed from the answer of a real engine; the first plugin is active
+    const QJsonArray ladspa = loadFixture("ladspalist.json").array();
+    m_ladspaNotFound = ladspa.at(0).toArray();
+    m_ladspa = ladspa.at(1).toArray();
+    updateLadspaPlugins();
     m_banks = m_fixture.value(QStringLiteral("banks")).toArray();
     const QJsonArray racks = m_fixture.value(QStringLiteral("get_rack_unit_order")).toArray();
     m_rack[0] = toStringList(racks.at(0).toArray());
@@ -166,6 +187,14 @@ void FakeEngine::handle(QTcpSocket *s, const QJsonObject& msg) {
         s->write(QStringLiteral("{\"jsonrpc\": \"2.0\",\"id\": \"%1\",\"result\": {%2}}\n")
                      .arg(msg.value(QStringLiteral("id")).toVariant().toString())
                      .arg(m_midiFeedback ? 1 : 0).toUtf8());
+        emit messageReceived(method);
+        return;
+    }
+    if (method == QLatin1String("load_ladspalist") && isCall) {
+        // not valid JSON either: two values as the result
+        s->write("{\"jsonrpc\": \"2.0\",\"id\": \"" + msg.value(QStringLiteral("id")).toVariant().toString().toUtf8()
+                 + "\",\"result\": " + QJsonDocument(m_ladspaNotFound).toJson(QJsonDocument::Compact) + ','
+                 + QJsonDocument(m_ladspa).toJson(QJsonDocument::Compact) + "}\n");
         emit messageReceived(method);
         return;
     }
@@ -390,8 +419,13 @@ QJsonValue FakeEngine::dispatch(QTcpSocket *s, const QString& method, const QJso
         }
         return {};
     }
-    if (method == QLatin1String("parameterlist") || method == QLatin1String("pluginlist")
-        || method == QLatin1String("load_impresp_dirs")) {
+    if (method == QLatin1String("parameterlist")) {
+        return m_paramList;
+    }
+    if (method == QLatin1String("pluginlist")) {
+        return m_pluginList;
+    }
+    if (method == QLatin1String("load_impresp_dirs")) {
         return m_fixture.value(method);
     }
     if (method == QLatin1String("getstate")) {
@@ -796,6 +830,33 @@ QJsonValue FakeEngine::dispatch(QTcpSocket *s, const QString& method, const QJso
         }
         return {};
     }
+    // LADSPA/LV2 plugins
+    if (method == QLatin1String("save_ladspalist")) {
+        // LadspaPluginList::save removes the settings of every plugin
+        // missing from the list
+        const QJsonArray l = params.at(0).toArray();
+        if (l.size() != m_ladspa.size()) {
+            violation(QStringLiteral("save_ladspalist with %1 of %2 plugins").arg(l.size()).arg(m_ladspa.size()));
+            return {};
+        }
+        for (int i = 0; i < l.size(); ++i) {
+            const QJsonObject p = l.at(i).toObject(), old = m_ladspa.at(i).toObject();
+            for (auto it = old.begin(); it != old.end(); ++it) {
+                if (!p.contains(it.key())) {
+                    violation(QStringLiteral("save_ladspalist without %1").arg(it.key()));
+                    return {};
+                }
+            }
+            if (p.value(QStringLiteral("quirks")).toInt() & 4) {
+                violation(QStringLiteral("save_ladspalist with the is_lv2 quirk"));
+            }
+        }
+        m_ladspa = l;
+        return {};
+    }
+    if (method == QLatin1String("ladspaloader_update_plugins")) {
+        return updateLadspaPlugins();
+    }
     if (method == QLatin1String("get_file_list")) {
         if (!checkParam(method, params.at(0))) {
             return QJsonArray();
@@ -805,4 +866,139 @@ QJsonValue FakeEngine::dispatch(QTcpSocket *s, const QString& method, const QJso
 
     known = false;
     return {};
+}
+
+// GxEngine::ladspaloader_update_plugins: loads the active plugins of the
+// saved list, unloads the others; the answer is what GxService writes
+// ([removed parameter ids], [new parameters], [[change, plugin]...]) with
+// the PluginChange values remove 0, update 1, update_category 2, add 3
+QJsonArray FakeEngine::updateLadspaPlugins() {
+    QMap<QString, QJsonObject> wanted;
+    for (const QJsonValue& v : std::as_const(m_ladspa)) {
+        const QJsonObject desc = v.toObject();
+        if (desc.value(QStringLiteral("active")).toInt()) {
+            wanted.insert(ladspaId(desc), desc);
+        }
+    }
+    QJsonArray removed, inserted, changes;
+    for (auto it = m_ladspaLoaded.cbegin(); it != m_ladspaLoaded.cend(); ++it) {
+        const QString& id = it.key();
+        removeParameters(id + QLatin1Char('.'), removed);
+        removeParameters(QStringLiteral("ui.") + id, removed);
+        for (int i = int(m_pluginList.size()) - 1; i >= 0; --i) {
+            if (m_pluginList.at(i).toObject().value(QStringLiteral("id")).toString() == id) {
+                m_pluginList.removeAt(i);
+            }
+        }
+        if (!wanted.contains(id)) {
+            // the rack order keeps the id (GxEngine does not remove it)
+            m_plugins.remove(id);
+            changes.append(QJsonArray{0, id});
+        }
+    }
+    for (auto it = wanted.cbegin(); it != wanted.cend(); ++it) {
+        const QString& id = it.key();
+        const QJsonArray params = ladspaParameters(id, it.value());
+        for (const QJsonValue& p : params) {
+            m_paramList.append(p);
+            inserted.append(p);
+        }
+        loadParameterValues(params);
+        const QJsonObject entry = ladspaPluginEntry(id, it.value());
+        m_pluginList.append(entry);
+        m_plugins.insert(id);
+        int change = 3;
+        if (m_ladspaLoaded.contains(id)) {
+            const bool sameCategory = m_ladspaLoaded.value(id).value(QStringLiteral("category"))
+                == it.value().value(QStringLiteral("category"));
+            change = sameCategory ? 1 : 2;
+        }
+        changes.append(QJsonArray{change, entry});
+    }
+    // the parameters of updated plugins are registered again, not removed
+    for (int i = int(removed.size()) - 1; i >= 0; --i) {
+        if (m_values.contains(removed.at(i).toString())) {
+            removed.removeAt(i);
+        }
+    }
+    m_ladspaLoaded = wanted;
+    return QJsonArray{removed, inserted, changes};
+}
+
+// removes the parameters with this id, or starting with it when it ends
+// with a dot
+void FakeEngine::removeParameters(const QString& prefix, QJsonArray& removed) {
+    for (int i = int(m_paramList.size()) - 2; i >= 0; i -= 2) {
+        const QString id = parameterBody(m_paramList.at(i + 1).toObject())
+            .value(QStringLiteral("Parameter")).toObject().value(QStringLiteral("id")).toString();
+        if (id == prefix || (prefix.endsWith(QLatin1Char('.')) && id.startsWith(prefix))) {
+            m_paramList.removeAt(i + 1);
+            m_paramList.removeAt(i);
+            m_values.remove(id);
+            m_tags.remove(id);
+            m_paramEntries.remove(id);
+            removed.append(id);
+        }
+    }
+}
+
+// what LadspaDyn::register_params registers: on/off, rack position, a
+// float for each control port (outputs are meters)
+QJsonArray FakeEngine::ladspaParameters(const QString& id, const QJsonObject& desc) const {
+    const QString group = desc.value(QStringLiteral("shortname")).toString();
+    auto base = [&group](const QString& pid, const QString& name, int ctype, int vtype) {
+        return QJsonObject{
+            {QStringLiteral("c_type"), ctype}, {QStringLiteral("d_flags"), 0}, {QStringLiteral("desc"), QString()},
+            {QStringLiteral("group"), group}, {QStringLiteral("id"), pid}, {QStringLiteral("name"), name},
+            {QStringLiteral("v_type"), vtype},
+        };
+    };
+    QJsonArray l{
+        QStringLiteral("Bool"),
+        QJsonObject{{QStringLiteral("Parameter"), base(id + QStringLiteral(".on_off"), QStringLiteral("on/off"), 2, 2)},
+                    {QStringLiteral("std_value"), 0}, {QStringLiteral("value"), 0}},
+        QStringLiteral("Int"),
+        QJsonObject{{QStringLiteral("Parameter"), base(id + QStringLiteral(".position"), QString(), 0, 1)},
+                    {QStringLiteral("lower"), -9999}, {QStringLiteral("upper"), 9999},
+                    {QStringLiteral("std_value"), 0}, {QStringLiteral("value"), 0}},
+        QStringLiteral("Bool"),
+        QJsonObject{{QStringLiteral("Parameter"), base(QStringLiteral("ui.") + id, QString(), 2, 2)},
+                    {QStringLiteral("std_value"), 0}, {QStringLiteral("value"), 0}},
+    };
+    for (const QJsonValue& v : desc.value(QStringLiteral("ctrl_ports")).toArray()) {
+        const QJsonObject port = v.toObject();
+        const QJsonObject factory = port.value(QStringLiteral("factory")).toObject();
+        const QJsonObject user = port.value(QStringLiteral("user")).toObject();
+        const QString name = (user.value(QStringLiteral("set_flags")).toInt() & 1)
+            ? user.value(QStringLiteral("name")).toString()
+            : factory.value(QStringLiteral("name")).toString();
+        QJsonObject b = base(QStringLiteral("%1.%2").arg(id).arg(port.value(QStringLiteral("idx")).toInt()), name, 1, 0);
+        if (port.value(QStringLiteral("is_output")).toInt()) {
+            b.insert(QStringLiteral("output"), 1);
+            b.insert(QStringLiteral("do_not_save"), 1);
+        }
+        l.append(QStringLiteral("Float"));
+        l.append(QJsonObject{
+            {QStringLiteral("Parameter"), b}, {QStringLiteral("lower"), factory.value(QStringLiteral("low"))},
+            {QStringLiteral("upper"), factory.value(QStringLiteral("up"))}, {QStringLiteral("step"), 0.01},
+            {QStringLiteral("std_value"), factory.value(QStringLiteral("dflt"))},
+            {QStringLiteral("value"), factory.value(QStringLiteral("dflt"))},
+        });
+    }
+    return l;
+}
+
+QJsonObject FakeEngine::ladspaPluginEntry(const QString& id, const QJsonObject& desc) const {
+    const QString name = desc.value(QStringLiteral("Name")).toString();
+    const QString shortname = desc.value(QStringLiteral("shortname")).toString();
+    return QJsonObject{
+        {QStringLiteral("id"), id},
+        {QStringLiteral("name"), name},
+        {QStringLiteral("shortname"), shortname == name ? QString() : shortname},
+        {QStringLiteral("category"), desc.value(QStringLiteral("category")).toString()},
+        {QStringLiteral("description"), QString()},
+        // PGN_GUI, PGN_STEREO
+        {QStringLiteral("flags"), 0x8 | (ladspaStereo(desc) ? 0x1 : 0)},
+        {QStringLiteral("version"), 0},
+    };
 }

@@ -51,6 +51,8 @@ set(GUITARIQX_SOURCES
     src/impulseresponse.h
     src/waveview.cpp
     src/waveview.h
+    src/pluginmanager.cpp
+    src/pluginmanager.h
 )
 
 qt_add_executable(guitariqx
@@ -105,6 +107,7 @@ qt_add_qml_module(guitariqx
         qml/ScopeView.qml
         qml/IrEditor.qml
         qml/SequencerDialog.qml
+        qml/PluginManagerDialog.qml
 )
 
 # the gx_head "Guitarix" skin and the libgxw icons (skins/README.md)

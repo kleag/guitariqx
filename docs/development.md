@@ -161,6 +161,7 @@ MIDI device or clicks (comma separated):
 | `unitpresets:UNIT` | the presets of a rack unit (which must be in the rack) |
 | `rackdrag:UNIT` | a rack unit dragged to the top of its rack (which must be in the rack) |
 | `rackplace:UNIT` | a rack unit being placed by hand, as if just added (which must be in the rack) |
+| `plugins[:NAME]` | the LADSPA/LV2 plugins dialog, or the settings of the plugin NAME |
 
 ### Without guitarix
 
@@ -188,6 +189,11 @@ tests/fixtures/capture.py --port 7123 > tests/fixtures/engine.json
 It records the layouts and parameters of the units in the rack and of a
 few more (`EXTRA_UNITS`: convolvers, neural units, looper, drum sequencer,
 oscilloscope).
+
+`tests/fixtures/ladspalist.json` is five plugins (LADSPA and LV2, mono and
+stereo) cut from a real `load_ladspalist` answer, whose result is
+`[not found, plugins]`; the first one is active. FakeEngine loads and
+unloads them as `ladspaloader_update_plugins` does.
 
 ### Screenshots
 

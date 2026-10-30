@@ -84,6 +84,8 @@ private slots:
     void unitPresets();
     void sequencerPresetSteps();
     void loadModel();
+    void ladspaPlugins();
+    void pluginsChangedByOtherClient();
 
 private:
     void start(int interfaceMinor = 2);
@@ -1286,6 +1288,144 @@ void TestMachine::loadModel() {
     m.loadModel(QStringLiteral("nothing.loadfile"), QStringLiteral("/a.nam"));
     QCOMPARE(loaded.count(), 3);
     QVERIFY(!loaded.at(2).at(2).toString().isEmpty());
+}
+
+void TestMachine::ladspaPlugins() {
+    start();
+    Machine& m = *m_machine;
+    PluginManager& pm = *m.pluginManager();
+    const QString amp = QStringLiteral("ladspa_1067");
+    // the plugin active in the fixture is a rack unit
+    QVERIFY(m.hasParam(amp + QStringLiteral(".on_off")));
+    m.insertUnit(amp, QString(), false);
+    QTRY_VERIFY(m.monoRack().contains(amp));
+    const int gainPort = m_engine->ladspaList().at(0).toObject().value(QStringLiteral("ctrl_ports"))
+        .toArray().at(0).toObject().value(QStringLiteral("idx")).toInt();
+    const QString gain = QStringLiteral("%1.%2").arg(amp).arg(gainPort);
+    QVERIFY(m.hasParam(gain));
+    m.watchOutput(gain);
+
+    // the engine's answer is repaired (two values as the result)
+    QSignalSpy loaded(&pm, &PluginManager::loadedChanged);
+    pm.load();
+    QVERIFY(pm.busy());
+    QTRY_VERIFY(pm.loaded());
+    QVERIFY(!pm.busy());
+    QCOMPARE(pm.total(), 5);
+    QCOMPARE(pm.rowCount(), 5);
+    QCOMPARE(pm.activeCount(), 1);
+    QCOMPARE(pm.notFound(), QStringList{QStringLiteral("http://example.org/plugins/removed")});
+    QVERIFY(!pm.modified());
+
+    // filters
+    pm.setView(PluginManager::Lv2Plugins);
+    QCOMPARE(pm.rowCount(), 2);
+    pm.setChannels(PluginManager::StereoPlugins);
+    QCOMPARE(pm.rowCount(), 1);
+    QCOMPARE(pm.data(pm.index(0), PluginManager::NameRole).toString(), QStringLiteral("ACE Reverb"));
+    pm.setView(PluginManager::AllPlugins);
+    pm.setChannels(PluginManager::AnyChannels);
+    pm.setFilter(QStringLiteral("amplifier"));
+    QCOMPARE(pm.rowCount(), 2);
+    pm.setFilter(QString());
+
+    // Aliasing in place of the amplifier, renamed and in another category
+    const int alias = 2, ace = 3;
+    QCOMPARE(pm.plugin(alias).value(QStringLiteral("name")).toString(), QStringLiteral("Aliasing"));
+    pm.setActive(0, false);
+    pm.setActive(alias, true);
+    pm.setPlugin(alias, {{QStringLiteral("shortname"), QStringLiteral("  Alias ")},
+                         {QStringLiteral("category"), QStringLiteral("Distortion")}});
+    QVariantMap p = pm.plugin(alias);
+    QCOMPARE(p.value(QStringLiteral("shortname")).toString(), QStringLiteral("Alias"));
+    QVERIFY(p.value(QStringLiteral("hasSettings")).toBool());
+    QVERIFY(pm.modified());
+    QCOMPARE(pm.activeCount(), 1);
+    // an empty name is the plugin's name
+    pm.setPlugin(4, {{QStringLiteral("shortname"), QStringLiteral(" ")}, {QStringLiteral("quirks"), 7}});
+    QCOMPARE(pm.plugin(4).value(QStringLiteral("shortname")).toString(), QStringLiteral("GLAME Butterworth Highpass"));
+    // the is_lv2 flag (4) is the engine's
+    QCOMPARE(pm.plugin(4).value(QStringLiteral("quirks")).toInt(), 3);
+    pm.setPlugin(4, {{QStringLiteral("quirks"), pm.plugin(4).value(QStringLiteral("quirksDefault"))}});
+
+    QSignalSpy applied(&pm, &PluginManager::applied);
+    m_engine->clearReceived();
+    pm.apply();
+    QTRY_COMPARE(applied.count(), 1);
+    QVERIFY(!pm.modified());
+    QVERIFY(!pm.busy());
+    QCOMPARE(m_engine->received(QStringLiteral("save_ladspalist")).size(), 1);
+    QCOMPARE(m_engine->ladspaList().size(), 5);
+    QCOMPARE(m_engine->ladspaList().at(alias).toObject().value(QStringLiteral("active_set")).toInt(), 0);
+    QCOMPARE(pm.description(alias).value(QStringLiteral("active_set")).toInt(), 1);
+    // the removed unit and its parameters are gone, no longer polled
+    QCOMPARE(m_engine->ladspaPlugins().size(), 1);
+    const QString aliasId = m_engine->ladspaPlugins().at(0);
+    QVERIFY(aliasId.startsWith(QStringLiteral("lv2_")));
+    QVERIFY(!m.hasParam(gain));
+    // the engine keeps the unit in its rack order, guitariqx hides it
+    QVERIFY(m_engine->rack(false).contains(amp));
+    QTRY_VERIFY(!m.monoRack().contains(amp));
+    QCOMPARE(m.pluginInfo(aliasId).value(QStringLiteral("name")).toString(), QStringLiteral("Aliasing"));
+    QCOMPARE(m.pluginInfo(aliasId).value(QStringLiteral("shortname")).toString(), QStringLiteral("Alias"));
+    QCOMPARE(m.pluginInfo(aliasId).value(QStringLiteral("category")).toString(), QStringLiteral("Distortion"));
+    QVERIFY(m.hasParam(aliasId + QStringLiteral(".on_off")));
+    // the layout of a unit no longer known is not asked for
+    QVERIFY(m.unitUi(amp).isEmpty());
+    QTest::qWait(150);
+
+    // a stereo plugin made mono is unloaded first, then loaded again
+    pm.setActive(ace, true);
+    pm.apply();
+    QTRY_COMPARE(applied.count(), 2);
+    QString aceId;
+    for (const QString& id : m_engine->ladspaPlugins()) {
+        if (id != aliasId) {
+            aceId = id;
+        }
+    }
+    QVERIFY(m.pluginInfo(aceId).value(QStringLiteral("stereo")).toBool());
+    pm.setPlugin(ace, {{QStringLiteral("stereoToMono"), true}});
+    m_engine->clearReceived();
+    pm.apply();
+    QTRY_COMPARE(applied.count(), 3);
+    const auto saves = m_engine->received(QStringLiteral("save_ladspalist"));
+    QCOMPARE(saves.size(), 2);
+    QCOMPARE(saves.at(0).params.at(0).toArray().at(ace).toObject().value(QStringLiteral("active")).toInt(), 0);
+    QCOMPARE(saves.at(1).params.at(0).toArray().at(ace).toObject().value(QStringLiteral("active")).toInt(), 1);
+    QCOMPARE(m_engine->received(QStringLiteral("ladspaloader_update_plugins")).size(), 2);
+    QVERIFY(!m.pluginInfo(aceId).value(QStringLiteral("stereo")).toBool());
+
+    // factory settings, discarding edits
+    pm.resetPlugin(alias);
+    p = pm.plugin(alias);
+    QCOMPARE(p.value(QStringLiteral("shortname")).toString(), QStringLiteral("Aliasing"));
+    QCOMPARE(p.value(QStringLiteral("category")).toString(), p.value(QStringLiteral("deducedCategory")).toString());
+    QVERIFY(!p.value(QStringLiteral("hasSettings")).toBool());
+    QVERIFY(pm.modified());
+    pm.discard();
+    QVERIFY(!pm.modified());
+    QCOMPARE(pm.plugin(alias).value(QStringLiteral("shortname")).toString(), QStringLiteral("Alias"));
+
+    pm.unload();
+    QVERIFY(!pm.loaded());
+    QCOMPARE(pm.rowCount(), 0);
+}
+
+void TestMachine::pluginsChangedByOtherClient() {
+    start();
+    Machine& m = *m_machine;
+    const QString amp = QStringLiteral("ladspa_1067");
+    QVERIFY(m.hasParam(amp + QStringLiteral(".on_off")));
+    // the notification another client's change sends: parameters and
+    // plugins are loaded again
+    m_engine->notifyClients(QStringLiteral("plugins_changed"),
+                            {QJsonArray{amp + QStringLiteral(".on_off")}, QJsonArray(), QJsonArray{QJsonArray{0, amp}}});
+    QSignalSpy plugins(&m, &Machine::pluginsChanged);
+    QTRY_COMPARE(plugins.count(), 1);
+    // FakeEngine still has the plugin: the lists come from the engine
+    QVERIFY(m.hasParam(amp + QStringLiteral(".on_off")));
+    QCOMPARE(m_engine->received(QStringLiteral("parameterlist")).size(), 2);
 }
 
 QTEST_GUILESS_MAIN(TestMachine)
