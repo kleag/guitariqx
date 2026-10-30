@@ -94,6 +94,9 @@ void TestUi::states_data() {
                                << QString();
     QTest::newRow("rackplace-small") << QStringLiteral("rackplace:fumaster") << QStringLiteral("800x480") << 2
                                      << false << QStringLiteral("Guitarix");
+    QTest::newRow("plugins") << QStringLiteral("plugins") << QStringLiteral("1280x800") << 2 << false << QString();
+    QTest::newRow("plugins-small") << QStringLiteral("plugins:ACE Reverb") << QStringLiteral("800x480") << 2 << false
+                                   << QString();
     QTest::newRow("files-remote-old-engine") << QStringLiteral("files:nam") << QStringLiteral("800x480") << 1 << true << QString();
 }
 

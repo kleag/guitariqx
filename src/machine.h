@@ -18,6 +18,7 @@
 #include "midimap.h"
 #include "oscilloscope.h"
 #include "parameter.h"
+#include "pluginmanager.h"
 #include "rpcclient.h"
 #include "skin.h"
 #include "tuner.h"
@@ -64,6 +65,7 @@ class Machine : public QObject {
     Q_PROPERTY(MidiMap *midi READ midi CONSTANT)
     Q_PROPERTY(Skin *skin READ skin CONSTANT)
     Q_PROPERTY(Oscilloscope *oscilloscope READ oscilloscope CONSTANT)
+    Q_PROPERTY(PluginManager *pluginManager READ pluginManager CONSTANT)
     // the engine runs on this computer: its files can be read directly
     Q_PROPERTY(bool engineLocal READ engineLocal NOTIFY connectedChanged)
     Q_PROPERTY(QVariantList filePlaces READ filePlaces NOTIFY filePlacesChanged)
@@ -101,6 +103,12 @@ public:
     MidiMap *midi() { return &m_midi; }
     Skin *skin() { return &m_skin; }
     Oscilloscope *oscilloscope() { return &m_oscilloscope; }
+    PluginManager *pluginManager() { return &m_pluginManager; }
+
+    // Makes the engine load the LADSPA/LV2 plugin definitions saved with
+    // save_ladspalist (ladspaloader_update_plugins), then reloads the
+    // parameters, plugins and racks; done is called at the end.
+    void updatePlugins(std::function<void()> done);
 
     Q_INVOKABLE void connectTo(const QString& host, int port);
     // Before quitting: the engine does not clean up after a connection
@@ -256,6 +264,10 @@ private:
     void setStatus(const QString& s);
     void loadParameters(const QJsonArray& list);
     void loadPlugins(const QJsonArray& list);
+    // after the engine changed its plugins: params is the answer of
+    // ladspaloader_update_plugins or a plugins_changed notification
+    // ([removed parameter ids], [new parameters], [[change, plugin]...])
+    void reloadPlugins(const QJsonArray& params, std::function<void()> done);
     void requestBanks();
     void refreshPresetState();
     void requestFilePlaces();
@@ -265,6 +277,7 @@ private:
     void enqueueEdit(std::function<void(EditDone)> op);
     void runNextEdit();
     void requestRack();
+    bool knownUnit(const QString& id) const;
     void pollOutputs();
     QList<Parameter*> unitParameters(const QString& id) const;
     void finishUnitUi(const QString& id, QVariantMap ui);
@@ -281,6 +294,7 @@ private:
     MidiMap m_midi;
     Skin m_skin;
     Oscilloscope m_oscilloscope;
+    PluginManager m_pluginManager;
     QHash<QString, Parameter*> m_params;
     QHash<QString, QVariantMap> m_pluginInfo;
     QVariantList m_pluginList;
@@ -307,6 +321,8 @@ private:
     QString m_lastMessage;
     double m_cpuLoad = 0;
     bool m_ready = false;
+    // the engine's plugins are changing: their parameters are not polled
+    bool m_pluginsChanging = false;
     QList<std::function<void(EditDone)>> m_editQueue;
     bool m_editRunning = false;
 };

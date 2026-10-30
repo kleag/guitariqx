@@ -53,6 +53,7 @@ ApplicationWindow {
         }
         onConnectRequested: connectDialog.open()
         onSkinsRequested: skinDialog.open()
+        onPluginsRequested: pluginDialog.open()
         onMidiMapRequested: midiMapDialog.open()
     }
 
@@ -149,6 +150,10 @@ ApplicationWindow {
 
     SkinDialog {
         id: skinDialog
+    }
+
+    PluginManagerDialog {
+        id: pluginDialog
     }
 
     TunerView {}

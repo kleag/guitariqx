@@ -96,6 +96,22 @@ presets. Factory presets come with guitarix.
 
 ![The presets of a unit](images/unitpresets.png)
 
+**LADSPA/LV2 plugins ...** in the menu (⋮) lists the LADSPA and LV2
+plugins installed on the engine's computer and chooses which of them can be
+added to the racks. The list can be searched and filtered (selected
+plugins, plugins with settings, LADSPA or LV2 only, mono or stereo); ⋮
+selects or deselects all the plugins shown. Tapping a plugin shows its
+settings: its name and category in **+ Add effect**, a control shown as the
+master slider of the unit, a dry/wet control added by guitarix, and for a
+stereo plugin **Stereo to mono**, which makes it a mono rack unit.
+**Factory settings** gives back the plugin's defaults. Nothing changes
+until **Apply**: the engine then loads the selected plugins, and the units
+of plugins no longer selected leave the racks (they come back at their place
+if the plugin is selected again). The list is read when the
+dialog opens, which takes a moment with many plugins installed.
+
+![The LADSPA/LV2 plugins](images/plugins.png)
+
 **Skin ...** in the menu (⋮) switches the rack units between guitariqx's
 flat look and gx_head's skins: the skin's background between rack handles,
 its knob images with their LED rings, its switch icons and colors. The

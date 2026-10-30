@@ -18,6 +18,7 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QList>
+#include <QMap>
 #include <QStringList>
 #include <QTcpServer>
 
@@ -83,6 +84,12 @@ public:
         m_unitPresets[factory ? 1 : 0].insert(unit, presets);
     }
 
+    // LADSPA/LV2 plugins (fixtures/ladspalist.json): the descriptions as
+    // last saved, and the ids of the plugins loaded from them
+    QJsonArray ladspaList() const { return m_ladspa; }
+    QStringList ladspaPlugins() const { return m_ladspaLoaded.keys(); }
+    bool hasPlugin(const QString& id) const { return m_plugins.contains(id); }
+
 signals:
     void messageReceived(const QString& method);
 
@@ -106,6 +113,10 @@ private:
     QJsonArray oscilloscopeInfo() const;
     void checkSpecialValue(const QString& id, const QJsonValue& v);
     void loadParameterValues(const QJsonArray& list);
+    QJsonArray updateLadspaPlugins();
+    void removeParameters(const QString& prefix, QJsonArray& removed);
+    QJsonArray ladspaParameters(const QString& id, const QJsonObject& desc) const;
+    QJsonObject ladspaPluginEntry(const QString& id, const QJsonObject& desc) const;
 
     QTcpServer m_server;
     QList<QTcpSocket*> m_clients;
@@ -121,6 +132,13 @@ private:
     int m_oscMul = 1;
     QHash<QString, QJsonArray> m_dirs;
     QSet<QString> m_plugins;
+    // answers of parameterlist and pluginlist, changed by the LADSPA loader
+    QJsonArray m_paramList;
+    QJsonArray m_pluginList;
+    QJsonArray m_ladspa;
+    QJsonArray m_ladspaNotFound;
+    // id -> description of the loaded LADSPA/LV2 plugins
+    QMap<QString, QJsonObject> m_ladspaLoaded;
     // user (0) and factory (1) unit presets by unit
     QHash<QString, UnitPresets> m_unitPresets[2];
     QJsonArray m_banks;

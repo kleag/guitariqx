@@ -61,6 +61,18 @@ QByteArray repairResult(const QByteArray& line) {
                    + QLatin1Char(']') + s.mid(m.capturedEnd())).toUtf8();
 }
 
+// load_ladspalist writes two values as its result: "result": [...],[...].
+// Wrap them in an array (the result is the last member of the answer).
+QByteArray wrapResultValues(const QByteArray& line) {
+    const qsizetype key = line.indexOf("\"result\":");
+    const qsizetype end = line.lastIndexOf('}');
+    if (key < 0 || end < key) {
+        return {};
+    }
+    const qsizetype start = key + 9;
+    return line.left(start) + '[' + line.mid(start, end - start) + ']' + line.mid(end);
+}
+
 } // anonymous namespace
 
 RpcClient::RpcClient(QObject *parent)
@@ -168,6 +180,9 @@ void RpcClient::handleLine(const QByteArray& line) {
         if (!repaired.isEmpty()) {
             doc = QJsonDocument::fromJson(repaired);
         }
+    }
+    if (!doc.isObject()) {
+        doc = QJsonDocument::fromJson(wrapResultValues(line));
     }
     if (!doc.isObject()) {
         qWarning() << "guitariqx: bad JSON from server:" << err.errorString() << line.left(200);

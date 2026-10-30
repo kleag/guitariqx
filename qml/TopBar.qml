@@ -12,6 +12,7 @@ Rectangle {
     signal midiMapRequested()
     signal fullScreenRequested()
     signal skinsRequested()
+    signal pluginsRequested()
     property bool compact: false
     property bool fullScreen: false
     property bool canToggleFullScreen: true
@@ -163,6 +164,11 @@ Rectangle {
                     text: qsTr("MIDI controllers ...")
                     enabled: Gx.ready
                     onTriggered: root.midiMapRequested()
+                }
+                MenuItem {
+                    text: qsTr("LADSPA/LV2 plugins ...")
+                    enabled: Gx.ready
+                    onTriggered: root.pluginsRequested()
                 }
                 MenuItem {
                     text: qsTr("Skin ...")

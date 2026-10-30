@@ -17,7 +17,7 @@ interface, with its touch screen, a laptop or a tablet as the interface.
 - **Presets**: banks and presets, previous/next, save, rename, copy, reorder,
   import and export of bank files.
 - **Racks**: mono and stereo racks with gx_head's unit layouts, add, remove,
-  reorder and collapse units.
+  reorder and collapse units, LADSPA and LV2 plugins as units.
 - **Tuner**: full window tuner with gx_head's tunings and temperaments.
 - **MIDI learn**: assign a MIDI controller to any control by moving it.
 - **Files**: neural amp models (NAM, RTNeural) and impulse responses chosen
