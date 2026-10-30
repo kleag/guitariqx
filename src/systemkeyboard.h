@@ -16,10 +16,12 @@
 
 #include <QElapsedTimer>
 #include <QObject>
+#include <QPointer>
 #include <QTimer>
 #include <functional>
 
 class QGuiApplication;
+class QWindow;
 
 /*
  * Shows the desktop's on-screen keyboard while a text field has the focus.
@@ -41,6 +43,11 @@ class QGuiApplication;
  * (it may have been closed by hand), but not when a tap elsewhere focuses
  * a field (the buttons of an editable SpinBox). It is hidden shortly after the focus left text
  * fields (not at once: the focus may move to another field).
+ *
+ * The keyboard is a layer surface that the compositors (labwc, wayfire)
+ * draw below full screen windows: a full screen window is maximized while
+ * the keyboard is shown, which also leaves the room the keyboard takes, and
+ * goes back to full screen when it is hidden.
  */
 class SystemKeyboard : public QObject {
     Q_OBJECT
@@ -83,4 +90,5 @@ private:
     bool m_pressed = false;
     QTimer m_hideTimer;
     QElapsedTimer m_lastShow; // a tap gives a touch and a mouse release
+    QPointer<QWindow> m_fullScreenWindow; // left full screen for the keyboard
 };

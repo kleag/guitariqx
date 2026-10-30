@@ -22,6 +22,7 @@
 #include <QQuickItem>
 #include <QQuickWindow>
 #include <QStandardPaths>
+#include <QWindow>
 
 void SystemKeyboard::install(QGuiApplication *app) {
     const QString mode = qEnvironmentVariable("GUITARIQX_SYSTEM_KEYBOARD");
@@ -118,6 +119,11 @@ void SystemKeyboard::show() {
     }
     m_lastShow.start();
     m_visible = true;
+    QWindow *window = QGuiApplication::focusWindow();
+    if (window && window->visibility() == QWindow::FullScreen) {
+        m_fullScreenWindow = window;
+        window->showMaximized();
+    }
     m_setter(true);
 }
 
@@ -126,6 +132,11 @@ void SystemKeyboard::hide() {
         m_visible = false;
         m_lastShow.invalidate();
         m_setter(false);
+        // not when full screen was left meanwhile by other means
+        if (m_fullScreenWindow && m_fullScreenWindow->visibility() == QWindow::Maximized) {
+            m_fullScreenWindow->showFullScreen();
+        }
+        m_fullScreenWindow = nullptr;
     }
 }
 
