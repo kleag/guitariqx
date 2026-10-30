@@ -78,7 +78,7 @@ tablet. Options:
 | `--size WxH` | initial window size (default: the size, or maximized state, of the last session, else 1280x800) |
 | `--dump` | print connection, preset and rack changes on the terminal |
 | `--screenshot FILE` | save a screenshot after `--screenshot-delay` ms and quit (testing) |
-| `--debug-state LIST` | testing without instrument or MIDI device: `tuner:HZ`, `switcher[:STATE]`, `learnmode`, `learn:PARAM`, `midimap`, `saveas`, `files:UNIT`, `skins`, `unit:UNIT`, `iredit:UNIT`, `sequencer`, `unitpresets:UNIT`, `rackdrag:UNIT`, `rackplace:UNIT`, `plugins[:NAME]` |
+| `--debug-state LIST` | testing without instrument or MIDI device: `tuner:HZ`, `switcher[:STATE]`, `learnmode`, `learn:PARAM`, `midimap`, `saveas`, `files:UNIT`, `bankload`, `banksave:BANK`, `skins`, `unit:UNIT`, `iredit:UNIT`, `sequencer`, `unitpresets:UNIT`, `rackdrag:UNIT`, `rackplace:UNIT`, `plugins[:NAME]` |
 
 The connection indicator at the right of the top bar opens the connect
 dialog. guitariqx reconnects automatically when the engine restarts.
@@ -123,42 +123,9 @@ To test without a sound card, run the engine against a dummy JACK server
 
 ## Design
 
-```
-src/rpcclient.*   JSON-RPC over TCP: newline framed messages, request ids,
-                  notifications, reconnect
-src/parameter.*   client mirror of a gx_engine::Parameter (from "parameterlist")
-src/machine.*     engine proxy exposed to QML as the singleton "Gx"
-                  (counterpart of GxMachineRemote in gx_head/gui/machine.cpp)
-src/uitree.*      rack unit layouts: converts the UiBuilder call list
-                  returned by plugin_load_ui into a tree for QML
-src/tuner.*       tuner display: note, cents and target string from the
-                  engine's frequency (Gx.tuner)
-src/midimap.*     MIDI controller assignments and MIDI learn (Gx.midi)
-qml/              views and controls
-```
-
-Notes on the protocol, as used by guitariqx:
-
-- The server does not echo a `set` back to the connection it came from, so
-  the client updates its own model when it sends a change.
-- One `set` notification can carry several id/value pairs; `get_updates`
-  (used to poll meters every 60 ms) answers with such a notification.
-- Enum values are indexes in `set` notifications but value ids in `get`
-  results.
-- The server's JSON parser has no `true`/`false`: booleans are sent as 0/1.
-- Meters flagged `[log]` report linear amplitudes; their range is the dB range
-  to display.
-- The tuner reports the frequency in `tuner_changed` notifications once
-  `tuner_used_for_display` is on; note names, cents and strings are computed
-  by the client from the reference pitch and temperament parameters.
-- `midi_modifyCurrent` only works in MIDI config mode, which must be left
-  again with `midi_set_config_mode`; `midi_changed` carries the whole map.
-- `midi_value_changed [ctl, value]` is sent every 60 ms for the controllers
-  that moved (to "midi" listeners); there is no RPC to ask for the current
-  values (gx_head's `request_midi_value_update` has no server side).
-- `get_midi_feedback` (like `get_last_midi_control_value`) answers with an
-  object without key, `"result": {0}`, which is not JSON; `RpcClient` turns
-  such a result into an array. The option is not broadcast.
+The source layout, the notes on the engine's JSON-RPC protocol and how
+guitariqx protects the engine are in the
+[development documentation](https://kleag.github.io/guitariqx/development/).
 
 ## Status
 
@@ -185,7 +152,8 @@ Working:
   (home, model and IR folders, USB drives, recent folders) and a clickable
   path; the arrows next to the file step through its folder. Files are those
   of the engine's computer: when it runs elsewhere, the engine lists them
-- mono and stereo racks: on/off, add, remove, reorder, collapse
+- mono and stereo racks: on/off, add (at the top, or placed by hand),
+  remove, reorder (by drag and drop or up/down buttons), collapse
 - unit presets: load, save and remove the settings of one rack unit
 - LADSPA/LV2 plugins (menu): choose which plugins of the engine's computer
   are rack units, with their name, category, master slider, dry/wet
@@ -222,6 +190,18 @@ Working:
 Not yet:
 
 - gx_head's slider and meter images, its two-tone unit backgrounds and its
-  wallpapers; the editor of the LADSPA/LV2 plugins' controls
+  wallpapers; the editor of the LADSPA/LV2 plugins' controls; online
+  presets; an on-screen keyboard under `eglfs`; translations
+
+Known problems: loading a preset whose name is not plain ASCII leaves the
+headless guitarix engine (0.47.0 and older) silent and stuck; guitariqx
+reconnects and refuses such presets afterwards, rename them. See the
+[features page](https://kleag.github.io/guitariqx/features/#known-problems).
 
 The full list is in [TODO.md](TODO.md).
+
+## License
+
+guitariqx is free software under the GNU General Public License, version 2
+or later (see [COPYING](COPYING)). The built-in skin images come from
+guitarix, under the same license (see [skins/README.md](skins/README.md)).

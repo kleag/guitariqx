@@ -134,6 +134,7 @@ install(TARGETS guitariqx
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 install(FILES guitariqx.desktop DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
+install(FILES COPYING DESTINATION ${CMAKE_INSTALL_DOCDIR})
 
 option(BUILD_TESTING "Build the tests (needs the Qt Test module)" ON)
 if(BUILD_TESTING)
