@@ -312,6 +312,8 @@ private:
     QTimer m_presetTimer;
     quint64 m_presetProbe = 0;
     QString m_presetLoading;
+    // the engine blocked on a preset name that is not ASCII
+    bool m_nonAsciiPresetsBlock = false;
     QVariantList m_banks;
     QStringList m_rack[2];
     QString m_currentBank;

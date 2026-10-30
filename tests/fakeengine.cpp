@@ -149,7 +149,12 @@ void FakeEngine::onNewConnection() {
             m_clients.removeAll(s);
             m_listeners.removeAll(s);
             m_buffers.remove(s);
-            m_deaf.remove(s);
+            // the engine does not see that a connection it no longer reads
+            // is closed: retrying to write to it starves the idle handler
+            // sending its notifications
+            if (m_deaf.remove(s)) {
+                m_notificationsStalled = true;
+            }
             // the engine leaves MIDI config mode when a connection closes
             m_midiConfig = false;
             s->deleteLater();
@@ -230,6 +235,9 @@ void FakeEngine::send(QTcpSocket *s, const QJsonObject& msg) {
 }
 
 void FakeEngine::notifyClients(const QString& method, const QJsonArray& params) {
+    if (m_notificationsStalled) {
+        return;
+    }
     const QJsonObject msg{
         {QStringLiteral("jsonrpc"), QStringLiteral("2.0")},
         {QStringLiteral("method"), method},

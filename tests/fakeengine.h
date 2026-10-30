@@ -123,6 +123,8 @@ private:
     QHash<QTcpSocket*, QByteArray> m_buffers;
     // connections no longer read (see setpreset)
     QSet<QTcpSocket*> m_deaf;
+    // a deaf connection was closed: no more notifications
+    bool m_notificationsStalled = false;
     QList<QTcpSocket*> m_listeners;
     int m_major = 1;
     int m_minor;

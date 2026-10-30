@@ -280,8 +280,18 @@ void TestMachine::stuckPresetReconnects() {
     QTRY_VERIFY(!m_machine->ready());
     QVERIFY(m_machine->lastMessage().contains(name));
     QTRY_VERIFY_WITH_TIMEOUT(m_machine->ready(), 10000);
-    m_machine->setPreset(QStringLiteral("Musiclab"), QStringLiteral("Acoustic - Angie"));
-    QTRY_COMPARE(m_machine->currentPreset(), QStringLiteral("Acoustic - Angie"));
+    // the old connection is kept open, or the engine would not send
+    // notifications any more
+    m_machine->setPreset(QStringLiteral("Musiclab"), QStringLiteral("Lead - Europa"));
+    QTRY_COMPARE(m_machine->currentPreset(), QStringLiteral("Lead - Europa"));
+
+    // that engine is not asked for such a name again
+    const int calls = m_engine->received(QStringLiteral("setpreset")).size();
+    m_machine->setPreset(QStringLiteral("Scratchpad"), name);
+    QVERIFY(m_machine->lastMessage().contains(QStringLiteral("not loaded")));
+    QTest::qWait(800);
+    QVERIFY(m_machine->ready());
+    QCOMPARE(m_engine->received(QStringLiteral("setpreset")).size(), calls);
 }
 
 void TestMachine::readOnlyBanksAreRefused() {

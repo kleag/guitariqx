@@ -19,6 +19,10 @@
 #include <QJsonObject>
 #include <QRegularExpression>
 
+#ifdef Q_OS_UNIX
+#include <unistd.h>
+#endif
+
 namespace {
 
 // The server's JSON parser has no boolean tokens: send 0/1 instead.
@@ -115,11 +119,26 @@ void RpcClient::disconnectFromServer() {
     m_socket.disconnectFromHost();
 }
 
-void RpcClient::reconnect() {
-    if (isConnected()) {
-        // emits disconnected(), which starts the reconnect timer
-        m_socket.abort();
+void RpcClient::abandonConnection() {
+    if (!isConnected()) {
+        return;
     }
+#ifdef Q_OS_UNIX
+    // The engine still writes to a connection it no longer reads, and it
+    // never sees it closed: a failed write is retried by an output watch
+    // that is always ready, which starves the idle handler sending all its
+    // notifications. So the connection is kept open, and what comes in is
+    // thrown away.
+    auto *parked = new QTcpSocket(this);
+    if (parked->setSocketDescriptor(::dup(int(m_socket.socketDescriptor())))) {
+        connect(parked, &QTcpSocket::readyRead, parked, [parked]() { parked->readAll(); });
+        connect(parked, &QTcpSocket::disconnected, parked, &QObject::deleteLater);
+    } else {
+        delete parked;
+    }
+#endif
+    // emits disconnected(), which starts the reconnect timer
+    m_socket.abort();
 }
 
 bool RpcClient::isConnected() const {

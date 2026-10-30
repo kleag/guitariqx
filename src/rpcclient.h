@@ -43,9 +43,9 @@ public:
 
     void connectToServer(const QString& host, quint16 port);
     void disconnectFromServer();
-    // drops the connection and connects again (a server that no longer
-    // reads it)
-    void reconnect();
+    // connects again when the server no longer reads the connection; the
+    // old one stays open and drained (see the implementation)
+    void abandonConnection();
     bool isConnected() const;
     QString host() const { return m_host; }
     QHostAddress peerAddress() const { return m_socket.peerAddress(); }
