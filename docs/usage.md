@@ -75,7 +75,11 @@ also when the engine runs elsewhere.
 
 **+ Add effect** adds a unit to the mono or stereo rack. Each unit has its
 power switch, buttons to open its presets (≡), to move it up and down, to
-collapse it to a compact view and to remove it. Units are shown with
+collapse it to a compact view and to remove it. A unit can also be dragged
+to another place of its rack by the grip (⠿) at the left of its title bar,
+or by holding its title bar for a moment and then dragging; a line shows
+where it goes, and the rack scrolls when the unit is held near its top or
+bottom. Units are shown with
 gx_head's arrangement: the Glade layout of the unit when it has one, else
 its stack layout, else a generic panel built from the unit's parameters.
 `GUITARIQX_FORM_STACK=1` uses the stack layouts, like `GUITARIX_FORM_STACK`

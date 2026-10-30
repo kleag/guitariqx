@@ -19,6 +19,13 @@ Rectangle {
     property var layout: ({})
     // width of the rack handles of a skin
     readonly property real handle: Theme.skinned ? 22 : 0
+    // drag and drop: the rack follows the pointer (scene y) and shows
+    // where the unit goes, dragging is set by the rack
+    property bool dragging: false
+    signal dragStarted(real sceneY)
+    signal dragMoved(real sceneY)
+    signal dragEnded(bool drop)
+    opacity: dragging ? 0.4 : 1
 
     function fetchLayout() {
         if (!isAmp)
@@ -85,10 +92,64 @@ Rectangle {
         width: parent.width - 8 - 2 * root.handle
         height: Theme.touch + 4
 
+        // drag the unit by its header after holding it, so that a flick on
+        // the header still scrolls the rack (the controls are above)
+        MouseArea {
+            anchors.fill: parent
+            pressAndHoldInterval: 400
+            property bool active: false
+            preventStealing: active
+            onPressAndHold: (mouse) => {
+                active = true
+                root.dragStarted(mapToItem(null, mouse.x, mouse.y).y)
+            }
+            onPositionChanged: (mouse) => {
+                if (active)
+                    root.dragMoved(mapToItem(null, mouse.x, mouse.y).y)
+            }
+            onReleased: if (active) { active = false; root.dragEnded(true) }
+            onCanceled: if (active) { active = false; root.dragEnded(false) }
+        }
+
         Row {
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
             spacing: Theme.spacing
+
+            // grip: drags the unit at once
+            Item {
+                width: Theme.touch
+                height: Theme.touch
+                Grid {
+                    anchors.centerIn: parent
+                    columns: 2
+                    spacing: 4
+                    Repeater {
+                        model: 6
+                        Rectangle {
+                            width: 4
+                            height: 4
+                            radius: 2
+                            color: Theme.skinned ? Theme.rackTitle : Theme.textDim
+                        }
+                    }
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    preventStealing: true
+                    property bool active: false
+                    onPressed: (mouse) => {
+                        active = true
+                        root.dragStarted(mapToItem(null, mouse.x, mouse.y).y)
+                    }
+                    onPositionChanged: (mouse) => {
+                        if (active)
+                            root.dragMoved(mapToItem(null, mouse.x, mouse.y).y)
+                    }
+                    onReleased: if (active) { active = false; root.dragEnded(true) }
+                    onCanceled: if (active) { active = false; root.dragEnded(false) }
+                }
+            }
 
             // power: pedal style LED
             Rectangle {
@@ -129,7 +190,7 @@ Rectangle {
             Text {
                 anchors.verticalCenter: parent.verticalCenter
                 // elided in narrow racks rather than hidden under the buttons
-                width: Math.min(implicitWidth, header.width - actions.width - Theme.spacing
+                width: Math.min(implicitWidth, header.width - actions.width - Theme.touch - 2 * Theme.spacing
                                 - (powerButton.visible ? powerButton.width + Theme.spacing : 0))
                 elide: Text.ElideRight
                 text: root.info.name || root.unitId

@@ -62,7 +62,7 @@ Roughly in order of importance for live use. See README.md for what works.
       its height)
 - [x] Drum sequencer: next/previous unit preset (seq.npreset/ppreset)
 - [ ] Tall stacks of meters (e.g. Multi Band Compressor "Analyze")
-- [ ] Drag and drop reordering of rack units (now: up/down buttons)
+- [x] Drag and drop reordering of rack units (and up/down buttons)
 - [x] Unit presets (plugin_preset_list_*)
 - [ ] Unit presets of the looper: gx_head sets dubber.filename and
       dubber.savefile before saving so that the loop files follow the
