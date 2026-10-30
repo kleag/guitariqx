@@ -10,8 +10,7 @@ tag_message = "guitariqx {new_version}"
 tag_scope = "default"
 commit = true
 tag = true
-# pushing the tag publishes the release (.github/workflows/release.yml)
-push = false
+push = true
 
 [bumpver.file_patterns]
 "bumpver.toml" = ['current_version = "{version}"']
