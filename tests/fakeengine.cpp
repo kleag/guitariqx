@@ -149,6 +149,12 @@ void FakeEngine::onNewConnection() {
             m_clients.removeAll(s);
             m_listeners.removeAll(s);
             m_buffers.remove(s);
+            // the engine does not see that a connection it no longer reads
+            // is closed: retrying to write to it starves the idle handler
+            // sending its notifications
+            if (m_deaf.remove(s)) {
+                m_notificationsStalled = true;
+            }
             // the engine leaves MIDI config mode when a connection closes
             m_midiConfig = false;
             s->deleteLater();
@@ -157,10 +163,14 @@ void FakeEngine::onNewConnection() {
 }
 
 void FakeEngine::onReadyRead(QTcpSocket *s) {
+    if (m_deaf.contains(s)) {
+        s->readAll();
+        return;
+    }
     QByteArray& buf = m_buffers[s];
     buf.append(s->readAll());
     int nl;
-    while ((nl = buf.indexOf('\n')) >= 0) {
+    while (!m_deaf.contains(s) && (nl = buf.indexOf('\n')) >= 0) {
         const QByteArray line = buf.left(nl).trimmed();
         buf.remove(0, nl + 1);
         if (line.isEmpty()) {
@@ -225,6 +235,9 @@ void FakeEngine::send(QTcpSocket *s, const QJsonObject& msg) {
 }
 
 void FakeEngine::notifyClients(const QString& method, const QJsonArray& params) {
+    if (m_notificationsStalled) {
+        return;
+    }
     const QJsonObject msg{
         {QStringLiteral("jsonrpc"), QStringLiteral("2.0")},
         {QStringLiteral("method"), method},
@@ -523,6 +536,17 @@ QJsonValue FakeEngine::dispatch(QTcpSocket *s, const QString& method, const QJso
         return checkBank(method, p0) ? QJsonArray::fromStringList(presets(p0)) : QJsonArray();
     }
     if (method == QLatin1String("setpreset")) {
+        const QString name = params.at(1).toString();
+        if (checkBank(method, p0) && std::any_of(name.cbegin(), name.cend(), [](QChar c) { return c.unicode() > 127; })) {
+            // the headless engine logs the preset name through the C
+            // locale, which throws in the middle of the load: the preset
+            // is current but not announced, and the connection that asked
+            // is never read again
+            m_values.insert(QStringLiteral("system.current_bank"), p0);
+            m_values.insert(QStringLiteral("system.current_preset"), name);
+            m_deaf.insert(s);
+            return {};
+        }
         if (checkBank(method, p0)) {
             m_values.insert(QStringLiteral("system.current_bank"), p0);
             m_values.insert(QStringLiteral("system.current_preset"), params.at(1));

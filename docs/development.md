@@ -103,6 +103,21 @@ The engine trusts its clients: unknown parameter ids (`get_updates`,
 crash or abort it. guitariqx only sends what the engine listed, and the
 tests check it (see below).
 
+The headless engine (`guitarix -N`) never sets its locale, so loading a
+preset whose name is not plain ASCII throws in the middle of `setpreset`
+(a log line streams the `Glib::ustring` name): the sound stays faded out, no
+`preset_changed` is sent and the engine never reads the requesting
+connection again, though it keeps it open. The GTK engine only has the
+problem when started with `LANG=C`. guitariqx follows each `setpreset` with
+a `get`; without an answer within 8 s it connects again, tells the user to
+select another preset (an ASCII one brings the sound back) and does not send
+non-ASCII preset names to that engine any more. The old connection must stay
+open and be read: the engine never notices that a connection it no longer
+reads is closed, retries its writes to it forever, and that starves the idle
+handler sending all notifications (`preset_changed`, the `get_updates`
+values, ...). It happens anyway once guitariqx quits, so the engine has to
+be restarted.
+
 guitariqx works with engines of JSON-RPC interface 1.1 (guitarix 0.47.0)
 and uses the methods of newer ones when the engine reports them
 (`getversion`).

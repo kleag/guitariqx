@@ -89,6 +89,9 @@ Machine::Machine(QObject *parent)
     m_rackTimer.setInterval(50);
     m_rackTimer.setSingleShot(true);
     connect(&m_rackTimer, &QTimer::timeout, this, &Machine::requestRack);
+    m_presetTimer.setInterval(8000);
+    m_presetTimer.setSingleShot(true);
+    connect(&m_presetTimer, &QTimer::timeout, this, &Machine::onPresetTimeout);
 }
 
 Machine::~Machine() {
@@ -111,6 +114,7 @@ void Machine::setStatus(const QString& s) {
 
 void Machine::connectTo(const QString& host, int port) {
     setStatus(tr("Connecting to %1:%2 ...").arg(host).arg(port));
+    m_nonAsciiPresetsBlock = false;
     m_rpc.connectToServer(host, quint16(port));
 }
 
@@ -179,6 +183,7 @@ void Machine::onConnected() {
 void Machine::onDisconnected() {
     m_pollTimer.stop();
     m_cpuTimer.stop();
+    m_presetTimer.stop();
     // requests in flight are lost
     m_unitUiPending.clear();
     m_editQueue.clear();
@@ -524,7 +529,39 @@ void Machine::finishUnitUi(const QString& id, QVariantMap ui) {
 }
 
 void Machine::setPreset(const QString& bank, const QString& preset) {
+    const bool ascii = std::all_of(preset.cbegin(), preset.cend(), [](QChar c) { return c.unicode() < 128; });
+    if (!ascii && m_nonAsciiPresetsBlock) {
+        m_lastMessage = tr("Preset \"%1\" not loaded: this engine blocks on names that are not plain ASCII, "
+                           "rename it").arg(preset);
+        emit messageReceived(QStringLiteral("error"), m_lastMessage);
+        return;
+    }
     m_rpc.notify(QStringLiteral("setpreset"), {bank, preset});
+    // The engine handles the requests of a connection in order, so this
+    // get is answered once the preset is loaded. No answer means that the
+    // engine stopped reading the connection: it does when loading a preset
+    // with a non-ASCII name throws (TODO.md), and then also stays silent
+    // until another preset is loaded.
+    const quint64 probe = ++m_presetProbe;
+    m_presetLoading = preset;
+    m_rpc.call(QStringLiteral("get"), {QStringLiteral("system.current_preset")}, [this, probe](const QJsonValue&) {
+        if (probe == m_presetProbe) {
+            m_presetTimer.stop();
+        }
+    });
+    m_presetTimer.start();
+}
+
+void Machine::onPresetTimeout() {
+    if (std::any_of(m_presetLoading.cbegin(), m_presetLoading.cend(), [](QChar c) { return c.unicode() > 127; })) {
+        // the engine would block the new connection as well
+        m_nonAsciiPresetsBlock = true;
+    }
+    m_lastMessage = tr("Preset \"%1\" blocked the engine (a guitarix bug with names that are not plain ASCII: "
+                       "rename it). Select another preset to get the sound back, and restart the engine "
+                       "after quitting.").arg(m_presetLoading);
+    emit messageReceived(QStringLiteral("error"), m_lastMessage);
+    m_rpc.abandonConnection();
 }
 
 void Machine::stepPreset(int delta) {

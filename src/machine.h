@@ -125,6 +125,9 @@ public:
 
     Q_INVOKABLE void setPreset(const QString& bank, const QString& preset);
     Q_INVOKABLE void stepPreset(int delta);
+    // how long a preset change may take before the connection is
+    // considered stuck (tests shorten it)
+    void setPresetTimeout(int msecs) { m_presetTimer.setInterval(msecs); }
 
     // Preset and bank editing. The engine does not check bank names (an
     // unknown one crashes it) nor duplicate preset names, so all names are
@@ -259,6 +262,7 @@ signals:
 private:
     void onConnected();
     void onDisconnected();
+    void onPresetTimeout();
     void onNotification(const QString& method, const QJsonArray& params);
     void onParameterChangeRequested(Parameter *p);
     void setStatus(const QString& s);
@@ -305,6 +309,11 @@ private:
     int m_pollCount = 0;
     QTimer m_cpuTimer;
     QTimer m_rackTimer;
+    QTimer m_presetTimer;
+    quint64 m_presetProbe = 0;
+    QString m_presetLoading;
+    // the engine blocked on a preset name that is not ASCII
+    bool m_nonAsciiPresetsBlock = false;
     QVariantList m_banks;
     QStringList m_rack[2];
     QString m_currentBank;
