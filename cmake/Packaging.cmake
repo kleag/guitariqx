@@ -34,8 +34,9 @@ set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
 set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 set(CPACK_DEBIAN_PACKAGE_DEPENDS
     "qml6-module-qtquick, qml6-module-qtquick-controls, qml6-module-qtquick-layouts, qml6-module-qtquick-templates, qml6-module-qtquick-window, qml6-module-qtqml-workerscript, qt6-qpa-plugins")
-# Wayland desktops (Raspberry Pi OS on a Pi 5)
-set(CPACK_DEBIAN_PACKAGE_RECOMMENDS "qt6-wayland")
+# Wayland desktops (Raspberry Pi OS on a Pi 5); the certificates of the
+# HTTPS services of the preset generator (libssl3 comes with libqt6network6)
+set(CPACK_DEBIAN_PACKAGE_RECOMMENDS "qt6-wayland, ca-certificates")
 set(CPACK_DEBIAN_PACKAGE_SUGGESTS "guitarix")
 
 include(CPack)

@@ -78,6 +78,11 @@ public:
     // gx_engine::Parameter::ctrl_type: 0 none, 1 continuous, 2 switch, 3 enum
     int controlType() const { return m_ctype; }
     QStringList valueLabels() const { return m_valueLabels; }
+    QStringList valueIds() const { return m_valueIds; }
+    // position of an enum value given by its label or id (case
+    // insensitive) in valueLabels, -1 if there is none
+    int enumIndex(const QString& labelOrId) const;
+    QVariant stdValue() const { return m_std; }
 
     QVariant value() const { return m_value; }
     void setValue(const QVariant& v);

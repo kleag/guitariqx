@@ -678,6 +678,10 @@ QJsonValue FakeEngine::dispatch(QTcpSocket *s, const QString& method, const QJso
         const bool insert = method == QLatin1String("insert_rack_unit");
         QStringList& rack = m_rack[params.at(insert ? 2 : 1).toInt() ? 1 : 0];
         rack.removeAll(p0);
+        if (!insert && m_values.contains(p0 + QStringLiteral(".on_off"))) {
+            // switched off without a notification (the parameter is blocked)
+            m_values.insert(p0 + QStringLiteral(".on_off"), 0);
+        }
         if (insert) {
             const int i = rack.indexOf(params.at(1).toString());
             rack.insert(i < 0 ? rack.size() : i, p0);

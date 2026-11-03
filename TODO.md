@@ -43,6 +43,12 @@ Roughly in order of importance for live use. See README.md for what works.
       correction, like gx_head's IR window)
 - [ ] IR editor: zoom into the start of long responses, show the channels
       separately (gx_head's left/right/sum)
+- [x] Preset generator (#19): a language model chooses units and settings
+      for a described sound; free Pollinations model by default, any
+      OpenAI compatible endpoint with the user's key
+- [ ] Preset generator: offer neural models and impulse responses found
+      on the engine's computer; check it on the Pi (TLS, the 45 s limit of
+      the free model shared by a whole network behind one address)
 
 ## Rack and plugin panels
 

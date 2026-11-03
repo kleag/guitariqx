@@ -163,6 +163,18 @@ void Parameter::updateFromEngine(const QJsonValue& v) {
     emit valueChanged();
 }
 
+int Parameter::enumIndex(const QString& labelOrId) const {
+    const QString s = labelOrId.trimmed();
+    for (const QStringList *l : {&m_valueLabels, &m_valueIds}) {
+        for (int i = 0; i < l->size(); ++i) {
+            if (l->at(i).compare(s, Qt::CaseInsensitive) == 0) {
+                return i;
+            }
+        }
+    }
+    return -1;
+}
+
 void Parameter::reset() {
     setValue(m_std);
 }

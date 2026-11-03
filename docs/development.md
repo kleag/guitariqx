@@ -189,6 +189,7 @@ MIDI device or clicks (comma separated):
 | `rackdrag:UNIT` | a rack unit dragged to the top of its rack (which must be in the rack) |
 | `rackplace:UNIT` | a rack unit being placed by hand, as if just added (which must be in the rack) |
 | `plugins[:NAME]` | the LADSPA/LV2 plugins dialog, or the settings of the plugin NAME |
+| `generator` | the preset generator, with its model settings shown |
 
 ### Without guitarix
 
