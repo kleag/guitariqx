@@ -1568,7 +1568,7 @@ void TestMachine::presetGenerator() {
     // the model makes all sorts of mistakes: they must not reach the engine
     chat.answer(QStringLiteral(R"(Sure! Here is the preset:
 ```json
-{"name": "Test tone",
+{"name": "Test‑tone été ‘x’ ♫",
  "amp": {"tube.select": "6v6", "amp.bass_boost.on_off": true, "amp.out_master": -10, "bogus.param": 1},
  "pre": [{"unit": "overdrive"}, {"unit": "fumaster", "params": {"fumaster.nonexistent": 1}}, "nosuchunit"],
  "post": [{"unit": "amp.tonestack", "params": {"select": "JCM-800 Style", "Bass": "0.7", "Treble": true}},
@@ -1584,7 +1584,8 @@ void TestMachine::presetGenerator() {
     QVERIFY(!g.busy());
     const QList<QVariant> args = finished.first();
     QVERIFY2(args.at(0).toBool(), qPrintable(args.at(4).toString()));
-    QCOMPARE(args.at(1).toString(), QStringLiteral("Test tone"));
+    // only ASCII names: the engine stops on the others
+    QCOMPARE(args.at(1).toString(), QStringLiteral("Test-tone ete 'x'"));
     QCOMPARE(args.at(2).toString(), QStringLiteral("A test."));
     const QStringList warnings = args.at(3).toStringList();
     for (const char *w : {"nosuchunit", "fumaster.nonexistent", "Stereo unit \"stereoverb\"", "jconv", "biquad",
@@ -1622,8 +1623,30 @@ void TestMachine::presetGenerator() {
     QCOMPARE(m_engine->value(QStringLiteral("amp.bass_boost.on_off")), QJsonValue(1));
     QCOMPARE(m.param(QStringLiteral("amp.out_master"))->value().toDouble(), -10.0);
     QVERIFY(m.unitHasStdValues(QStringLiteral("fumaster")));
+    // positions and pp follow the new order: a saved preset keeps it
+    QTRY_COMPARE(m_engine->value(QStringLiteral("amp.tonestack.position")), QJsonValue(1));
+    QCOMPARE(m_engine->value(QStringLiteral("amp.tonestack.pp")), QJsonValue(0));
+    QCOMPARE(m_engine->value(QStringLiteral("fumaster.position")), QJsonValue(1));
+    QCOMPARE(m_engine->value(QStringLiteral("fumaster.pp")), QJsonValue(1));
+    QCOMPARE(m_engine->value(QStringLiteral("stereoverb.position")), QJsonValue(0));
 
-    // nothing usable: nothing applied
+    // a unit removed by one answer and chosen again by the next one is
+    // switched on again (the engine switched it off without telling)
+    chat.answer(QStringLiteral(R"({"post": ["amp.tonestack"]})"));
+    QCOMPARE(g.generate(QStringLiteral("no fuzz")), QString());
+    QVERIFY(finished.wait(5000));
+    QTRY_COMPARE(m_engine->rack(false), QStringList({QStringLiteral("ampstack"), QStringLiteral("amp.tonestack")}));
+    QCOMPARE(m_engine->value(QStringLiteral("fumaster.on_off")), QJsonValue(0));
+    QVERIFY(!m.param(QStringLiteral("fumaster.on_off"))->value().toBool());
+    chat.answer(QStringLiteral(R"({"pre": ["fumaster"]})"));
+    QCOMPARE(g.generate(QStringLiteral("fuzz again")), QString());
+    QVERIFY(finished.wait(5000));
+    QTRY_COMPARE(m_engine->value(QStringLiteral("fumaster.on_off")), QJsonValue(1));
+
+    // nothing usable: nothing applied (once the last rack change is
+    // renumbered)
+    QTRY_COMPARE(m_engine->value(QStringLiteral("fumaster.position")), QJsonValue(0));
+    QTest::qWait(100);
     m_engine->clearReceived();
     chat.answer(QStringLiteral(R"({"pre": ["nosuchunit"], "notes": "x"})"));
     QCOMPARE(g.generate(QStringLiteral("again")), QString());

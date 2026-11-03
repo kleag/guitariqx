@@ -21,6 +21,7 @@
 #include <QJsonDocument>
 #include <QNetworkReply>
 #include <QNetworkRequest>
+#include <QRandomGenerator>
 #include <QRegularExpression>
 #include <QSettings>
 #include <QUrl>
@@ -66,10 +67,32 @@ const char *kInstructions = R"(You design guitar sounds for the guitarix amp sim
 The signal goes through the mono rack: the units before the amplifier ("pre"), the amplifier (always present), the units after it ("post"), then the stereo rack ("stereo"). Choose the units and set their parameters. Use only the unit ids and parameter names listed below, mono units in "pre" or "post", stereo units in "stereo". Keep the chain realistic: usually 2 to 6 units, drive and fuzz pedals before the amplifier, cabinet and tone units after it, modulation, delay and reverb at the end. Parameters you leave out keep their default value.
 
 Answer with one JSON object only, no other text:
-{"name": "short preset name", "amp": {"parameter": value}, "pre": [{"unit": "id", "params": {"parameter": value}}], "post": [...], "stereo": [...], "notes": "one or two sentences explaining the choices"}
+{"name": "short preset name in plain ASCII", "amp": {"parameter": value}, "pre": [{"unit": "id", "params": {"parameter": value}}], "post": [...], "stereo": [...], "notes": "one or two sentences explaining the choices"}
 
 Parameters are written name=range(default): numbers take a value in the range, 0|1 are switches, ["a", "b"] take one of the quoted labels.
 )";
+
+// The engine stops on presets whose name is not ASCII (see the known
+// problems in docs/features.md): accents are dropped, dashes and quotes
+// replaced, other characters removed
+QString asciiName(const QString& name) {
+    QString out;
+    for (const QChar c : name.normalized(QString::NormalizationForm_KD)) {
+        const char16_t u = c.unicode();
+        if (u >= 0x20 && u < 0x7f) {
+            out += c;
+        } else if ((u >= 0x2010 && u <= 0x2015) || u == 0x2212) {
+            out += QLatin1Char('-');
+        } else if (u == 0x2018 || u == 0x2019) {
+            out += QLatin1Char('\'');
+        } else if (u == 0x201c || u == 0x201d) {
+            out += QLatin1Char('"');
+        } else if (c.isSpace()) {
+            out += QLatin1Char(' ');
+        }
+    }
+    return out.simplified().left(60).trimmed();
+}
 
 QString number(double v) {
     return QString::number(v, 'g', 6);
@@ -366,6 +389,9 @@ QString PresetGenerator::generate(const QString& description) {
     // reason), so it is only sent there
     if (usingDefault()) {
         body.insert(QStringLiteral("reasoning_effort"), QStringLiteral("low"));
+        // identical requests are answered from a cache: a new seed gives a
+        // new answer when the same sound is asked again
+        body.insert(QStringLiteral("seed"), int(QRandomGenerator::global()->bounded(1000000)));
     }
 
     QNetworkRequest req(url);
@@ -445,9 +471,13 @@ void PresetGenerator::onReply(QNetworkReply *reply) {
                                                : tr("The model's answer holds no preset: %1").arg(text.simplified().left(200)));
         return;
     }
+    if (!m_machine.ready()) {
+        emit finished(false, QString(), QString(), QStringList(), tr("Not connected to the engine"));
+        return;
+    }
     QString error;
     const QStringList warnings = apply(preset, &error);
-    emit finished(error.isEmpty(), preset.value(QStringLiteral("name")).toString().simplified(),
+    emit finished(error.isEmpty(), asciiName(preset.value(QStringLiteral("name")).toString()),
                   preset.value(QStringLiteral("notes")).toString().trimmed(), warnings, error);
 }
 

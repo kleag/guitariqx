@@ -286,6 +286,7 @@ private:
     void enqueueEdit(std::function<void(EditDone)> op);
     void runNextEdit();
     void requestRack();
+    void renumberRack(const QStringList& order, bool stereo);
     bool knownUnit(const QString& id) const;
     void pollOutputs();
     QList<Parameter*> unitParameters(const QString& id) const;
@@ -321,6 +322,8 @@ private:
     bool m_nonAsciiPresetsBlock = false;
     QVariantList m_banks;
     QStringList m_rack[2];
+    // the rack was changed here: set the position and pp parameters
+    bool m_renumberRack[2] = {false, false};
     QString m_currentBank;
     QString m_currentPreset;
     QString m_engineState;

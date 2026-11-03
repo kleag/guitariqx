@@ -347,17 +347,54 @@ bool Machine::knownUnit(const QString& id) const {
 void Machine::requestRack() {
     for (int stereo = 0; stereo < 2; ++stereo) {
         m_rpc.call(QStringLiteral("get_rack_unit_order"), {stereo}, [this, stereo](const QJsonValue& r) {
-            QStringList l;
+            QStringList l, all;
             for (const QJsonValue& v : r.toArray()) {
+                all.append(v.toString());
                 if (knownUnit(v.toString())) {
                     l.append(v.toString());
                 }
+            }
+            if (m_renumberRack[stereo]) {
+                m_renumberRack[stereo] = false;
+                renumberRack(all, stereo);
             }
             if (l != m_rack[stereo]) {
                 m_rack[stereo] = l;
                 emit rackChanged();
             }
         });
+    }
+}
+
+// The engine keeps the rack order apart from the units' position and pp
+// (before or after the amplifier) parameters, but a saved preset only
+// holds those, and the order is rebuilt from them when it is loaded. Like
+// RackContainer::renumber() in gx_head, they are set after each change of
+// the rack made here. They are sent even when the local value is the same:
+// the engine does not report all their changes.
+void Machine::renumberRack(const QStringList& order, bool stereo) {
+    int pos = 0;
+    int pre = 1;  // pp: 0 post, 1 pre
+    for (const QString& u : order) {
+        if (u == QLatin1String("ampstack")) {
+            pos = 1;
+            pre = 0;
+            continue;
+        }
+        QJsonArray params;
+        if (Parameter *p = m_params.value(u + QStringLiteral(".position"))) {
+            p->updateFromEngine(pos);
+            params << p->id() << pos;
+        }
+        Parameter *pp = stereo ? nullptr : m_params.value(u + QStringLiteral(".pp"));
+        if (pp) {
+            pp->updateFromEngine(pre);
+            params << pp->id() << pre;
+        }
+        if (!params.isEmpty()) {
+            m_rpc.notify(QStringLiteral("set"), params);
+        }
+        ++pos;
     }
 }
 
@@ -590,6 +627,7 @@ void Machine::setEngineState(const QString& state) {
 void Machine::insertUnit(const QString& id, const QString& before, bool stereo) {
     // insert_rack_unit also moves a unit that is already in the rack
     m_rpc.notify(QStringLiteral("insert_rack_unit"), {id, before, stereo ? 1 : 0});
+    m_renumberRack[stereo ? 1 : 0] = true;
     m_rackTimer.start();
 }
 
@@ -607,6 +645,12 @@ void Machine::addUnit(const QString& id, bool stereo) {
 
 void Machine::removeUnit(const QString& id, bool stereo) {
     m_rpc.notify(QStringLiteral("remove_rack_unit"), {id, stereo ? 1 : 0});
+    // the engine switches the unit off without telling (the parameter is
+    // blocked): switching it on again later would otherwise send nothing
+    if (Parameter *on = m_params.value(id + QStringLiteral(".on_off"))) {
+        on->updateFromEngine(0);
+    }
+    m_renumberRack[stereo ? 1 : 0] = true;
     m_rackTimer.start();
 }
 
