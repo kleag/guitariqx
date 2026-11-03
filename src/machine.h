@@ -19,6 +19,7 @@
 #include "oscilloscope.h"
 #include "parameter.h"
 #include "pluginmanager.h"
+#include "presetgenerator.h"
 #include "rpcclient.h"
 #include "skin.h"
 #include "tuner.h"
@@ -66,6 +67,7 @@ class Machine : public QObject {
     Q_PROPERTY(Skin *skin READ skin CONSTANT)
     Q_PROPERTY(Oscilloscope *oscilloscope READ oscilloscope CONSTANT)
     Q_PROPERTY(PluginManager *pluginManager READ pluginManager CONSTANT)
+    Q_PROPERTY(PresetGenerator *presetGenerator READ presetGenerator CONSTANT)
     // the engine runs on this computer: its files can be read directly
     Q_PROPERTY(bool engineLocal READ engineLocal NOTIFY connectedChanged)
     Q_PROPERTY(QVariantList filePlaces READ filePlaces NOTIFY filePlacesChanged)
@@ -104,6 +106,7 @@ public:
     Skin *skin() { return &m_skin; }
     Oscilloscope *oscilloscope() { return &m_oscilloscope; }
     PluginManager *pluginManager() { return &m_pluginManager; }
+    PresetGenerator *presetGenerator() { return &m_presetGenerator; }
 
     // Makes the engine load the LADSPA/LV2 plugin definitions saved with
     // save_ladspalist (ladspaloader_update_plugins), then reloads the
@@ -201,6 +204,8 @@ public:
     // gx_head's "standard" entry: the unit's standard values
     Q_INVOKABLE void resetUnit(const QString& unit);
     Q_INVOKABLE bool unitHasStdValues(const QString& unit) const;
+    // the parameters a unit preset or a reset of the unit changes
+    QList<Parameter*> unitPresetParameters(const QString& unit) const;
 
     // Files on the engine's computer (see DirModel). The engine lists
     // remote directories from JSON-RPC interface 1.2 on.
@@ -288,7 +293,6 @@ private:
     void fixSequencerLines(int n);
     using PresetsHandler = std::function<void(const QVariantList& presets)>;
     void loadUnitPresets(const QString& unit, PresetsHandler handler);
-    QList<Parameter*> unitPresetParameters(const QString& unit) const;
     void onSequencerPresetStep(Parameter *p, int delta);
 
     static Machine *s_instance;
@@ -299,6 +303,7 @@ private:
     Skin m_skin;
     Oscilloscope m_oscilloscope;
     PluginManager m_pluginManager;
+    PresetGenerator m_presetGenerator;
     QHash<QString, Parameter*> m_params;
     QHash<QString, QVariantMap> m_pluginInfo;
     QVariantList m_pluginList;

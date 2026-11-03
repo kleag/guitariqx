@@ -68,6 +68,7 @@ ApplicationWindow {
         onConnectRequested: connectDialog.open()
         onSkinsRequested: skinDialog.open()
         onPluginsRequested: pluginDialog.open()
+        onGeneratorRequested: generatorDialog.open()
         onMidiMapRequested: midiMapDialog.open()
     }
 
@@ -168,6 +169,10 @@ ApplicationWindow {
 
     PluginManagerDialog {
         id: pluginDialog
+    }
+
+    PresetGeneratorDialog {
+        id: generatorDialog
     }
 
     TunerView {}

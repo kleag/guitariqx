@@ -83,7 +83,7 @@ tablet. Options:
 | `--size WxH` | initial window size (default: the size, or maximized state, of the last session, else 1280x800) |
 | `--dump` | print connection, preset and rack changes on the terminal |
 | `--screenshot FILE` | save a screenshot after `--screenshot-delay` ms and quit (testing) |
-| `--debug-state LIST` | testing without instrument or MIDI device: `tuner:HZ`, `switcher[:STATE]`, `learnmode`, `learn:PARAM`, `midimap`, `saveas`, `files:UNIT`, `bankload`, `banksave:BANK`, `skins`, `unit:UNIT`, `iredit:UNIT`, `sequencer`, `unitpresets:UNIT`, `rackdrag:UNIT`, `rackplace:UNIT`, `plugins[:NAME]` |
+| `--debug-state LIST` | testing without instrument or MIDI device: `tuner:HZ`, `switcher[:STATE]`, `learnmode`, `learn:PARAM`, `midimap`, `saveas`, `files:UNIT`, `bankload`, `banksave:BANK`, `skins`, `unit:UNIT`, `iredit:UNIT`, `sequencer`, `unitpresets:UNIT`, `rackdrag:UNIT`, `rackplace:UNIT`, `plugins[:NAME]`, `generator` |
 
 The connection indicator at the right of the top bar opens the connect
 dialog. guitariqx reconnects automatically when the engine restarts.
@@ -161,6 +161,11 @@ Working:
   of the engine's computer: when it runs elsewhere, the engine lists them
 - mono and stereo racks: on/off, add (at the top, or placed by hand),
   remove, reorder (by drag and drop or up/down buttons), collapse
+- preset generator (menu, "Generate a preset"): describe a sound (a song,
+  an artist, a style), a language model chooses the rack units and their
+  settings, which are applied at once and kept with Save as. A free model
+  (Pollinations) is the default; any OpenAI compatible chat completions
+  service can be set with its API key
 - unit presets: load, save and remove the settings of one rack unit
 - LADSPA/LV2 plugins (menu): choose which plugins of the engine's computer
   are rack units, with their name, category, master slider, dry/wet

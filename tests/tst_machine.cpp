@@ -25,6 +25,8 @@
 #include <QSettings>
 #include <QSignalSpy>
 #include <QStandardPaths>
+#include <QTcpServer>
+#include <QTcpSocket>
 #include <QTemporaryDir>
 #include <QTest>
 #include <cmath>
@@ -87,6 +89,11 @@ private slots:
     void loadModel();
     void ladspaPlugins();
     void pluginsChangedByOtherClient();
+
+    void presetGeneratorPrompt();
+    void presetGenerator();
+    void presetGeneratorErrors();
+    void presetGeneratorSettings();
 
 private:
     void start(int interfaceMinor = 2);
@@ -1460,6 +1467,244 @@ void TestMachine::pluginsChangedByOtherClient() {
     // FakeEngine still has the plugin: the lists come from the engine
     QVERIFY(m.hasParam(amp + QStringLiteral(".on_off")));
     QCOMPARE(m_engine->received(QStringLiteral("parameterlist")).size(), 2);
+}
+
+namespace {
+
+// a chat completions endpoint answering every request with status and
+// body; the last request is kept
+class FakeChatServer {
+public:
+    FakeChatServer() {
+        QObject::connect(&m_server, &QTcpServer::newConnection, [this]() {
+            while (QTcpSocket *s = m_server.nextPendingConnection()) {
+                auto buffer = std::make_shared<QByteArray>();
+                QObject::connect(s, &QTcpSocket::readyRead, s, [this, s, buffer]() {
+                    buffer->append(s->readAll());
+                    const int end = buffer->indexOf("\r\n\r\n");
+                    if (end < 0) {
+                        return;
+                    }
+                    const QByteArray head = buffer->left(end);
+                    qsizetype length = 0;
+                    for (const QByteArray& line : head.split('\n')) {
+                        if (line.toLower().startsWith("content-length:")) {
+                            length = line.mid(15).trimmed().toLongLong();
+                        }
+                    }
+                    if (buffer->size() < end + 4 + length) {
+                        return;
+                    }
+                    headers = QString::fromLatin1(head);
+                    request = QJsonDocument::fromJson(buffer->mid(end + 4, length)).object();
+                    ++requests;
+                    s->write("HTTP/1.1 " + QByteArray::number(status) + " X\r\nContent-Type: application/json\r\n"
+                             "Content-Length: " + QByteArray::number(body.size()) + "\r\nConnection: close\r\n\r\n" + body);
+                    s->disconnectFromHost();
+                });
+                QObject::connect(s, &QTcpSocket::disconnected, s, &QObject::deleteLater);
+            }
+        });
+        m_server.listen(QHostAddress::LocalHost);
+    }
+    QString url() const { return QStringLiteral("http://127.0.0.1:%1/v1/chat/completions").arg(m_server.serverPort()); }
+    // an answer of the model holding content
+    void answer(const QString& content) {
+        status = 200;
+        const QJsonObject o{{QStringLiteral("choices"),
+                             QJsonArray{QJsonObject{{QStringLiteral("message"),
+                                                     QJsonObject{{QStringLiteral("role"), QStringLiteral("assistant")},
+                                                                 {QStringLiteral("content"), content}}}}}}};
+        body = QJsonDocument(o).toJson(QJsonDocument::Compact);
+    }
+
+    int status = 200;
+    QByteArray body;
+    QJsonObject request;
+    QString headers;
+    int requests = 0;
+
+private:
+    QTcpServer m_server;
+};
+
+} // anonymous namespace
+
+void TestMachine::presetGeneratorPrompt() {
+    start();
+    PresetGenerator& g = *m_machine->presetGenerator();
+    const QString prompt = g.systemPrompt();
+    // units that can be added, with their parameters; the amplifier's
+    QVERIFY(prompt.contains(QStringLiteral("\nstereoverb | ")));
+    QVERIFY(prompt.contains(QStringLiteral(" | stereo | ")));
+    QVERIFY(prompt.contains(QStringLiteral("invert=[\"linear\",\"pingpong\"](linear)")));
+    QVERIFY(prompt.contains(QStringLiteral("wet_dry=0..100(50)")));
+    QVERIFY(prompt.contains(QStringLiteral("tube.select=[")));
+    // not the units needing files, nor what does not change the sound
+    for (const char *id : {"jconv", "jconv_mono", "nam", "rtneural", "seq", "dubber", "oscilloscope"}) {
+        QVERIFY2(!prompt.contains(QStringLiteral("\n%1 | ").arg(QLatin1String(id))), id);
+    }
+    QVERIFY(!prompt.contains(QStringLiteral(" s_h=")));
+    QVERIFY(!prompt.contains(QStringLiteral(" on_off=")));
+    QVERIFY(!prompt.contains(QStringLiteral(" position=")));
+    // amp.tonestack is a unit of its own
+    QVERIFY(prompt.contains(QStringLiteral("\namp.tonestack | ")));
+    QVERIFY(!prompt.contains(QStringLiteral("tonestack.Bass")));
+
+    QCOMPARE(PresetGenerator::extractJson(QStringLiteral("<think>{no}</think>Here:\n```json\n{\"a\": {\"b\": 1}}\n```\nEnjoy!")),
+             QJsonObject({{QStringLiteral("a"), QJsonObject{{QStringLiteral("b"), 1}}}}));
+    QVERIFY(PresetGenerator::extractJson(QStringLiteral("no preset")).isEmpty());
+}
+
+void TestMachine::presetGenerator() {
+    QSettings().clear();
+    start();
+    Machine& m = *m_machine;
+    PresetGenerator& g = *m.presetGenerator();
+    FakeChatServer chat;
+    g.setEndpoint(chat.url());
+    g.setModel(QStringLiteral("test-model"));
+    g.setApiKey(QStringLiteral("sk-test"));
+    // the model makes all sorts of mistakes: they must not reach the engine
+    chat.answer(QStringLiteral(R"(Sure! Here is the preset:
+```json
+{"name": "Test tone",
+ "amp": {"tube.select": "6v6", "amp.bass_boost.on_off": true, "amp.out_master": -10, "bogus.param": 1},
+ "pre": [{"unit": "overdrive"}, {"unit": "fumaster", "params": {"fumaster.nonexistent": 1}}, "nosuchunit"],
+ "post": [{"unit": "amp.tonestack", "params": {"select": "JCM-800 Style", "Bass": "0.7", "Treble": true}},
+          {"unit": "stereoverb"}, {"unit": "fumaster"}],
+ "stereo": [{"unit": "stereoverb", "params": {"invert": "pingpong", "wet_dry": 150, "RoomSize": "big"}},
+            {"unit": "jconv"}, {"unit": "biquad"}],
+ "notes": "A test."}
+```)"));
+    QSignalSpy finished(&g, &PresetGenerator::finished);
+    QCOMPARE(g.generate(QStringLiteral("  a test   sound ")), QString());
+    QVERIFY(g.busy());
+    QVERIFY(finished.wait(5000));
+    QVERIFY(!g.busy());
+    const QList<QVariant> args = finished.first();
+    QVERIFY2(args.at(0).toBool(), qPrintable(args.at(4).toString()));
+    QCOMPARE(args.at(1).toString(), QStringLiteral("Test tone"));
+    QCOMPARE(args.at(2).toString(), QStringLiteral("A test."));
+    const QStringList warnings = args.at(3).toStringList();
+    for (const char *w : {"nosuchunit", "fumaster.nonexistent", "Stereo unit \"stereoverb\"", "jconv", "biquad",
+                          "listed twice", "bogus.param", "big", "out of range"}) {
+        QVERIFY2(warnings.join(QLatin1Char('\n')).contains(QLatin1String(w)), w);
+    }
+
+    // the request
+    QCOMPARE(chat.request.value(QStringLiteral("model")).toString(), QStringLiteral("test-model"));
+    QVERIFY(chat.headers.contains(QStringLiteral("Bearer sk-test")));
+    QVERIFY(!chat.request.contains(QStringLiteral("reasoning_effort")));
+    const QJsonArray messages = chat.request.value(QStringLiteral("messages")).toArray();
+    QCOMPARE(messages.size(), 2);
+    QCOMPARE(messages.at(0).toObject().value(QStringLiteral("content")).toString(), g.systemPrompt());
+    QCOMPARE(messages.at(1).toObject().value(QStringLiteral("content")).toString(), QStringLiteral("a test sound"));
+
+    // the rack: chosen units in order around the amplifier, the others gone
+    const QStringList mono{QStringLiteral("overdrive"), QStringLiteral("fumaster"), QStringLiteral("ampstack"),
+                           QStringLiteral("amp.tonestack")};
+    QTRY_COMPARE(m_engine->rack(false), mono);
+    QCOMPARE(m_engine->rack(true), QStringList{QStringLiteral("stereoverb")});
+    QTRY_COMPARE(m.monoRack(), mono);
+    // switched on, set, out of range values clamped, the others reset
+    QCOMPARE(m_engine->value(QStringLiteral("stereoverb.on_off")), QJsonValue(1));
+    QCOMPARE(m_engine->value(QStringLiteral("amp.tonestack.on_off")), QJsonValue(1));
+    QCOMPARE(m_engine->value(QStringLiteral("stereoverb.wet_dry")).toDouble(), 100.0);
+    QCOMPARE(m.param(QStringLiteral("stereoverb.invert"))->value().toInt(), 1);
+    QCOMPARE(m.param(QStringLiteral("stereoverb.RoomSize"))->value().toDouble(), 0.5);
+    QCOMPARE(m.param(QStringLiteral("amp.tonestack.Bass"))->value().toDouble(), 0.7);
+    QCOMPARE(m.param(QStringLiteral("amp.tonestack.Treble"))->value().toDouble(), 1.0);
+    Parameter *stack = m.param(QStringLiteral("amp.tonestack.select"));
+    QCOMPARE(stack->valueLabels().at(stack->value().toInt() - int(stack->lower())), QStringLiteral("JCM-800 Style"));
+    Parameter *tube = m.param(QStringLiteral("tube.select"));
+    QCOMPARE(tube->valueLabels().at(tube->value().toInt() - int(tube->lower())), QStringLiteral("6V6"));
+    QCOMPARE(m_engine->value(QStringLiteral("amp.bass_boost.on_off")), QJsonValue(1));
+    QCOMPARE(m.param(QStringLiteral("amp.out_master"))->value().toDouble(), -10.0);
+    QVERIFY(m.unitHasStdValues(QStringLiteral("fumaster")));
+
+    // nothing usable: nothing applied
+    m_engine->clearReceived();
+    chat.answer(QStringLiteral(R"({"pre": ["nosuchunit"], "notes": "x"})"));
+    QCOMPARE(g.generate(QStringLiteral("again")), QString());
+    QVERIFY(finished.wait(5000));
+    QVERIFY(!finished.last().at(0).toBool());
+    QVERIFY(!finished.last().at(4).toString().isEmpty());
+    QTest::qWait(100);
+    QVERIFY(m_engine->received(QStringLiteral("remove_rack_unit")).isEmpty());
+    QVERIFY(m_engine->received(QStringLiteral("set")).isEmpty());
+}
+
+void TestMachine::presetGeneratorErrors() {
+    QSettings().clear();
+    start();
+    PresetGenerator& g = *m_machine->presetGenerator();
+    FakeChatServer chat;
+    g.setEndpoint(chat.url());
+    QSignalSpy finished(&g, &PresetGenerator::finished);
+    QVERIFY(!g.generate(QStringLiteral("   ")).isEmpty());
+
+    chat.status = 402;
+    chat.body = R"({"error": {"message": "Free limit reached: 1 reply every 45 seconds"}})";
+    QCOMPARE(g.generate(QStringLiteral("x")), QString());
+    QVERIFY(!g.generate(QStringLiteral("x")).isEmpty());  // busy
+    QVERIFY(finished.wait(5000));
+    QVERIFY(!finished.last().at(0).toBool());
+    QVERIFY(finished.last().at(4).toString().contains(QStringLiteral("Free limit reached")));
+    QCOMPARE(chat.requests, 1);
+
+    chat.status = 401;
+    chat.body = R"({"error": "A valid API key is required"})";
+    QCOMPARE(g.generate(QStringLiteral("x")), QString());
+    QVERIFY(finished.wait(5000));
+    QVERIFY(finished.last().at(4).toString().contains(QStringLiteral("API key")));
+
+    chat.answer(QStringLiteral("I cannot do that."));
+    QCOMPARE(g.generate(QStringLiteral("x")), QString());
+    QVERIFY(finished.wait(5000));
+    QVERIFY(finished.last().at(4).toString().contains(QStringLiteral("I cannot do that.")));
+
+    // cancelled: no result
+    finished.clear();
+    QCOMPARE(g.generate(QStringLiteral("x")), QString());
+    g.cancel();
+    QVERIFY(!g.busy());
+    QTest::qWait(200);
+    QCOMPARE(finished.size(), 0);
+
+    // nobody listening
+    g.setEndpoint(QStringLiteral("http://127.0.0.1:1/v1/chat/completions"));
+    QCOMPARE(g.generate(QStringLiteral("x")), QString());
+    QVERIFY(finished.wait(5000));
+    QVERIFY(finished.last().at(4).toString().contains(QStringLiteral("Cannot reach")));
+    g.setEndpoint(QStringLiteral("ftp://example.com"));
+    QVERIFY(!g.generate(QStringLiteral("x")).isEmpty());
+}
+
+void TestMachine::presetGeneratorSettings() {
+    QSettings().clear();
+    {
+        Machine m(nullptr);
+        PresetGenerator& g = *m.presetGenerator();
+        QVERIFY(g.usingDefault());
+        QCOMPARE(g.endpoint(), PresetGenerator::defaultEndpoint());
+        QVERIFY(g.apiKey().isEmpty());
+        g.setEndpoint(QStringLiteral(" http://localhost:11434/v1/chat/completions "));
+        g.setModel(QStringLiteral("llama3"));
+        g.setApiKey(QStringLiteral("key"));
+    }
+    Machine m(nullptr);
+    PresetGenerator& g = *m.presetGenerator();
+    QCOMPARE(g.endpoint(), QStringLiteral("http://localhost:11434/v1/chat/completions"));
+    QCOMPARE(g.model(), QStringLiteral("llama3"));
+    QCOMPARE(g.apiKey(), QStringLiteral("key"));
+    QVERIFY(!g.usingDefault());
+    // not connected
+    QVERIFY(!g.generate(QStringLiteral("x")).isEmpty());
+    g.resetSettings();
+    QVERIFY(g.usingDefault());
+    QVERIFY(g.apiKey().isEmpty());
+    QVERIFY(!QSettings().contains(QStringLiteral("generator/apiKey")));
 }
 
 QTEST_GUILESS_MAIN(TestMachine)

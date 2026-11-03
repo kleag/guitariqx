@@ -27,6 +27,7 @@ Rectangle {
     signal fullScreenRequested()
     signal skinsRequested()
     signal pluginsRequested()
+    signal generatorRequested()
     property bool compact: false
     property bool fullScreen: false
     property bool canToggleFullScreen: true
@@ -173,6 +174,11 @@ Rectangle {
                     enabled: Gx.ready
                     onTriggered: Gx.tuner.toggleSwitcher()
                     MidiLearnArea { paramId: "ui.live_play_switcher" }
+                }
+                MenuItem {
+                    text: qsTr("Generate a preset ...")
+                    enabled: Gx.ready
+                    onTriggered: root.generatorRequested()
                 }
                 MenuItem {
                     text: qsTr("MIDI controllers ...")

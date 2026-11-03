@@ -16,6 +16,10 @@ Its automated tests run with Qt 6.4 and Qt 6.8 on x86_64 and arm64.
 - bank files: import a `.gx` file as a new bank, save a bank to a `.gx` file
 - files: NAM and RTNeural models, convolver impulse responses and looper
   imports, chosen with a single click file chooser, on the engine's computer
+- preset generator (menu): a language model (free by default, or any
+  OpenAI compatible service with the user's API key) chooses the units and
+  settings for a described sound, applied to the racks and saved with
+  Save as
 - mono and stereo racks: on/off, add (at the top, or placed by hand),
   remove, reorder (by drag and drop or up/down buttons), collapse
 - LADSPA/LV2 plugins: choose which plugins of the engine's computer are

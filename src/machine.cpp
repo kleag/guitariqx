@@ -58,9 +58,11 @@ Machine::Machine(QObject *parent)
       m_midi(*this, m_rpc),
       m_oscilloscope(this),
       m_pluginManager(*this, m_rpc),
+      m_presetGenerator(*this),
       m_placeAddedUnits(QSettings().value(QLatin1String(placeAddedUnitsKey), false).toBool()) {
     QQmlEngine::setObjectOwnership(&m_tuner, QQmlEngine::CppOwnership);
     QQmlEngine::setObjectOwnership(&m_pluginManager, QQmlEngine::CppOwnership);
+    QQmlEngine::setObjectOwnership(&m_presetGenerator, QQmlEngine::CppOwnership);
     QQmlEngine::setObjectOwnership(&m_midi, QQmlEngine::CppOwnership);
     QQmlEngine::setObjectOwnership(&m_oscilloscope, QQmlEngine::CppOwnership);
     connect(&m_oscilloscope, &Oscilloscope::mulBufferRequested, this, [this](int n) {

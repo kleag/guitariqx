@@ -55,6 +55,8 @@ set(GUITARIQX_SOURCES
     src/systemkeyboard.h
     src/pluginmanager.cpp
     src/pluginmanager.h
+    src/presetgenerator.cpp
+    src/presetgenerator.h
 )
 
 qt_add_executable(guitariqx
@@ -110,6 +112,7 @@ qt_add_qml_module(guitariqx
         qml/IrEditor.qml
         qml/SequencerDialog.qml
         qml/PluginManagerDialog.qml
+        qml/PresetGeneratorDialog.qml
 )
 
 # the gx_head "Guitarix" skin and the libgxw icons (skins/README.md)

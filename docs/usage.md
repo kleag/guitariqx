@@ -81,6 +81,33 @@ presets can be copied. "Load bank file" in the ⋮ menu of the list imports a
 `.gx` file as a new bank. Bank files are on the computer guitariqx runs on,
 also when the engine runs elsewhere.
 
+### Generating a preset
+
+"Generate a preset" in the ⋮ menu asks a language model for the sound of a
+song, an artist or a style ("the second solo of Comfortably Numb"). The
+model chooses rack units and their settings from those of the connected
+engine, and guitariqx applies them at once: the units the user can add or
+remove are replaced by the model's choice, the amplifier is set, and
+**Save as ...** keeps the result as a preset. The model's choices are
+checked first: unknown units or parameters are skipped and listed. Units
+that need a file (neural models, impulse responses) and the looper,
+sequencer, recorders, meters and oscilloscope are not offered to the
+model.
+
+![Generating a preset](images/generator.png)
+
+By default it uses a free model of [Pollinations](https://pollinations.ai),
+which needs no account but gives one answer every 45 seconds per address.
+Under "Model settings", any service with an OpenAI compatible chat
+completions API can be used instead, with its address, model name and API
+key: OpenAI (`https://api.openai.com/v1/chat/completions`), OpenRouter,
+Mistral, Groq, or a model running locally with Ollama
+(`http://localhost:11434/v1/chat/completions`, no key). "Use the free
+model" goes back to the default. The description and the list of the
+engine's units are sent to that service; nothing is sent before
+**Generate** is tapped. The API key is stored unencrypted in guitariqx's
+settings file (`~/.config/guitarix/guitariqx.conf`).
+
 ## Racks
 
 **+ Add effect** adds a unit at the top of the mono or stereo rack. Each unit has its
