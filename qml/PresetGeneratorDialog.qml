@@ -17,8 +17,9 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Guitariqx
 
-// Describe a sound, a language model chooses the units and settings and
-// they are applied to the rack (Gx.presetGenerator); "Save as" keeps them
+// Describe a sound, a language model chooses the units and settings, which
+// are applied to the rack and saved as a new preset of the chosen bank
+// (Gx.presetGenerator): the preset loaded before is not changed
 Dialog {
     id: root
     readonly property var gen: Gx.presetGenerator
@@ -27,15 +28,30 @@ Dialog {
     property string notes: ""
     property var warnings: []
     property bool generated: false
+    // the bank the preset is saved in
+    property string targetBank: ""
+    // bank to select once the engine created it (see onBankCreated)
+    property string pendingBank: ""
+    readonly property string bankName: bankBox.currentIndex >= 0 && bankBox.currentIndex < bankBox.count
+                                       ? bankBox.model[bankBox.currentIndex] : ""
 
     function generate() {
         error = ""
         generated = false
         warnings = []
         notes = ""
-        const e = gen.generate(description.text)
+        targetBank = bankName
+        const e = gen.generate(description.text, bankName)
         if (e)
             error = e
+    }
+    // the writable banks, keeping the selection (by default the current
+    // bank, if it is writable)
+    function fillBanks(select) {
+        const banks = Gx.writableBanks()
+        const keep = select !== undefined ? select : (bankName !== "" ? bankName : Gx.currentBank)
+        bankBox.model = banks
+        bankBox.currentIndex = Math.max(0, banks.indexOf(keep))
     }
 
     title: qsTr("Generate a preset")
@@ -64,6 +80,7 @@ Dialog {
             open()
         }
     }
+    onAboutToShow: fillBanks()
     onOpened: description.forceActiveFocus()
     onClosed: gen.cancel()
 
@@ -77,8 +94,21 @@ Dialog {
             root.error = error
         }
     }
+    Connections {
+        target: Gx
+        function onBankCreated(name) {
+            if (root.visible)
+                root.pendingBank = name
+        }
+        function onBanksChanged() {
+            if (!root.visible)
+                return
+            root.fillBanks(root.pendingBank !== "" ? root.pendingBank : undefined)
+            root.pendingBank = ""
+        }
+    }
 
-    SavePresetDialog { id: saveDialog }
+    TextInputDialog { id: newBankDialog }
 
     Flickable {
         id: flick
@@ -97,7 +127,7 @@ Dialog {
             Label {
                 Layout.fillWidth: true
                 wrapMode: Text.WordWrap
-                text: qsTr("Describe the sound: a song, an artist, a style. The rack is replaced by the units the model chooses.")
+                text: qsTr("Describe the sound: a song, an artist, a style. The rack is replaced by the units the model chooses, saved as a new preset.")
                 color: Theme.textDim
             }
             TextArea {
@@ -110,10 +140,32 @@ Dialog {
             }
             RowLayout {
                 Layout.fillWidth: true
+                Label { text: qsTr("Bank") }
+                ComboBox {
+                    id: bankBox
+                    Layout.fillWidth: true
+                    enabled: !root.gen.busy
+                }
+                Button {
+                    text: qsTr("New ...")
+                    enabled: !root.gen.busy
+                    onClicked: newBankDialog.ask(qsTr("New bank"), qsTr("Bank name"), "", qsTr("Create"),
+                                                 (name) => Gx.newBank(name))
+                }
+            }
+            Label {
+                Layout.fillWidth: true
+                visible: bankBox.count === 0
+                text: qsTr("No writable bank: create one with \"New ...\"")
+                color: Theme.textDim
+                wrapMode: Text.WordWrap
+            }
+            RowLayout {
+                Layout.fillWidth: true
                 Button {
                     text: root.gen.busy ? qsTr("Cancel") : qsTr("Generate")
                     highlighted: !root.gen.busy
-                    enabled: root.gen.busy || (Gx.ready && description.text.trim() !== "")
+                    enabled: root.gen.busy || (Gx.ready && root.bankName !== "" && description.text.trim() !== "")
                     onClicked: root.gen.busy ? root.gen.cancel() : root.generate()
                 }
                 BusyIndicator {
@@ -129,11 +181,6 @@ Dialog {
                     color: Theme.textDim
                 }
                 Item { Layout.fillWidth: true; visible: !root.gen.busy }
-                Button {
-                    text: qsTr("Save as ...")
-                    visible: root.generated
-                    onClicked: saveDialog.saveAs(Gx.currentBank, root.presetName)
-                }
             }
 
             Label {
@@ -146,8 +193,7 @@ Dialog {
             Label {
                 Layout.fillWidth: true
                 visible: root.generated
-                text: root.presetName !== "" ? qsTr("\"%1\" is applied: try it, then save it.").arg(root.presetName)
-                                             : qsTr("The preset is applied: try it, then save it.")
+                text: qsTr("Saved as \"%1\" in \"%2\" and loaded.").arg(root.presetName).arg(root.targetBank)
                 wrapMode: Text.WordWrap
             }
             Label {

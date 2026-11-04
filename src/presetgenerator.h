@@ -29,8 +29,9 @@ class QNetworkReply;
 /*
  * Preset generator (Gx.presetGenerator): asks a language model for the
  * settings that recreate a sound the user describes ("the solo of
- * Comfortably Numb"), then applies them to the current rack. The user
- * listens and saves the result with "Save as".
+ * Comfortably Numb"), applies them to the rack and saves them as a new
+ * preset of the bank the user chose, which becomes the current one: the
+ * preset loaded before is left as it was saved.
  *
  * The model is reached through the OpenAI compatible chat completions API
  * (OpenAI, OpenRouter, Mistral, Groq, Ollama, Pollinations...). The
@@ -67,10 +68,10 @@ public:
     Q_INVOKABLE void resetSettings();
 
     bool busy() const { return !m_reply.isNull(); }
-    // Sends the description to the model; the result comes with
-    // finished(). Returns an error text, or an empty string when the
-    // request was sent.
-    Q_INVOKABLE QString generate(const QString& description);
+    // Sends the description to the model; the result, saved as a new
+    // preset of bank, comes with finished(). Returns an error text, or an
+    // empty string when the request was sent.
+    Q_INVOKABLE QString generate(const QString& description, const QString& bank);
     Q_INVOKABLE void cancel();
 
     // What the model is told (the instructions and the catalog of units
@@ -89,8 +90,9 @@ public:
 signals:
     void settingsChanged();
     void busyChanged();
-    // ok: the preset was applied; name is the name proposed by the model,
-    // notes its explanation, warnings what was skipped
+    // ok: the preset was applied and saved; name is the name it was saved
+    // under (the model's proposal, made unique in the bank), notes the
+    // model's explanation, warnings what was skipped
     void finished(bool ok, const QString& name, const QString& notes, const QStringList& warnings,
                   const QString& error);
 
@@ -113,4 +115,6 @@ private:
     QString m_endpoint;
     QString m_model;
     QString m_apiKey;
+    // where the preset is saved
+    QString m_bank;
 };

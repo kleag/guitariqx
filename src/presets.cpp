@@ -126,11 +126,42 @@ QString Machine::savePreset(const QString& bankName, const QString& name) {
     }
     // an existing preset is overwritten, the UI asks first
     enqueueEdit([this, bankName, n](EditDone done) {
-        m_rpc.notify(QStringLiteral("save_preset"), {bankName, n});
-        refreshPresetState();
-        done();
+        whenRackSettled([this, bankName, n, done]() {
+            m_rpc.notify(QStringLiteral("save_preset"), {bankName, n});
+            refreshPresetState();
+            done();
+        });
     });
     return QString();
+}
+
+void Machine::saveNewPreset(const QString& bankName, const QString& name,
+                            std::function<void(const QString&, const QString&)> done) {
+    const QString base = clean(name).isEmpty() ? QStringLiteral("Generated") : clean(name);
+    enqueueEdit([this, bankName, base, done](EditDone editDone) {
+        // the bank may have been changed by another client: unknown bank
+        // names crash the engine, duplicate preset names corrupt its state
+        m_rpc.call(QStringLiteral("banks"), {}, [this, bankName, base, done, editDone](const QJsonValue& r) {
+            m_banks = r.toArray().toVariantList();
+            emit banksChanged();
+            if (!bankMutable(bankName)) {
+                done(QString(), bank(bankName).isEmpty() ? tr("Bank \"%1\" not found").arg(bankName)
+                                                         : tr("Bank \"%1\" is read only").arg(bankName));
+                editDone();
+                return;
+            }
+            QString n = base;
+            for (int i = 2; presetExists(bankName, n); ++i) {
+                n = base + QLatin1Char(' ') + QString::number(i);
+            }
+            whenRackSettled([this, bankName, n, done, editDone]() {
+                m_rpc.notify(QStringLiteral("save_preset"), {bankName, n});
+                refreshPresetState();
+                done(n, QString());
+                editDone();
+            });
+        });
+    });
 }
 
 QString Machine::renamePreset(const QString& bankName, const QString& oldName, const QString& newName) {

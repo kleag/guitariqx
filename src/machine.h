@@ -144,6 +144,12 @@ public:
     Q_INVOKABLE bool presetExists(const QString& bank, const QString& preset) const;
     Q_INVOKABLE QString saveCurrent();
     Q_INVOKABLE QString savePreset(const QString& bank, const QString& name);
+    // Saves the current settings as a new preset of bank, which becomes
+    // the current one: name is made unique (" 2", " 3"...) against a fresh
+    // bank list, so no preset is overwritten. done gets the name used, or
+    // an error.
+    void saveNewPreset(const QString& bank, const QString& name,
+                       std::function<void(const QString& name, const QString& error)> done);
     Q_INVOKABLE QString renamePreset(const QString& bank, const QString& oldName, const QString& newName);
     Q_INVOKABLE QString erasePreset(const QString& bank, const QString& name);
     Q_INVOKABLE QString movePreset(const QString& bank, const QString& name, int delta);
@@ -285,7 +291,11 @@ private:
     using EditDone = std::function<void()>;
     void enqueueEdit(std::function<void(EditDone)> op);
     void runNextEdit();
-    void requestRack();
+    // then: called once both racks are read (and renumbered)
+    void requestRack(std::function<void()> then = {});
+    // calls f once the rack changes sent so far are renumbered (a saved
+    // preset holds the positions, not the rack order)
+    void whenRackSettled(std::function<void()> f);
     void renumberRack(const QStringList& order, bool stereo);
     bool knownUnit(const QString& id) const;
     void pollOutputs();

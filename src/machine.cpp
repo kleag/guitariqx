@@ -90,7 +90,7 @@ Machine::Machine(QObject *parent)
     // which change in bursts (preset load)
     m_rackTimer.setInterval(50);
     m_rackTimer.setSingleShot(true);
-    connect(&m_rackTimer, &QTimer::timeout, this, &Machine::requestRack);
+    connect(&m_rackTimer, &QTimer::timeout, this, [this]() { requestRack(); });
     m_presetTimer.setInterval(8000);
     m_presetTimer.setSingleShot(true);
     connect(&m_presetTimer, &QTimer::timeout, this, &Machine::onPresetTimeout);
@@ -344,9 +344,9 @@ bool Machine::knownUnit(const QString& id) const {
     return m_pluginInfo.isEmpty() || m_pluginInfo.contains(id);
 }
 
-void Machine::requestRack() {
+void Machine::requestRack(std::function<void()> then) {
     for (int stereo = 0; stereo < 2; ++stereo) {
-        m_rpc.call(QStringLiteral("get_rack_unit_order"), {stereo}, [this, stereo](const QJsonValue& r) {
+        m_rpc.call(QStringLiteral("get_rack_unit_order"), {stereo}, [this, stereo, then](const QJsonValue& r) {
             QStringList l, all;
             for (const QJsonValue& v : r.toArray()) {
                 all.append(v.toString());
@@ -362,8 +362,21 @@ void Machine::requestRack() {
                 m_rack[stereo] = l;
                 emit rackChanged();
             }
+            // the answers come in order: the stereo one is the last
+            if (stereo && then) {
+                then();
+            }
         });
     }
+}
+
+void Machine::whenRackSettled(std::function<void()> f) {
+    if (!m_rackTimer.isActive() && !m_renumberRack[0] && !m_renumberRack[1]) {
+        f();
+        return;
+    }
+    m_rackTimer.stop();
+    requestRack(std::move(f));
 }
 
 // The engine keeps the rack order apart from the units' position and pp

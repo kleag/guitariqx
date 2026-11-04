@@ -163,7 +163,8 @@ Working:
   remove, reorder (by drag and drop or up/down buttons), collapse
 - preset generator (menu, "Generate a preset"): describe a sound (a song,
   an artist, a style), a language model chooses the rack units and their
-  settings, which are applied at once and kept with Save as. A free model
+  settings, which are applied at once and saved as a new preset of the
+  chosen bank (the loaded preset is left untouched). A free model
   (Pollinations) is the default; any OpenAI compatible chat completions
   service can be set with its API key
 - unit presets: load, save and remove the settings of one rack unit

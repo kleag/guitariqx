@@ -1561,6 +1561,9 @@ void TestMachine::presetGenerator() {
     start();
     Machine& m = *m_machine;
     PresetGenerator& g = *m.presetGenerator();
+    const QString bank = QStringLiteral("Scratchpad");
+    const QString before = m.currentPreset();
+    const QString beforeBank = m.currentBank();
     FakeChatServer chat;
     g.setEndpoint(chat.url());
     g.setModel(QStringLiteral("test-model"));
@@ -1578,7 +1581,7 @@ void TestMachine::presetGenerator() {
  "notes": "A test."}
 ```)"));
     QSignalSpy finished(&g, &PresetGenerator::finished);
-    QCOMPARE(g.generate(QStringLiteral("  a test   sound ")), QString());
+    QCOMPARE(g.generate(QStringLiteral("  a test   sound "), bank), QString());
     QVERIFY(g.busy());
     QVERIFY(finished.wait(5000));
     QVERIFY(!g.busy());
@@ -1587,6 +1590,30 @@ void TestMachine::presetGenerator() {
     // only ASCII names: the engine stops on the others
     QCOMPARE(args.at(1).toString(), QStringLiteral("Test-tone ete 'x'"));
     QCOMPARE(args.at(2).toString(), QStringLiteral("A test."));
+    // saved as a new preset of the chosen bank, after the rack positions
+    // (a saved preset holds them, not the rack order); the preset loaded
+    // before is not saved over
+    QVERIFY(before != args.at(1).toString());
+    QTRY_COMPARE(m.currentPreset(), QStringLiteral("Test-tone ete 'x'"));
+    QCOMPARE(m.currentBank(), bank);
+    QVERIFY(m.presetExists(bank, QStringLiteral("Test-tone ete 'x'")));
+    QVERIFY(m.presetExists(beforeBank, before));
+    QVERIFY(m_engine->received(QStringLiteral("save_current")).isEmpty());
+    {
+        const QList<FakeEngine::Message> all = m_engine->received();
+        int lastPosition = -1, save = -1;
+        for (int i = 0; i < all.size(); ++i) {
+            if (all.at(i).method == QLatin1String("save_preset")) {
+                QCOMPARE(save, -1);
+                save = i;
+            } else if (all.at(i).method == QLatin1String("set")
+                       && all.at(i).params.at(0).toString().endsWith(QLatin1String(".position"))) {
+                lastPosition = i;
+            }
+        }
+        QVERIFY(save > lastPosition && lastPosition >= 0);
+        QCOMPARE(all.at(save).params, QJsonArray({bank, QStringLiteral("Test-tone ete 'x'")}));
+    }
     const QStringList warnings = args.at(3).toStringList();
     for (const char *w : {"nosuchunit", "fumaster.nonexistent", "Stereo unit \"stereoverb\"", "jconv", "biquad",
                           "listed twice", "bogus.param", "big", "out of range"}) {
@@ -1633,14 +1660,18 @@ void TestMachine::presetGenerator() {
     // a unit removed by one answer and chosen again by the next one is
     // switched on again (the engine switched it off without telling)
     chat.answer(QStringLiteral(R"({"post": ["amp.tonestack"]})"));
-    QCOMPARE(g.generate(QStringLiteral("no fuzz")), QString());
+    QCOMPARE(g.generate(QStringLiteral("no fuzz"), bank), QString());
     QVERIFY(finished.wait(5000));
+    // no name: a default one, made unique in the bank
+    QCOMPARE(finished.last().at(1).toString(), QStringLiteral("Generated"));
     QTRY_COMPARE(m_engine->rack(false), QStringList({QStringLiteral("ampstack"), QStringLiteral("amp.tonestack")}));
     QCOMPARE(m_engine->value(QStringLiteral("fumaster.on_off")), QJsonValue(0));
     QVERIFY(!m.param(QStringLiteral("fumaster.on_off"))->value().toBool());
     chat.answer(QStringLiteral(R"({"pre": ["fumaster"]})"));
-    QCOMPARE(g.generate(QStringLiteral("fuzz again")), QString());
+    QCOMPARE(g.generate(QStringLiteral("fuzz again"), bank), QString());
     QVERIFY(finished.wait(5000));
+    QCOMPARE(finished.last().at(1).toString(), QStringLiteral("Generated 2"));
+    QTRY_COMPARE(m.currentPreset(), QStringLiteral("Generated 2"));
     QTRY_COMPARE(m_engine->value(QStringLiteral("fumaster.on_off")), QJsonValue(1));
 
     // nothing usable: nothing applied (once the last rack change is
@@ -1649,28 +1680,35 @@ void TestMachine::presetGenerator() {
     QTest::qWait(100);
     m_engine->clearReceived();
     chat.answer(QStringLiteral(R"({"pre": ["nosuchunit"], "notes": "x"})"));
-    QCOMPARE(g.generate(QStringLiteral("again")), QString());
+    QCOMPARE(g.generate(QStringLiteral("again"), bank), QString());
     QVERIFY(finished.wait(5000));
     QVERIFY(!finished.last().at(0).toBool());
     QVERIFY(!finished.last().at(4).toString().isEmpty());
     QTest::qWait(100);
     QVERIFY(m_engine->received(QStringLiteral("remove_rack_unit")).isEmpty());
     QVERIFY(m_engine->received(QStringLiteral("set")).isEmpty());
+    QVERIFY(m_engine->received(QStringLiteral("save_preset")).isEmpty());
 }
 
 void TestMachine::presetGeneratorErrors() {
     QSettings().clear();
     start();
     PresetGenerator& g = *m_machine->presetGenerator();
+    const QString bank = QStringLiteral("Scratchpad");
     FakeChatServer chat;
     g.setEndpoint(chat.url());
     QSignalSpy finished(&g, &PresetGenerator::finished);
-    QVERIFY(!g.generate(QStringLiteral("   ")).isEmpty());
+    QVERIFY(!g.generate(QStringLiteral("   "), bank).isEmpty());
+    // the new preset needs a writable bank
+    QVERIFY(!g.generate(QStringLiteral("x"), QStringLiteral("Musiclab")).isEmpty());
+    QVERIFY(!g.generate(QStringLiteral("x"), QStringLiteral("No such bank")).isEmpty());
+    QVERIFY(!g.generate(QStringLiteral("x"), QString()).isEmpty());
+    QCOMPARE(chat.requests, 0);
 
     chat.status = 402;
     chat.body = R"({"error": {"message": "Free limit reached: 1 reply every 45 seconds"}})";
-    QCOMPARE(g.generate(QStringLiteral("x")), QString());
-    QVERIFY(!g.generate(QStringLiteral("x")).isEmpty());  // busy
+    QCOMPARE(g.generate(QStringLiteral("x"), bank), QString());
+    QVERIFY(!g.generate(QStringLiteral("x"), bank).isEmpty());  // busy
     QVERIFY(finished.wait(5000));
     QVERIFY(!finished.last().at(0).toBool());
     QVERIFY(finished.last().at(4).toString().contains(QStringLiteral("Free limit reached")));
@@ -1678,18 +1716,18 @@ void TestMachine::presetGeneratorErrors() {
 
     chat.status = 401;
     chat.body = R"({"error": "A valid API key is required"})";
-    QCOMPARE(g.generate(QStringLiteral("x")), QString());
+    QCOMPARE(g.generate(QStringLiteral("x"), bank), QString());
     QVERIFY(finished.wait(5000));
     QVERIFY(finished.last().at(4).toString().contains(QStringLiteral("API key")));
 
     chat.answer(QStringLiteral("I cannot do that."));
-    QCOMPARE(g.generate(QStringLiteral("x")), QString());
+    QCOMPARE(g.generate(QStringLiteral("x"), bank), QString());
     QVERIFY(finished.wait(5000));
     QVERIFY(finished.last().at(4).toString().contains(QStringLiteral("I cannot do that.")));
 
     // cancelled: no result
     finished.clear();
-    QCOMPARE(g.generate(QStringLiteral("x")), QString());
+    QCOMPARE(g.generate(QStringLiteral("x"), bank), QString());
     g.cancel();
     QVERIFY(!g.busy());
     QTest::qWait(200);
@@ -1697,11 +1735,11 @@ void TestMachine::presetGeneratorErrors() {
 
     // nobody listening
     g.setEndpoint(QStringLiteral("http://127.0.0.1:1/v1/chat/completions"));
-    QCOMPARE(g.generate(QStringLiteral("x")), QString());
+    QCOMPARE(g.generate(QStringLiteral("x"), bank), QString());
     QVERIFY(finished.wait(5000));
     QVERIFY(finished.last().at(4).toString().contains(QStringLiteral("Cannot reach")));
     g.setEndpoint(QStringLiteral("ftp://example.com"));
-    QVERIFY(!g.generate(QStringLiteral("x")).isEmpty());
+    QVERIFY(!g.generate(QStringLiteral("x"), bank).isEmpty());
 }
 
 void TestMachine::presetGeneratorSettings() {
@@ -1723,7 +1761,7 @@ void TestMachine::presetGeneratorSettings() {
     QCOMPARE(g.apiKey(), QStringLiteral("key"));
     QVERIFY(!g.usingDefault());
     // not connected
-    QVERIFY(!g.generate(QStringLiteral("x")).isEmpty());
+    QVERIFY(!g.generate(QStringLiteral("x"), QStringLiteral("Scratchpad")).isEmpty());
     g.resetSettings();
     QVERIFY(g.usingDefault());
     QVERIFY(g.apiKey().isEmpty());

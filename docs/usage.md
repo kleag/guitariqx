@@ -87,8 +87,12 @@ also when the engine runs elsewhere.
 song, an artist or a style ("the second solo of Comfortably Numb"). The
 model chooses rack units and their settings from those of the connected
 engine, and guitariqx applies them at once: the units the user can add or
-remove are replaced by the model's choice, the amplifier is set, and
-**Save as ...** keeps the result as a preset. The model's choices are
+remove are replaced by the model's choice and the amplifier is set. The
+result is saved as a new preset of the bank chosen in the dialog (the
+current bank by default, or one made with **New ...**) and becomes the
+current preset: the preset loaded before is not saved over. The preset is
+named by the model, with a number added if the bank already holds that
+name; it can be renamed in the preset list. The model's choices are
 checked first: unknown units or parameters are skipped and listed. Units
 that need a file (neural models, impulse responses) and the looper,
 sequencer, recorders, meters and oscilloscope are not offered to the

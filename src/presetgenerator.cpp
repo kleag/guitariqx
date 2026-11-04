@@ -349,7 +349,7 @@ QJsonObject PresetGenerator::extractJson(const QString& text) {
     return QJsonDocument::fromJson(t.mid(start, end - start + 1).toUtf8()).object();
 }
 
-QString PresetGenerator::generate(const QString& description) {
+QString PresetGenerator::generate(const QString& description, const QString& bank) {
     const QString d = description.simplified();
     if (d.isEmpty()) {
         return tr("Describe the sound first");
@@ -359,6 +359,10 @@ QString PresetGenerator::generate(const QString& description) {
     }
     if (!m_machine.ready()) {
         return tr("Not connected to the engine");
+    }
+    if (!m_machine.bankMutable(bank)) {
+        return m_machine.bank(bank).isEmpty() ? tr("Choose the bank of the new preset")
+                                              : tr("Bank \"%1\" is read only").arg(bank);
     }
     const QUrl url(m_endpoint);
     if (!url.isValid() || (url.scheme() != QLatin1String("http") && url.scheme() != QLatin1String("https"))) {
@@ -405,6 +409,7 @@ QString PresetGenerator::generate(const QString& description) {
     req.setTransferTimeout(kTimeout);
     QNetworkReply *reply = m_nam.post(req, QJsonDocument(body).toJson(QJsonDocument::Compact));
     m_reply = reply;
+    m_bank = bank;
     connect(reply, &QNetworkReply::finished, this, [this, reply]() { onReply(reply); });
     emit busyChanged();
     return QString();
@@ -477,8 +482,16 @@ void PresetGenerator::onReply(QNetworkReply *reply) {
     }
     QString error;
     const QStringList warnings = apply(preset, &error);
-    emit finished(error.isEmpty(), asciiName(preset.value(QStringLiteral("name")).toString()),
-                  preset.value(QStringLiteral("notes")).toString().trimmed(), warnings, error);
+    const QString notes = preset.value(QStringLiteral("notes")).toString().trimmed();
+    if (!error.isEmpty()) {
+        emit finished(false, QString(), notes, warnings, error);
+        return;
+    }
+    m_machine.saveNewPreset(m_bank, asciiName(preset.value(QStringLiteral("name")).toString()),
+                            [this, notes, warnings](const QString& name, const QString& error) {
+        emit finished(error.isEmpty(), name, notes, warnings,
+                      error.isEmpty() ? QString() : tr("The settings are applied but not saved: %1").arg(error));
+    });
 }
 
 QStringList PresetGenerator::apply(const QJsonObject& preset, QString *error) {
