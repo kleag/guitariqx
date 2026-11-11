@@ -25,6 +25,7 @@
 #include <QRegularExpression>
 #include <QSettings>
 #include <QUrl>
+#include <QDebug>
 #include <cmath>
 #if QT_CONFIG(ssl)
 #include <QSslSocket>
@@ -412,6 +413,16 @@ QString PresetGenerator::generate(const QString& description, const QString& ban
     m_bank = bank;
     connect(reply, &QNetworkReply::finished, this, [this, reply]() { onReply(reply); });
     emit busyChanged();
+
+    // Add trace output for debugging
+    qDebug() << "Preset Generator: Sending prompt to LLM:";
+    qDebug() << "System prompt:";
+    qDebug() << systemPrompt();
+    qDebug() << "User prompt:";
+    qDebug() << d;
+    qDebug() << "Full JSON body:";
+    qDebug().noquote() << systemPrompt();
+    qDebug().noquote() << description;
     return QString();
 }
 
@@ -451,13 +462,18 @@ void PresetGenerator::onReply(QNetworkReply *reply) {
             msg = reply->errorString();
         }
         QString text = status ? tr("The model answered with error %1: %2").arg(status).arg(msg)
-                              : tr("Cannot reach the model at %1: %2").arg(QUrl(m_endpoint).host(), msg);
+                               : tr("Cannot reach the model at %1: %2").arg(QUrl(m_endpoint).host(), msg);
         if (status == 401 || status == 403) {
             text += QLatin1Char(' ') + tr("Check the API key in the settings.");
         }
         emit finished(false, QString(), QString(), QStringList(), text);
         return;
     }
+
+    // Add trace output for debugging
+    qDebug() << "Preset Generator: Received response from LLM:";
+    qDebug() << "Full response data:";
+    qDebug().noquote() << QString::fromUtf8(QJsonDocument::fromJson(data).toJson(QJsonDocument::Indented));
 
     const QJsonValue content = answer.value(QStringLiteral("choices")).toArray().at(0).toObject()
                                    .value(QStringLiteral("message")).toObject().value(QStringLiteral("content"));
@@ -550,6 +566,11 @@ QStringList PresetGenerator::apply(const QJsonObject& preset, QString *error) {
         }
         return warnings;
     }
+
+    // Add trace output for debugging
+    qDebug() << "Preset Generator: Applying preset from LLM:";
+    qDebug() << "Received preset JSON:";
+    qDebug().noquote() << QJsonDocument(preset).toJson(QJsonDocument::Indented);
 
     auto setParam = [&warnings](Parameter *p, const QString& name, const QJsonValue& v) {
         QVariant value;

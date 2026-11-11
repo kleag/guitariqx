@@ -1,3 +1,4 @@
+*.kdev*
 .claude
 
 build/

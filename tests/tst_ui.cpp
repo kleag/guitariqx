@@ -54,6 +54,8 @@ void TestUi::states_data() {
     QTest::newRow("main-narrow") << QString() << QStringLiteral("1100x800") << 2 << false << QString();
     QTest::newRow("tuner") << QStringLiteral("tuner:108") << QStringLiteral("1280x800") << 2 << false << QString();
     QTest::newRow("tuner-small") << QStringLiteral("tuner:330") << QStringLiteral("800x480") << 2 << false << QString();
+    QTest::newRow("menu") << QStringLiteral("menu") << QStringLiteral("800x480") << 2 << false << QString();
+    QTest::newRow("menu-portrait") << QStringLiteral("menu") << QStringLiteral("480x800") << 2 << false << QString();
     QTest::newRow("switcher") << QStringLiteral("switcher") << QStringLiteral("1280x800") << 2 << false << QString();
     QTest::newRow("switcher-small") << QStringLiteral("switcher:wait_stop") << QStringLiteral("800x480") << 2 << false << QString();
     QTest::newRow("learnmode") << QStringLiteral("learnmode") << QStringLiteral("1280x800") << 2 << false << QString();

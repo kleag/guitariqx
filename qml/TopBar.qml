@@ -39,30 +39,61 @@ Rectangle {
     readonly property bool stacked: portrait || width < 640
     // stacked preset name size: grows with the width (55 px at 720)
     readonly property int nameSize: Math.max(2 * Theme.fontLarge, Math.round(width / 13))
+    // height of the row of buttons
+    readonly property int barHeight: Theme.touchLive + 8
 
-    implicitHeight: stacked ? presetRow.implicitHeight + 2 * Theme.spacing + Theme.touch + 20
-                            : Theme.touch + 20
+    // the menu, for screenshots and tests
+    readonly property bool debugMenu: {
+        const args = Qt.application.arguments
+        const i = args.indexOf("--debug-state")
+        return i >= 0 && i + 1 < args.length && args[i + 1].split(",").indexOf("menu") >= 0
+    }
+    // opened once connected, when the window is laid out
+    readonly property bool debugMenuOpen: debugMenu && Gx.ready
+    onDebugMenuOpenChanged: if (debugMenuOpen) menu.open()
+
+    implicitHeight: stacked ? presetRow.implicitHeight + 2 * Theme.spacing + barHeight
+                            : barHeight
     color: Theme.panel
+
+    // everything here is used while playing: large enough to be hit at once
+    // (Material's minimum width and wide padding are dropped so that the
+    // row fits 480 px)
+    component LiveButton: Button {
+        font.pixelSize: Theme.fontLive
+        implicitHeight: Theme.touchLive
+        leftPadding: 10
+        rightPadding: 10
+        implicitWidth: Math.max(Theme.touchLive, implicitContentWidth + leftPadding + rightPadding)
+    }
+    component GlyphButton: ToolButton {
+        font.pixelSize: Theme.fontLiveGlyph
+        implicitWidth: Theme.touchLive - 8
+        implicitHeight: Theme.touchLive
+    }
+    component LiveMenuItem: MenuItem {
+        font.pixelSize: Theme.fontLive
+        implicitHeight: Theme.touchLive
+    }
 
     RowLayout {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        height: Theme.touch + 20
+        height: root.barHeight
         anchors.leftMargin: Theme.spacing
         anchors.rightMargin: Theme.spacing
-        spacing: root.stacked ? 0 : Theme.spacing
+        spacing: root.stacked ? 0 : Theme.spacing / 2
 
-        ToolButton {
+        GlyphButton {
             text: "☰"
             visible: !root.stacked
-            font.pixelSize: Theme.fontLarge
             onClicked: root.presetsRequested()
             ToolTip.visible: hovered
             ToolTip.text: qsTr("Presets")
         }
 
-        RoundButton {
+        GlyphButton {
             text: "◀"
             visible: !root.stacked
             enabled: Gx.ready
@@ -92,7 +123,7 @@ Rectangle {
             TapHandler { onTapped: root.presetsRequested() }
         }
 
-        RoundButton {
+        GlyphButton {
             text: "▶"
             visible: !root.stacked
             enabled: Gx.ready
@@ -109,7 +140,7 @@ Rectangle {
                     { state: "bypassed", label: qsTr("Bypass"), param: "engine.bypass" },
                     { state: "stopped", label: qsTr("Mute"), param: "engine.mute" },
                 ]
-                Button {
+                LiveButton {
                     required property var modelData
                     text: modelData.label
                     checkable: true
@@ -124,7 +155,7 @@ Rectangle {
         }
 
         // the tuner view follows system.show_tuner (see TunerView.qml)
-        Button {
+        LiveButton {
             readonly property Parameter show: Gx.ready ? Gx.param("system.show_tuner") : null
             text: qsTr("Tuner")
             enabled: show !== null
@@ -132,7 +163,7 @@ Rectangle {
             MidiLearnArea { paramId: "system.show_tuner" }
         }
 
-        Button {
+        LiveButton {
             text: qsTr("MIDI")
             checkable: true
             checked: Gx.midi.learnMode
@@ -162,43 +193,45 @@ Rectangle {
             Layout.fillWidth: true
         }
 
-        ToolButton {
+        GlyphButton {
             text: "\u22EE"
-            font.pixelSize: Theme.fontLarge
             onClicked: menu.open()
             Menu {
                 id: menu
                 y: parent.height
-                MenuItem {
+                // wide enough for the larger font, within the window
+                width: Math.min(340, root.width - 2 * Theme.spacing)
+                font.pixelSize: Theme.fontLive
+                LiveMenuItem {
                     text: qsTr("Preset by note ...")
                     enabled: Gx.ready
                     onTriggered: Gx.tuner.toggleSwitcher()
                     MidiLearnArea { paramId: "ui.live_play_switcher" }
                 }
-                MenuItem {
+                LiveMenuItem {
                     text: qsTr("Generate a preset ...")
                     enabled: Gx.ready
                     onTriggered: root.generatorRequested()
                 }
-                MenuItem {
+                LiveMenuItem {
                     text: qsTr("MIDI controllers ...")
                     enabled: Gx.ready
                     onTriggered: root.midiMapRequested()
                 }
-                MenuItem {
+                LiveMenuItem {
                     text: qsTr("LADSPA/LV2 plugins ...")
                     enabled: Gx.ready
                     onTriggered: root.pluginsRequested()
                 }
-                MenuItem {
+                LiveMenuItem {
                     text: qsTr("Skin ...")
                     onTriggered: root.skinsRequested()
                 }
-                MenuItem {
+                LiveMenuItem {
                     text: qsTr("Connect to engine ...")
                     onTriggered: root.connectRequested()
                 }
-                MenuItem {
+                LiveMenuItem {
                     text: root.fullScreen ? qsTr("Leave full screen") : qsTr("Full screen")
                     visible: root.canToggleFullScreen
                     height: visible ? implicitHeight : 0
@@ -207,12 +240,17 @@ Rectangle {
             }
         }
 
-        // connection indicator
-        Rectangle {
-            width: 12
-            height: 12
-            radius: 6
-            color: Gx.ready ? Theme.meterLow : Gx.connected ? Theme.meterMid : Theme.meterHigh
+        // connection indicator, with a touch sized tap area
+        Item {
+            implicitWidth: 28
+            implicitHeight: Theme.touchLive
+            Rectangle {
+                anchors.centerIn: parent
+                width: 16
+                height: 16
+                radius: 8
+                color: Gx.ready ? Theme.meterLow : Gx.connected ? Theme.meterMid : Theme.meterHigh
+            }
             TapHandler { onTapped: root.connectRequested() }
         }
     }
@@ -226,13 +264,12 @@ Rectangle {
         anchors.margins: Theme.spacing
         spacing: Theme.spacing
 
-        ToolButton {
+        GlyphButton {
             text: "☰"
-            font.pixelSize: Theme.fontLarge
             onClicked: root.presetsRequested()
         }
 
-        RoundButton {
+        GlyphButton {
             text: "◀"
             enabled: Gx.ready
             onClicked: Gx.stepPreset(-1)
@@ -270,7 +307,7 @@ Rectangle {
             TapHandler { onTapped: root.presetsRequested() }
         }
 
-        RoundButton {
+        GlyphButton {
             text: "▶"
             enabled: Gx.ready
             onClicked: Gx.stepPreset(1)

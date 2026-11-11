@@ -182,6 +182,7 @@ MIDI device or clicks (comma separated):
 | `files:UNIT` | the file chooser of a rack unit (which must be in the rack) |
 | `bankload`, `banksave:BANK` | the bank file choosers |
 | `skins` | the skin dialog |
+| `menu` | the top bar menu |
 | `unit:UNIT` | adds UNIT at the top of its rack (if missing) and switches it on |
 | `iredit:UNIT` | the IR editor of a convolver (`jconv`, `jconv_mono`) |
 | `sequencer` | the drum sequencer (with `unit:seq`) |

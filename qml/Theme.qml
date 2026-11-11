@@ -57,6 +57,12 @@ QtObject {
 
     // touch friendly minimum size of interactive items
     readonly property int touch: 40
+    // controls used while playing (top bar, its menu, the tuner): they are
+    // hit standing, at arm's length, so they are larger
+    readonly property int touchLive: 56
+    readonly property int fontLive: 20
+    // glyph buttons (☰ ◀ ▶ ⋮) need a larger size to look as big as words
+    readonly property int fontLiveGlyph: 28
     readonly property int spacing: 8
     readonly property int radius: 6
     readonly property int fontSmall: 11

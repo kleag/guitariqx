@@ -55,21 +55,29 @@ Popup {
 
         RowLayout {
             Layout.fillWidth: true
+            spacing: Theme.spacing
             Label {
                 text: qsTr("Tuner")
-                font.pixelSize: Theme.fontLarge
+                font.pixelSize: Theme.fontLive
                 font.bold: true
                 color: Theme.textDim
             }
             Item { Layout.fillWidth: true }
+            // used while playing: as large as the top bar buttons
             Switch {
                 text: qsTr("Mute while tuning")
                 checked: Gx.tuner.muteWhileTuning
+                font.pixelSize: Theme.fontLive
+                implicitHeight: Theme.touchLive
                 // the tuner mutes or restores the engine at once
                 onToggled: Gx.tuner.muteWhileTuning = checked
             }
             Button {
                 text: qsTr("Close")
+                font.pixelSize: Theme.fontLive
+                font.bold: true
+                implicitHeight: Theme.touchLive
+                Layout.preferredWidth: Math.max(implicitWidth, 2 * Theme.touchLive)
                 onClicked: root.close()
                 MidiLearnArea { paramId: "system.show_tuner" }
             }
@@ -155,7 +163,7 @@ Popup {
             Text {
                 text: "♭"
                 color: Theme.textDim
-                font.pixelSize: Theme.fontLarge
+                font.pixelSize: Theme.fontLiveGlyph
             }
             Item { Layout.fillWidth: true }
             Text {
@@ -164,13 +172,13 @@ Popup {
                             .arg(root.tuner.cents >= 0 ? "+" : "").arg(root.tuner.cents.toFixed(1))
                       : qsTr("Play a string")
                 color: Theme.textDim
-                font.pixelSize: Theme.fontNormal
+                font.pixelSize: Theme.fontLive
             }
             Item { Layout.fillWidth: true }
             Text {
                 text: "♯"
                 color: Theme.textDim
-                font.pixelSize: Theme.fontLarge
+                font.pixelSize: Theme.fontLiveGlyph
             }
         }
 
