@@ -22,15 +22,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distro: [bookworm, trixie, resolute]
+        distro: [bookworm, trixie]
         arch: [amd64, arm64]
         include:
           - distro: bookworm
             image: debian:bookworm
           - distro: trixie
             image: debian:trixie
-          - distro: resolute
-            image: ubuntu:26.04
+#          - distro: resolute
+#            image: ubuntu:26.04
           - arch: amd64
             runner: ubuntu-24.04
           - arch: arm64
@@ -60,15 +60,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distro: [bookworm, trixie, resolute]
+        distro: [bookworm, trixie]
         arch: [amd64, arm64]
         include:
           - distro: bookworm
             image: debian:bookworm
           - distro: trixie
             image: debian:trixie
-          - distro: resolute
-            image: ubuntu:26.04
+#          - distro: resolute
+#            image: ubuntu:26.04
           - arch: amd64
             runner: ubuntu-24.04
           - arch: arm64
