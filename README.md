@@ -31,7 +31,7 @@ Ubuntu 26.04, on x86_64 and arm64 (Raspberry Pi 4/5). The
 packages as files:
 
 ```sh
-sudo apt install ./guitariqx_1.1.3-1.bookworm_arm64.deb
+sudo apt install ./guitariqx_1.1.4-1.bookworm_arm64.deb
 ```
 
 ## Build
