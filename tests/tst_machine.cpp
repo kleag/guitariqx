@@ -683,6 +683,11 @@ void TestMachine::midiLearnRefusesOutputs() {
     MidiMap *midi = m_machine->midi();
     QVERIFY(!midi->isLearnable(QStringLiteral("graphiceq.v1")));
     QVERIFY(!midi->isLearnable(QStringLiteral("no.such.param")));
+    // the looper's transport switches are outputs the engine lets MIDI control
+    QVERIFY(midi->isLearnable(QStringLiteral("dubber.play1")));
+    QVERIFY(midi->isLearnable(QStringLiteral("dubber.od1")));
+    QVERIFY(midi->isLearnable(QStringLiteral("dubber.rec1")));
+    QVERIFY(!midi->isLearnable(QStringLiteral("dubber.bar1")));
     midi->startLearn(QStringLiteral("graphiceq.v1"));
     QVERIFY(!midi->learning());
     // committing without learning sends nothing

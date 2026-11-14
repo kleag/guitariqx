@@ -56,7 +56,9 @@ Parameter *Parameter::fromJson(const QString& tag, const QJsonObject& entry, QOb
     p->m_log = base.value(QStringLiteral("d_flags")).toInt() & dtp_log;
     p->m_output = base.value(QStringLiteral("output")).toInt();
     p->m_maxlevel = base.value(QStringLiteral("maxlevel")).toInt();
-    p->m_controllable = !base.value(QStringLiteral("non_controllable")).toInt();
+    // the engine marks a parameter that MIDI cannot control by the presence of
+    // the key, written with the value false (ParameterV::serializeJSON)
+    p->m_controllable = !base.contains(QStringLiteral("non_controllable"));
     p->m_inPreset = !base.value(QStringLiteral("do_not_save")).toInt();
     const int ctype = base.value(QStringLiteral("c_type")).toInt();
     p->m_ctype = ctype;

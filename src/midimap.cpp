@@ -111,7 +111,9 @@ QVariantMap MidiMap::assignment(const QString& id) const {
 
 bool MidiMap::isLearnable(const QString& id) const {
     Parameter *p = m_machine.param(id);
-    if (!p || p->isOutput() || !p->isControllable()) {
+    // outputs registered with "o" (the looper's record, play, overdub...) stay
+    // controllable; meters and other pure outputs ("O") are non controllable
+    if (!p || !p->isControllable()) {
         return false;
     }
     const int t = p->controlType();

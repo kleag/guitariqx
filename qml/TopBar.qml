@@ -37,8 +37,8 @@ Rectangle {
     // portrait or narrow screen: the preset name gets its own, larger row
     // above the buttons (presetRow), so that it can be read standing up
     readonly property bool stacked: portrait || width < 640
-    // stacked preset name size: grows with the width (55 px at 720)
-    readonly property int nameSize: Math.max(2 * Theme.fontLarge, Math.round(width / 13))
+    // stacked preset name size: grows with the width (36 px at 720)
+    readonly property int nameSize: Math.max(Theme.fontLive + 4, Math.round(width / 20))
     // height of the row of buttons
     readonly property int barHeight: Theme.touchLive + 8
 
