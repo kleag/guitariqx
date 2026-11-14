@@ -81,6 +81,19 @@ presets can be copied. "Load bank file" in the ⋮ menu of the list imports a
 `.gx` file as a new bank. Bank files are on the computer guitariqx runs on,
 also when the engine runs elsewhere.
 
+### Restoring the last preset
+
+The engine saves its state only after 10 to 30 seconds without change, so
+after a power cut (a pedalboard unplugged) or a crash it comes back with an
+older preset. So guitariqx saves the current preset on every change,
+whoever changes it (this interface, another one, a MIDI controller), and
+loads it again each time it connects to that engine. **Restore last
+preset** in the menu (⋮), on by default, switches this off and on. It is kept in `~/.local/share/guitarix/guitariqx/last-preset.json`,
+replaced atomically: a power cut at any moment leaves the previous preset or
+the new one. A preset that no longer exists is not loaded. Changes made
+while guitariqx is not running are not seen: its next start brings its own
+last preset back.
+
 ### Generating a preset
 
 "Generate a preset" in the ⋮ menu asks a language model for the sound of a

@@ -20,8 +20,11 @@
 #include "machine.h"
 #include "uitree.h"
 
+#include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QJsonDocument>
+#include <QJsonObject>
 #include <QSettings>
 #include <QSignalSpy>
 #include <QStandardPaths>
@@ -31,6 +34,7 @@
 #include <QTest>
 #include <cmath>
 #include <memory>
+#include <optional>
 
 class TestMachine : public QObject {
     Q_OBJECT
@@ -71,6 +75,10 @@ private slots:
     void tunerDisplayRequest();
     void tunerMuteIsSaved();
     void placeAddedUnitsIsSaved();
+    void lastPresetRestored();
+    void lastPresetRestoredOnReconnect();
+    void lastPresetUnknownNotLoaded();
+    void lastPresetOffWritesNothing();
     void tunerMutesEngine();
     void shutdownRestoresEngine();
     void switcherDisplay();
@@ -128,6 +136,11 @@ void TestMachine::cleanup() {
     Machine::setInstance(nullptr);
     m_engine.reset();
     qunsetenv("GUITARIQX_REMOTE_FILES");
+    // restorePreset is on by default: a later test on the same port must
+    // not load this one's preset
+    if (!QTest::currentTestFunction() || !QByteArray(QTest::currentTestFunction()).startsWith("lastPreset")) {
+        QFile::remove(Machine::lastPresetFile());
+    }
 }
 
 void TestMachine::connectsAndLoads() {
@@ -833,6 +846,116 @@ void TestMachine::placeAddedUnitsIsSaved() {
     // a new session reads it back
     start();
     QVERIFY(m_machine->placeAddedUnits());
+}
+
+namespace {
+
+QJsonObject readLastPreset() {
+    QFile f(Machine::lastPresetFile());
+    if (!f.open(QIODevice::ReadOnly)) {
+        return {};
+    }
+    return QJsonDocument::fromJson(f.readAll()).object();
+}
+
+// on: the default when not set
+void resetLastPreset(std::optional<bool> on = std::nullopt) {
+    QSettings().clear();
+    QFile::remove(Machine::lastPresetFile());
+    if (on) {
+        QSettings().setValue(QStringLiteral("ui/restorePreset"), *on);
+    }
+}
+
+const QString musiclab = QStringLiteral("Musiclab");
+const QString angie = QStringLiteral("Acoustic - Angie");
+const QString stairway = QStringLiteral("Acoustic - Stairway To Heaven");
+
+} // anonymous namespace
+
+void TestMachine::lastPresetRestored() {
+    resetLastPreset();
+    start();
+    // on by default
+    QVERIFY(m_machine->restorePreset());
+    m_machine->setPreset(musiclab, stairway);
+    QTRY_COMPARE(readLastPreset().value(QStringLiteral("preset")).toString(), stairway);
+    QCOMPARE(readLastPreset().value(QStringLiteral("bank")).toString(), musiclab);
+    const quint16 port = m_engine->port();
+    cleanup();
+    // a new session, the engine starts again with another preset (the
+    // fixture's: its state was saved before the last change): the saved
+    // one is loaded
+    m_engine = std::make_unique<FakeEngine>();
+    QVERIFY(m_engine->listen(port));
+    m_machine = std::make_unique<Machine>(nullptr);
+    Machine::setInstance(m_machine.get());
+    m_machine->connectTo(QStringLiteral("127.0.0.1"), port);
+    QTRY_VERIFY(m_machine->ready());
+    QTRY_COMPARE(m_machine->currentPreset(), stairway);
+    QCOMPARE(m_engine->received(QStringLiteral("setpreset")).size(), 1);
+    QCOMPARE(readLastPreset().value(QStringLiteral("preset")).toString(), stairway);
+}
+
+void TestMachine::lastPresetRestoredOnReconnect() {
+    resetLastPreset(true);
+    start();
+    m_machine->setPreset(musiclab, stairway);
+    QTRY_COMPARE(readLastPreset().value(QStringLiteral("preset")).toString(), stairway);
+    // the engine restarts with an older preset (parameterlist gives the
+    // fixture's): reading it on connection must not overwrite the saved
+    // one before it is restored
+    m_engine->disconnectClients();
+    QTRY_VERIFY(!m_machine->ready());
+    m_engine->clearReceived();
+    QTRY_VERIFY_WITH_TIMEOUT(m_machine->ready(), 10000);
+    QTRY_COMPARE(m_machine->currentPreset(), stairway);
+    QCOMPARE(m_engine->received(QStringLiteral("setpreset")).size(), 1);
+    QTest::qWait(500);
+    QCOMPARE(readLastPreset().value(QStringLiteral("preset")).toString(), stairway);
+}
+
+void TestMachine::lastPresetUnknownNotLoaded() {
+    resetLastPreset(true);
+    start();
+    const quint16 port = m_engine->port();
+    cleanup();
+    // saved for this engine, but the bank was removed since
+    QFile f(Machine::lastPresetFile());
+    QVERIFY(QDir().mkpath(QFileInfo(f).absolutePath()));
+    QVERIFY(f.open(QIODevice::WriteOnly));
+    f.write(QJsonDocument(QJsonObject{
+        {QStringLiteral("host"), QStringLiteral("127.0.0.1")},
+        {QStringLiteral("port"), int(port)},
+        {QStringLiteral("bank"), QStringLiteral("Removed bank")},
+        {QStringLiteral("preset"), angie},
+    }).toJson());
+    f.close();
+    m_engine = std::make_unique<FakeEngine>();
+    QVERIFY(m_engine->listen(port));
+    m_machine = std::make_unique<Machine>(nullptr);
+    Machine::setInstance(m_machine.get());
+    m_machine->connectTo(QStringLiteral("127.0.0.1"), port);
+    QTRY_VERIFY(m_machine->ready());
+    QTest::qWait(500);
+    QVERIFY(m_engine->received(QStringLiteral("setpreset")).isEmpty());
+    // the engine's current preset replaces it
+    QCOMPARE(readLastPreset().value(QStringLiteral("bank")).toString(), m_machine->currentBank());
+}
+
+void TestMachine::lastPresetOffWritesNothing() {
+    resetLastPreset(false);
+    start();
+    QVERIFY(!m_machine->restorePreset());
+    m_machine->setPreset(musiclab, stairway);
+    QTRY_COMPARE(m_machine->currentPreset(), stairway);
+    QTest::qWait(500);
+    QVERIFY(!QFile::exists(Machine::lastPresetFile()));
+    // switching it on saves the current preset
+    QSignalSpy changed(m_machine.get(), &Machine::restorePresetChanged);
+    m_machine->setRestorePreset(true);
+    QCOMPARE(changed.size(), 1);
+    QTRY_COMPARE(readLastPreset().value(QStringLiteral("preset")).toString(), stairway);
 }
 
 void TestMachine::tunerMutesEngine() {

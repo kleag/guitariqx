@@ -23,6 +23,20 @@
 
 #include "machine.h"
 
+#include <QDebug>
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QSaveFile>
+#include <QStandardPaths>
+
+#ifdef Q_OS_UNIX
+#include <fcntl.h>
+#include <unistd.h>
+#endif
+
 namespace {
 
 QString clean(const QString& name) {
@@ -334,4 +348,100 @@ QString Machine::moveBank(const QString& name, int delta) {
         });
     });
     return QString();
+}
+
+// Last preset: with restorePreset on, the current preset is saved on every
+// change and loaded again on each connection to the same engine. The engine
+// saves its own state only after 10 to 30 s without change (and only with
+// autosave), so after a power cut (a pedalboard unplugged) or a crash it
+// would come back with an older preset.
+//
+// The file is replaced atomically (QSaveFile: written, flushed to disk,
+// then renamed over the old one, and the directory is flushed too), so a
+// power cut at any moment leaves either the previous preset or the new
+// one, never a truncated file.
+
+QString Machine::lastPresetFile() {
+    return QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)
+           + QStringLiteral("/last-preset.json");
+}
+
+void Machine::onPresetChangedForSave() {
+    // "" / "" when the engine settings are not a preset (preset_changed)
+    if (!m_restorePreset || !m_presetSaveOpen || m_currentBank.isEmpty() || m_currentPreset.isEmpty()) {
+        return;
+    }
+    m_pendingSaveBank = m_currentBank;
+    m_pendingSavePreset = m_currentPreset;
+    m_presetSaveTimer.start();
+}
+
+void Machine::saveLastPreset() {
+    m_presetSaveTimer.stop();
+    if (m_pendingSaveBank.isEmpty()
+        || (m_pendingSaveBank == m_savedBank && m_pendingSavePreset == m_savedPreset)) {
+        return;
+    }
+    const QString file = lastPresetFile();
+    const QString dir = QFileInfo(file).absolutePath();
+    QDir().mkpath(dir);
+    const QJsonObject o{
+        {QStringLiteral("host"), m_rpc.host()},
+        {QStringLiteral("port"), int(m_rpc.port())},
+        {QStringLiteral("bank"), m_pendingSaveBank},
+        {QStringLiteral("preset"), m_pendingSavePreset},
+    };
+    const QByteArray data = QJsonDocument(o).toJson(QJsonDocument::Compact);
+    QSaveFile out(file);
+    // commit() flushes the data to disk before renaming
+    if (!out.open(QIODevice::WriteOnly) || out.write(data) != data.size() || !out.commit()) {
+        qWarning() << "cannot save the last preset to" << file << ":" << out.errorString();
+        return;
+    }
+#ifdef Q_OS_UNIX
+    // the rename itself is only durable once the directory is flushed
+    const int fd = ::open(QFile::encodeName(dir).constData(), O_RDONLY | O_DIRECTORY);
+    if (fd >= 0) {
+        ::fsync(fd);
+        ::close(fd);
+    }
+#endif
+    m_savedBank = m_pendingSaveBank;
+    m_savedPreset = m_pendingSavePreset;
+}
+
+void Machine::restoreLastPreset() {
+    // the engine's current preset was read with the parameters (banks are
+    // known too: the server answers in order)
+    m_presetSaveOpen = true;
+    if (!m_restorePreset) {
+        return;
+    }
+    QFile in(lastPresetFile());
+    QJsonObject o;
+    if (in.open(QIODevice::ReadOnly)) {
+        o = QJsonDocument::fromJson(in.readAll()).object();
+    }
+    const QString bank = o.value(QStringLiteral("bank")).toString();
+    const QString preset = o.value(QStringLiteral("preset")).toString();
+    if (o.value(QStringLiteral("host")).toString() != m_rpc.host()
+        || o.value(QStringLiteral("port")).toInt() != int(m_rpc.port()) || bank.isEmpty()
+        || preset.isEmpty()) {
+        // nothing saved for this engine: start from its current preset
+        onPresetChangedForSave();
+        return;
+    }
+    m_savedBank = bank;
+    m_savedPreset = preset;
+    if (bank == m_currentBank && preset == m_currentPreset) {
+        // loading it again would reset what was changed since
+        return;
+    }
+    // an unknown bank name would crash the engine
+    if (!presetExists(bank, preset)) {
+        qWarning() << "last preset" << bank << "/" << preset << "no longer exists";
+        onPresetChangedForSave();
+        return;
+    }
+    setPreset(bank, preset);
 }

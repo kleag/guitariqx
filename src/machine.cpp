@@ -47,6 +47,7 @@ const char *listenTokens[] = {
 };
 
 const char *placeAddedUnitsKey = "ui/placeAddedUnits";
+const char *restorePresetKey = "ui/restorePreset";
 
 } // anonymous namespace
 
@@ -59,7 +60,8 @@ Machine::Machine(QObject *parent)
       m_oscilloscope(this),
       m_pluginManager(*this, m_rpc),
       m_presetGenerator(*this),
-      m_placeAddedUnits(QSettings().value(QLatin1String(placeAddedUnitsKey), false).toBool()) {
+      m_placeAddedUnits(QSettings().value(QLatin1String(placeAddedUnitsKey), false).toBool()),
+      m_restorePreset(QSettings().value(QLatin1String(restorePresetKey), true).toBool()) {
     QQmlEngine::setObjectOwnership(&m_tuner, QQmlEngine::CppOwnership);
     QQmlEngine::setObjectOwnership(&m_pluginManager, QQmlEngine::CppOwnership);
     QQmlEngine::setObjectOwnership(&m_presetGenerator, QQmlEngine::CppOwnership);
@@ -94,6 +96,10 @@ Machine::Machine(QObject *parent)
     m_presetTimer.setInterval(8000);
     m_presetTimer.setSingleShot(true);
     connect(&m_presetTimer, &QTimer::timeout, this, &Machine::onPresetTimeout);
+    m_presetSaveTimer.setInterval(300);
+    m_presetSaveTimer.setSingleShot(true);
+    connect(&m_presetSaveTimer, &QTimer::timeout, this, &Machine::saveLastPreset);
+    connect(this, &Machine::presetChanged, this, &Machine::onPresetChangedForSave);
 }
 
 Machine::~Machine() {
@@ -121,12 +127,16 @@ void Machine::connectTo(const QString& host, int port) {
 }
 
 void Machine::shutdown() {
+    if (m_presetSaveTimer.isActive()) {
+        saveLastPreset();
+    }
     m_tuner.setActive(false);
     m_midi.stopLearn();
     m_rpc.flush(1000);
 }
 
 void Machine::onConnected() {
+    m_presetSaveOpen = false;
     // the engine's files can be read directly when it runs on this computer
     const QHostAddress peer = m_rpc.peerAddress();
     m_engineLocal = peer.isLoopback() || QNetworkInterface::allAddresses().contains(peer);
@@ -166,6 +176,7 @@ void Machine::onConnected() {
                     m_engineState = r.toString();
                     emit engineStateChanged();
                     m_ready = true;
+                    restoreLastPreset();
                     m_tuner.engineReady();
                     m_midi.engineReady();
                     requestFilePlaces();
@@ -183,6 +194,11 @@ void Machine::onConnected() {
 }
 
 void Machine::onDisconnected() {
+    // a change made just before the engine went away is still saved
+    if (m_presetSaveTimer.isActive()) {
+        saveLastPreset();
+    }
+    m_presetSaveOpen = false;
     m_pollTimer.stop();
     m_cpuTimer.stop();
     m_presetTimer.stop();
@@ -698,6 +714,19 @@ void Machine::setPlaceAddedUnits(bool on) {
     m_placeAddedUnits = on;
     QSettings().setValue(QLatin1String(placeAddedUnitsKey), on);
     emit placeAddedUnitsChanged();
+}
+
+void Machine::setRestorePreset(bool on) {
+    if (on == m_restorePreset) {
+        return;
+    }
+    m_restorePreset = on;
+    QSettings().setValue(QLatin1String(restorePresetKey), on);
+    emit restorePresetChanged();
+    if (on) {
+        // from now on the current preset is the one to restore
+        onPresetChangedForSave();
+    }
 }
 
 void Machine::watchOutput(const QString& id) {

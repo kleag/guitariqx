@@ -224,6 +224,13 @@ Rectangle {
                     onTriggered: root.pluginsRequested()
                 }
                 LiveMenuItem {
+                    // for a pedalboard that can be unplugged at any time
+                    text: qsTr("Restore last preset")
+                    checkable: true
+                    checked: Gx.restorePreset
+                    onToggled: Gx.restorePreset = checked
+                }
+                LiveMenuItem {
                     text: qsTr("Skin ...")
                     onTriggered: root.skinsRequested()
                 }

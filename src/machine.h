@@ -74,6 +74,9 @@ class Machine : public QObject {
     // an added unit is then placed by hand, the rack starting a drag of it
     // (UI option, kept in QSettings)
     Q_PROPERTY(bool placeAddedUnits READ placeAddedUnits WRITE setPlaceAddedUnits NOTIFY placeAddedUnitsChanged)
+    // reload the last preset of this engine on (re)connection, see
+    // restoreLastPreset() (UI option, kept in QSettings, on by default)
+    Q_PROPERTY(bool restorePreset READ restorePreset WRITE setRestorePreset NOTIFY restorePresetChanged)
 public:
     // no default argument: a default constructible class would be
     // instantiated by the QML engine instead of calling create()
@@ -178,6 +181,10 @@ public:
     Q_INVOKABLE void moveUnitTo(const QString& id, int slot, bool stereo);
     bool placeAddedUnits() const { return m_placeAddedUnits; }
     void setPlaceAddedUnits(bool on);
+    bool restorePreset() const { return m_restorePreset; }
+    void setRestorePreset(bool on);
+    // file holding the last preset when restorePreset is on
+    static QString lastPresetFile();
 
     // Output parameters (meters, looper position, oscilloscope) are
     // polled while registered. Float parameters that the engine changes
@@ -260,6 +267,7 @@ signals:
     void bankExported(const QString& name, const QString& file, const QString& error);
     void rackChanged();
     void placeAddedUnitsChanged();
+    void restorePresetChanged();
     void pluginsChanged();
     void unitUiReady(const QString& id);
     void filePlacesChanged();
@@ -285,6 +293,11 @@ private:
     void reloadPlugins(const QJsonArray& params, std::function<void()> done);
     void requestBanks();
     void refreshPresetState();
+    // last preset (presets.cpp): saved on every change of the current
+    // preset, restored once the engine is ready
+    void onPresetChangedForSave();
+    void restoreLastPreset();
+    void saveLastPreset();
     void requestFilePlaces();
     // edits run one after the other: a move reads the list, then reorders
     // it, and must not miss an edit sent in between
@@ -341,6 +354,18 @@ private:
     int m_interfaceMinor = 0;
     bool m_engineLocal = true;
     bool m_placeAddedUnits = false;
+    bool m_restorePreset = true;
+    // the current preset may be saved: closed from the connection until
+    // the restore decision, so that the engine's own (possibly older)
+    // preset never overwrites the saved one
+    bool m_presetSaveOpen = false;
+    // a change waits for m_presetSaveTimer (bursts of changes, e.g. a
+    // foot controller scrolling through presets, give one write)
+    QTimer m_presetSaveTimer;
+    QString m_pendingSaveBank;
+    QString m_pendingSavePreset;
+    QString m_savedBank;
+    QString m_savedPreset;
     QVariantList m_filePlaces;
     QString m_irFactoryDir;
     QString m_irUserDir;
