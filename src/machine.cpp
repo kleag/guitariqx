@@ -176,9 +176,11 @@ void Machine::onConnected() {
                     m_engineState = r.toString();
                     emit engineStateChanged();
                     m_ready = true;
+                    // sets "MIDI in presets" before a preset is loaded, so
+                    // that the restored preset brings its MIDI map
+                    m_midi.engineReady();
                     restoreLastPreset();
                     m_tuner.engineReady();
-                    m_midi.engineReady();
                     requestFilePlaces();
                     emit readyChanged();
                     setStatus(tr("Connected to guitarix %1 on %2:%3")

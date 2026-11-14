@@ -67,6 +67,7 @@ private slots:
     void midiLearn();
     void midiLearnRefusesOutputs();
     void midiFeedback();
+    void midiInPresets();
     void midiValues();
 
     void tunerTemperament();
@@ -106,6 +107,7 @@ private slots:
 private:
     void start(int interfaceMinor = 2);
     QStringList bankPresets(const QString& bank) const;
+    void skipConnectionSets();
 
     std::unique_ptr<FakeEngine> m_engine;
     std::unique_ptr<Machine> m_machine;
@@ -122,6 +124,12 @@ void TestMachine::start(int interfaceMinor) {
     Machine::setInstance(m_machine.get());
     m_machine->connectTo(QStringLiteral("127.0.0.1"), m_engine->port());
     QTRY_VERIFY(m_machine->ready());
+}
+
+// "MIDI in presets" is switched on when connecting
+void TestMachine::skipConnectionSets() {
+    QTRY_COMPARE(m_engine->value(QStringLiteral("system.midi_in_preset")).toInt(), 1);
+    m_engine->clearReceived();
 }
 
 QStringList TestMachine::bankPresets(const QString& bank) const {
@@ -231,6 +239,7 @@ void TestMachine::lastEngineIsSaved() {
 
 void TestMachine::userChangesAreSent() {
     start();
+    skipConnectionSets();
     Parameter *drive = m_machine->param(QStringLiteral("fumaster.Level"));
     QVERIFY(drive);
     drive->setValue(0.8);
@@ -248,6 +257,7 @@ void TestMachine::userChangesAreSent() {
 
 void TestMachine::engineChangesAreNotSentBack() {
     start();
+    skipConnectionSets();
     Parameter *level = m_machine->param(QStringLiteral("fumaster.Level"));
     QSignalSpy changed(level, &Parameter::valueChanged);
     m_engine->notifyClients(QStringLiteral("set"), {QStringLiteral("fumaster.Level"), 0.1,
@@ -732,6 +742,45 @@ void TestMachine::midiFeedback() {
     QTRY_VERIFY(m_machine->midi()->feedback());
 }
 
+void TestMachine::midiInPresets() {
+    const QString id = QStringLiteral("system.midi_in_preset");
+    // on by default, set on connection before the last preset is restored
+    QSettings().clear();
+    start();
+    QVERIFY(m_machine->midi()->inPresets());
+    QTRY_COMPARE(m_engine->value(id).toInt(), 1);
+    const QList<FakeEngine::Message> sets = m_engine->received(QStringLiteral("set"));
+    QCOMPARE(sets.size(), 1);
+    QCOMPARE(sets.at(0).params, (QJsonArray{id, 1}));
+    // switched off: kept in the settings and sent to the engine
+    QSignalSpy changed(m_machine->midi(), &MidiMap::inPresetsChanged);
+    m_machine->midi()->setInPresets(false);
+    QCOMPARE(changed.size(), 1);
+    QTRY_COMPARE(m_engine->value(id).toInt(), 0);
+    QCOMPARE(QSettings().value(QStringLiteral("midi/inPresets")), QVariant(false));
+    // another UI switches it on: choosing off again sends it although the
+    // preference did not change
+    m_engine->notifyClients(QStringLiteral("set"), {id, 1});
+    QTRY_COMPARE(m_machine->param(id)->value().toBool(), true);
+    m_engine->setValue(id, 1);
+    m_machine->midi()->setInPresets(false);
+    QCOMPARE(changed.size(), 1);
+    QTRY_COMPARE(m_engine->value(id).toInt(), 0);
+    // a new session keeps it off: the engine has it off, nothing is sent
+    const quint16 port = m_engine->port();
+    cleanup();
+    m_engine = std::make_unique<FakeEngine>();
+    QVERIFY(m_engine->listen(port));
+    m_machine = std::make_unique<Machine>(nullptr);
+    Machine::setInstance(m_machine.get());
+    m_machine->connectTo(QStringLiteral("127.0.0.1"), port);
+    QTRY_VERIFY(m_machine->ready());
+    QVERIFY(!m_machine->midi()->inPresets());
+    QTest::qWait(200);
+    QVERIFY(m_engine->received(QStringLiteral("set")).isEmpty());
+    QSettings().clear();
+}
+
 void TestMachine::midiValues() {
     start();
     MidiMap *midi = m_machine->midi();
@@ -895,6 +944,15 @@ void TestMachine::lastPresetRestored() {
     QTRY_COMPARE(m_machine->currentPreset(), stairway);
     QCOMPARE(m_engine->received(QStringLiteral("setpreset")).size(), 1);
     QCOMPARE(readLastPreset().value(QStringLiteral("preset")).toString(), stairway);
+    // "MIDI in presets" is set before, so that the preset's MIDI map loads
+    QStringList order;
+    for (const FakeEngine::Message& m : m_engine->received()) {
+        if (m.method == QLatin1String("setpreset")
+            || (m.method == QLatin1String("set") && m.params.at(0) == QLatin1String("system.midi_in_preset"))) {
+            order << m.method;
+        }
+    }
+    QCOMPARE(order, (QStringList{QStringLiteral("set"), QStringLiteral("setpreset")}));
 }
 
 void TestMachine::lastPresetRestoredOnReconnect() {

@@ -52,6 +52,11 @@ class MidiMap : public QObject {
     // with LEDs or motor faders. Not broadcast: read again with
     // refreshFeedback().
     Q_PROPERTY(bool feedback READ feedback WRITE setFeedback NOTIFY feedbackChanged)
+    // the engine saves the MIDI map with each preset and loads it with the
+    // preset (system.midi_in_preset, gx_head's "Include MIDI in presets").
+    // A preference of this UI, on by default (the engine's default is off),
+    // applied to the engine on each connection
+    Q_PROPERTY(bool inPresets READ inPresets WRITE setInPresets NOTIFY inPresetsChanged)
 public:
     // toggle behaviours of switch parameters (Parameter::toggle_type)
     enum ToggleType { OnOff = 0, Constant = 1, Toggle = 2, Commander = 3 };
@@ -68,6 +73,8 @@ public:
     int learnControl() const { return m_learnControl; }
     bool feedback() const { return m_feedback; }
     void setFeedback(bool on);
+    bool inPresets() const { return m_inPresets; }
+    void setInPresets(bool on);
 
     // controller number assigned to a parameter, -1 if none
     Q_INVOKABLE int controllerFor(const QString& id) const;
@@ -88,7 +95,7 @@ public:
     // last value (0..127) received from a controller, -1 if none yet
     Q_INVOKABLE int controllerValue(int ctl) const { return m_values.value(ctl, -1); }
 
-    // called by the Machine
+    // called by the Machine, before a preset is restored: applies inPresets
     void engineReady();
     // leaves MIDI config mode if learning (quitting)
     void stopLearn();
@@ -101,11 +108,13 @@ signals:
     void learnModeChanged();
     void learnChanged();
     void feedbackChanged();
+    void inPresetsChanged();
     void controllerValueChanged(int ctl, int value);
 
 private:
     void load(const QJsonArray& map);
     void poll();
+    void applyInPresets();
 
     Machine& m_machine;
     RpcClient& m_rpc;
@@ -118,5 +127,6 @@ private:
     int m_learnControl = -1;
     QTimer m_pollTimer;
     bool m_feedback = false;
+    bool m_inPresets;
     QHash<int, int> m_values;
 };

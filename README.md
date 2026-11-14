@@ -199,7 +199,8 @@ Working:
   opens it at any time. Move a controller or type its number, set the range
   or toggle behaviour, connect or remove. The MIDI controllers dialog (menu)
   lists all assignments with the last value of their controller, sets the
-  MIDI channel and MIDI feedback
+  MIDI channel, MIDI feedback and MIDI in presets (on by default: each
+  preset keeps its own assignments)
 
 Not yet:
 

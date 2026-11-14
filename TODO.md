@@ -91,9 +91,9 @@ Roughly in order of importance for live use. See README.md for what works.
 - [ ] Jack insert (`set_jack_insert`): gx_head's button between the mono
       and stereo racks, which splits them into two Jack clients
       (`gx_head_amp` / `gx_head_fx`) so that external effects can be
-      inserted between them. `engine.insert` is a parameter of gx_head's
-      GUI (gui/machine.cpp), not of the engine: guitariqx would keep the
-      state itself and call `set_jack_insert`
+      inserted between them. The headless engine has the `engine.insert`
+      parameter (GxMachineBase, gui/machine.cpp), whose change calls
+      `set_jack_insert`: a switch on that parameter is enough
 - [ ] Display options of gx_head: horizontal rack, show values, animations,
       tooltips on/off
 
@@ -113,8 +113,9 @@ Roughly in order of importance for live use. See README.md for what works.
 - [x] MIDI feedback option (get/set_midi_feedback)
 - [x] Show incoming controller values (midi_value_changed notification)
 - [ ] Rename controllers (MidiStandardControllers::replace has no RPC yet)
-- [ ] "Include MIDI in presets" option (`system.midi_in_preset`): the MIDI
-      map is saved with each preset and loaded with it
+- [x] "MIDI in presets" option (`system.midi_in_preset`, gx_head's
+      "Include MIDI in presets"): the MIDI map is saved with each preset and
+      loaded with it. Off in the engine, on by default in guitariqx
 
 ## Engine side (needs changes in gx_head/engine)
 

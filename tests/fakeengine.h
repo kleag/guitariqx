@@ -66,6 +66,8 @@ public:
     void notifyClients(const QString& method, const QJsonArray& params);
 
     QJsonValue value(const QString& id) const { return m_values.value(id); }
+    // a change made by another client (not notified)
+    void setValue(const QString& id, const QJsonValue& v) { m_values.insert(id, v); }
     QJsonArray banks() const { return m_banks; }
     QStringList rack(bool stereo) const { return m_rack[stereo ? 1 : 0]; }
     bool midiConfigMode() const { return m_midiConfig; }

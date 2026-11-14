@@ -17,6 +17,7 @@
 #include "rpcclient.h"
 
 #include <QHash>
+#include <QSettings>
 #include <algorithm>
 
 namespace {
@@ -28,6 +29,9 @@ const int maxController = 327;
 
 // note on events are mapped to controller numbers 200..326
 const int noteOnBase = 200;
+
+const char *inPresetsKey = "midi/inPresets";
+const char *inPresetsParam = "system.midi_in_preset";
 
 // names of MidiStandardControllers (gx_paramtable.cpp)
 const QHash<int, QString>& standardNames() {
@@ -58,7 +62,8 @@ const QHash<int, QString>& standardNames() {
 } // anonymous namespace
 
 MidiMap::MidiMap(Machine& machine, RpcClient& rpc, QObject *parent)
-    : QObject(parent), m_machine(machine), m_rpc(rpc) {
+    : QObject(parent), m_machine(machine), m_rpc(rpc),
+      m_inPresets(QSettings().value(QLatin1String(inPresetsKey), true).toBool()) {
     // MidiConnect polls every 40 ms
     m_pollTimer.setInterval(100);
     connect(&m_pollTimer, &QTimer::timeout, this, &MidiMap::poll);
@@ -126,6 +131,7 @@ bool MidiMap::usesRange(const QString& id) const {
 }
 
 void MidiMap::engineReady() {
+    applyInPresets();
     m_rpc.call(QStringLiteral("get_midi_controller_map"), {}, [this](const QJsonValue& r) {
         load(r.toArray());
     });
@@ -151,6 +157,25 @@ void MidiMap::setFeedback(bool on) {
     m_feedback = on;
     m_rpc.notify(QStringLiteral("set_midi_feedback"), {on ? 1 : 0});
     emit feedbackChanged();
+}
+
+void MidiMap::setInPresets(bool on) {
+    // applied even when unchanged: another UI may have changed the engine's
+    if (on != m_inPresets) {
+        m_inPresets = on;
+        QSettings().setValue(QLatin1String(inPresetsKey), on);
+        emit inPresetsChanged();
+    }
+    applyInPresets();
+}
+
+void MidiMap::applyInPresets() {
+    // a parameter of GxMachineBase, also registered by the headless engine;
+    // the engine keeps it in its state file
+    Parameter *p = m_machine.ready() ? m_machine.param(QLatin1String(inPresetsParam)) : nullptr;
+    if (p && p->value().toBool() != m_inPresets) {
+        p->setValue(m_inPresets);
+    }
 }
 
 // [ctl, value]: sent by the engine every 60 ms for the controllers that

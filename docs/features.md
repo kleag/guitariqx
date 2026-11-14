@@ -48,7 +48,8 @@ Its automated tests run with Qt 6.4 and Qt 6.8 on x86_64 and arm64.
 - preset by note (the engine's tuner switcher): the note played selects a
   bank or preset, started from the menu or a MIDI foot switch
 - MIDI learn on every control, MIDI controller list with live controller
-  values, MIDI channel, MIDI feedback
+  values, MIDI channel, MIDI feedback, MIDI assignments saved with each
+  preset (on by default)
 - the desktop's on-screen keyboard (squeekboard) for text fields on
   computers without a physical keyboard
 - reconnection when the engine restarts, or when it stops answering after

@@ -64,6 +64,19 @@ Dialog {
                 ToolTip.visible: hovered
                 ToolTip.text: qsTr("Send the values of the assigned parameters to the MIDI output when a preset loads or a controller changes them")
             }
+            Switch {
+                // shows the engine's value, which another UI may change
+                readonly property var engineParam: Gx.ready ? Gx.param("system.midi_in_preset") : null
+                text: qsTr("MIDI in presets")
+                checked: engineParam ? engineParam.value : Gx.midi.inPresets
+                onToggled: {
+                    Gx.midi.inPresets = checked
+                    // toggling replaced the binding
+                    checked = Qt.binding(() => engineParam ? engineParam.value : Gx.midi.inPresets)
+                }
+                ToolTip.visible: hovered
+                ToolTip.text: qsTr("Save the MIDI assignments with each preset and load them with it. Presets saved without them keep the current assignments")
+            }
         }
 
         Label {

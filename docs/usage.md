@@ -284,4 +284,12 @@ its MIDI output when a preset loads or a controller changes them, so that
 controllers with LEDs or motor faders follow (changes made in the UI are
 not sent).
 
+**MIDI in presets**, on by default, saves the assignments with each preset
+and loads them with it, so that each sound can give its own controls to
+the same pedals. A preset saved without them (the factory presets, presets
+saved before) keeps the current assignments. Switched off, there is a
+single set of assignments, kept by the engine whatever the preset.
+guitariqx sets this option of the engine (gx_head's "Include MIDI in
+presets", off in the engine) each time it connects.
+
 ![The MIDI controllers](images/midimap.png)
