@@ -17,11 +17,13 @@
 
 #include "fakeengine.h"
 #include "impulseresponse.h"
+#include "loopsync.h"
 #include "machine.h"
 #include "uitree.h"
 
 #include <QDir>
 #include <QFile>
+#include <QElapsedTimer>
 #include <QFileInfo>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -98,6 +100,9 @@ private slots:
     void sequencer();
     void unitPresets();
     void sequencerPresetSteps();
+    void loopSyncArithmetic();
+    void loopSyncRecordedHere();
+    void loopSyncRecordedElsewhere();
     void loadModel();
     void ladspaPlugins();
     void pluginsChangedByOtherClient();
@@ -1819,6 +1824,119 @@ private:
 };
 
 } // anonymous namespace
+
+void TestMachine::loopSyncArithmetic() {
+    // the full tape time, less the time recorded so far
+    QCOMPARE(LoopSync::sampleRate(4194304 / 48000.0 - 0.15, 0.15), 48000);
+    QCOMPARE(LoopSync::sampleRate(4194304 / 44100.0 - 2.1, 2), 44100);
+    QCOMPARE(LoopSync::sampleRate(4194304 / 96000.0 - 30, 30), 96000);
+    QCOMPARE(LoopSync::sampleRate(10, 0), 0);
+    // the engine writes 6 significant digits; recordings are whole
+    // buffers minus one
+    const auto bar = [](int recorded, int rate) {
+        return QString::number(double(float((LoopSync::TapeSize - recorded) * float(1.0 / rate))), 'g', 6).toDouble();
+    };
+    for (int recorded : {246527, 295935, 50879, 1023, 4000000 - 1}) {
+        QCOMPARE(LoopSync::recordedLength(bar(recorded, 48000), 48000), recorded);
+    }
+    QCOMPARE(LoopSync::recordedLength(bar(6890 * 64 - 1, 44100), 44100), 6890 * 64 - 1);
+    // not a multiple of 64 samples: within the precision of the value
+    QVERIFY(std::abs(LoopSync::recordedLength(bar(100000, 48000), 48000) - 100000) <= 3);
+    // DrumSequencer::compute: int(60 * rate / (bpm * tact)) samples a step
+    QCOMPARE(LoopSync::beatLength(120, 4, 48000), 24000);
+    QCOMPARE(LoopSync::beatLength(97, 4, 48000), 7422 * 4);
+    QCOMPARE(LoopSync::beatLength(97, 1, 44100), 27278);
+    QCOMPARE(LoopSync::beatLength(0, 4, 48000), 0);
+    // the clip gives the wanted end, in the engine's float arithmetic
+    for (int recorded : {1023, 50879, 246527, 4194303}) {
+        for (double f : {0.5, 0.9, 0.999, 1.0}) {
+            const int end = int(f * recorded) - 2;
+            QCOMPARE(LoopSync::clipEnd(recorded, LoopSync::clipFor(recorded, end)), end);
+        }
+    }
+    QCOMPARE(LoopSync::clipEnd(246527, 100), 246527);
+}
+
+// common part: drums at 240 bpm (a beat is 12000 samples at 48 kHz) and
+// the looper in the rack
+static void startDrums(Machine& m) {
+    m.loopSync()->setEnabled(true);
+    m.addUnit(QStringLiteral("seq"), false);
+    m.addUnit(QStringLiteral("dubber"), false);
+    QTRY_VERIFY(m.monoRack().contains(QStringLiteral("seq")) && m.monoRack().contains(QStringLiteral("dubber")));
+    m.param(QStringLiteral("seq.bpm"))->setValue(240);
+    m.param(QStringLiteral("seq.on_off"))->setValue(true);
+    QTRY_VERIFY(m.loopSync()->drumsRunning());
+}
+
+void TestMachine::loopSyncRecordedHere() {
+    start();
+    Machine& m = *m_machine;
+    startDrums(m);
+    const auto value = [this](const char *id) { return m_engine->value(QLatin1String(id)).toDouble(); };
+    // a clip left by an earlier loop, too close to 100 for one change
+    m_engine->setValue(QStringLiteral("dubber.clip1"), 99.5);
+    Parameter *rec = m.param(QStringLiteral("dubber.rec1"));
+    rec->setValue(true);
+    // the whole tape, play reading behind the recording
+    QTRY_COMPARE(value("dubber.rec1"), 1.0);
+    QCOMPARE(value("dubber.play1"), 1.0);
+    QCOMPARE(value("dubber.clip1"), 100.0);
+    QCOMPARE(value("dubber.clips1"), 0.0);
+    m_engine->setValue(QStringLiteral("dubber.bar1"), 4194304 / 48000.0 - 0.15);
+    QElapsedTimer clock;
+    clock.start();
+
+    // asked at 3.6 beats: the recording goes on until just after the 4th
+    QTest::qWait(900);
+    rec->setValue(false);
+    QVERIFY(rec->value().toBool());
+    QCOMPARE(value("dubber.rec1"), 1.0);
+    QVERIFY(m.loopSync()->status().contains(QLatin1String("beat 4")));
+    QTRY_COMPARE_WITH_TIMEOUT(value("dubber.rec1"), 0.0, 1000);
+    QVERIFY2(clock.elapsed() >= 1000, qPrintable(QString::number(clock.elapsed())));
+    QVERIFY(!rec->value().toBool());
+    // the engine recorded 4 beats and 2880 samples
+    const int recorded = 4 * 12000 + 2880 - 1;
+    m_engine->setValue(QStringLiteral("dubber.bar1"), (4194304 - recorded) / 48000.0);
+
+    // first pass: the tape starts again at 0 at recorded + 2, the next start
+    // is at 2 * 48000
+    const int end1 = 2 * 48000 - recorded - 4;
+    QTRY_COMPARE_WITH_TIMEOUT(LoopSync::clipEnd(recorded, value("dubber.clip1")), end1, 1000);
+    // then 4 beats
+    QTRY_COMPARE_WITH_TIMEOUT(LoopSync::clipEnd(recorded, value("dubber.clip1")), 48000 - 2, 3000);
+    QCOMPARE(m.param(QStringLiteral("dubber.clip1"))->value().toDouble(), value("dubber.clip1"));
+    QVERIFY(m.loopSync()->status().contains(QLatin1String("4 beats")));
+    QCOMPARE(value("seq.bpm"), 240.0);
+}
+
+void TestMachine::loopSyncRecordedElsewhere() {
+    start();
+    Machine& m = *m_machine;
+    startDrums(m);
+    const auto value = [this](const char *id) { return m_engine->value(QLatin1String(id)).toDouble(); };
+    // a MIDI controller starts the recording, play off
+    m_engine->setValue(QStringLiteral("dubber.rec1"), 1);
+    m_engine->setValue(QStringLiteral("dubber.bar1"), 4194304 / 48000.0 - 0.1);
+    QTRY_VERIFY(m.param(QStringLiteral("dubber.rec1"))->value().toBool());
+    QTRY_COMPARE(value("dubber.play1"), 1.0);
+    QTest::qWait(600);
+    m_engine->setValue(QStringLiteral("dubber.rec1"), 0);
+    // 4 beats and 64 samples: the clip moves by less than its step
+    const int recorded = 4 * 12000 + 64 - 1;
+    m_engine->setValue(QStringLiteral("dubber.bar1"), (4194304 - recorded) / 48000.0);
+    QTRY_COMPARE_WITH_TIMEOUT(LoopSync::clipEnd(recorded, value("dubber.clip1")), 48000 - 2, 2000);
+    QVERIFY(m.loopSync()->status().contains(QLatin1String("4 beats")));
+    QVERIFY(m.loopSync()->status().contains(QLatin1String("not in phase")));
+
+    // switched off: recording is left alone
+    m.loopSync()->setEnabled(false);
+    m_engine->clearReceived();
+    m.param(QStringLiteral("dubber.rec2"))->setValue(true);
+    QTRY_COMPARE(value("dubber.rec2"), 1.0);
+    QCOMPARE(value("dubber.play2"), 0.0);
+}
 
 void TestMachine::presetGeneratorPrompt() {
     start();

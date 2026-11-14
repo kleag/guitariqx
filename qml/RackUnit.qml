@@ -319,9 +319,18 @@ Rectangle {
 
         Component {
             id: unitPanel
-            UiNode {
-                node: root.layout.main || ({})
-                maxWidth: body.width
+            Column {
+                spacing: Theme.spacing
+                UiNode {
+                    node: root.layout.main || ({})
+                    maxWidth: body.width
+                }
+                // the looper can be kept in time with the drum sequencer
+                Loader {
+                    active: root.unitId === "dubber" || root.unitId === "dubber_st"
+                    visible: active
+                    sourceComponent: LoopSyncBar { maxWidth: body.width }
+                }
             }
         }
 

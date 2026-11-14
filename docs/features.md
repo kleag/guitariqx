@@ -39,6 +39,8 @@ Its automated tests run with Qt 6.4 and Qt 6.8 on x86_64 and arm64.
   too wide for their rack wrap their controls onto several rows
 - main amplifier panel
 - special units: the looper's transport with the play head of each tape,
+  loops kept in time with the drum sequencer (cut to whole beats, in
+  phase),
   the oscilloscope, the impulse response editor of the convolvers (level
   in dB, part used, delay, gain line, gain correction) and the drum
   sequencer

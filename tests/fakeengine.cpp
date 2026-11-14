@@ -489,8 +489,23 @@ QJsonValue FakeEngine::dispatch(QTcpSocket *s, const QString& method, const QJso
     if (method == QLatin1String("set")) {
         for (int i = 0; i + 1 < params.size(); i += 2) {
             if (checkParam(method, params.at(i))) {
-                checkSpecialValue(params.at(i).toString(), params.at(i + 1));
-                m_values.insert(params.at(i).toString(), params.at(i + 1));
+                const QString id = params.at(i).toString();
+                QJsonValue v = params.at(i + 1);
+                checkSpecialValue(id, v);
+                // FloatParameter::set clamps and ignores changes smaller than the step
+                const QString tag = m_tags.value(id);
+                if ((tag == QLatin1String("Float") || tag == QLatin1String("FloatEnum")) && v.isDouble()) {
+                    const QJsonObject body = m_paramEntries.value(id);
+                    double d = v.toDouble();
+                    if (body.contains(QStringLiteral("lower")) && body.contains(QStringLiteral("upper"))) {
+                        d = std::max(body.value(QStringLiteral("lower")).toDouble(), std::min(body.value(QStringLiteral("upper")).toDouble(), d));
+                    }
+                    if (std::abs(float(d) - float(m_values.value(id).toDouble())) < body.value(QStringLiteral("step")).toDouble(0)) {
+                        continue;
+                    }
+                    v = d;
+                }
+                m_values.insert(id, v);
             }
         }
         return {};

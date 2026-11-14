@@ -19,6 +19,7 @@
 #include "oscilloscope.h"
 #include "parameter.h"
 #include "pluginmanager.h"
+#include "loopsync.h"
 #include "presetgenerator.h"
 #include "rpcclient.h"
 #include "skin.h"
@@ -68,6 +69,7 @@ class Machine : public QObject {
     Q_PROPERTY(Oscilloscope *oscilloscope READ oscilloscope CONSTANT)
     Q_PROPERTY(PluginManager *pluginManager READ pluginManager CONSTANT)
     Q_PROPERTY(PresetGenerator *presetGenerator READ presetGenerator CONSTANT)
+    Q_PROPERTY(LoopSync *loopSync READ loopSync CONSTANT)
     // the engine runs on this computer: its files can be read directly
     Q_PROPERTY(bool engineLocal READ engineLocal NOTIFY connectedChanged)
     Q_PROPERTY(QVariantList filePlaces READ filePlaces NOTIFY filePlacesChanged)
@@ -114,6 +116,7 @@ public:
     Oscilloscope *oscilloscope() { return &m_oscilloscope; }
     PluginManager *pluginManager() { return &m_pluginManager; }
     PresetGenerator *presetGenerator() { return &m_presetGenerator; }
+    LoopSync *loopSync() { return &m_loopSync; }
 
     // Makes the engine load the LADSPA/LV2 plugin definitions saved with
     // save_ladspalist (ladspaloader_update_plugins), then reloads the
@@ -341,6 +344,7 @@ private:
     Oscilloscope m_oscilloscope;
     PluginManager m_pluginManager;
     PresetGenerator m_presetGenerator;
+    LoopSync m_loopSync;
     QHash<QString, Parameter*> m_params;
     QHash<QString, QVariantMap> m_pluginInfo;
     QVariantList m_pluginList;

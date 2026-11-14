@@ -74,6 +74,8 @@ void TestUi::states_data() {
     QTest::newRow("looper") << QStringLiteral("unit:dubber") << QStringLiteral("1280x800") << 2 << false << QString();
     QTest::newRow("looper-skin") << QStringLiteral("unit:dubber") << QStringLiteral("800x480") << 2 << false
                                  << QStringLiteral("Guitarix");
+    QTest::newRow("looper-sync") << QStringLiteral("unit:dubber,unit:seq,loopsync") << QStringLiteral("800x480") << 2
+                                 << false << QString();
     QTest::newRow("oscilloscope") << QStringLiteral("unit:oscilloscope") << QStringLiteral("1280x800") << 2 << false
                                   << QString();
     QTest::newRow("iredit") << QStringLiteral("iredit:jconv") << QStringLiteral("1280x800") << 2 << false << QString();

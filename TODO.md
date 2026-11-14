@@ -4,10 +4,9 @@ Roughly in order of importance for live use. See README.md for what works.
 
 ## Next
 
-- [ ] Remove the current global association of one of the buttons with the 
-      on/off switch
-- [ ] Allow to coordinate the looper with the drum effect to be able to play 
-      them together with no drift
+- [x] Allow to coordinate the looper with the drum effect to be able to play 
+      them together with no drift (LoopSync: tapes cut to whole beats by
+      their clip; tested on a real engine without audio, to check by ear)
 - [ ] Allow to use AI generation for the drum effect to accompany a given
       song. Use the same method as the preset generator
 - [x] Test on a Raspberry Pi (Bookworm, Qt 6.4, 800x480 touch screen,

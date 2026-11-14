@@ -61,12 +61,14 @@ Machine::Machine(QObject *parent)
       m_oscilloscope(this),
       m_pluginManager(*this, m_rpc),
       m_presetGenerator(*this),
+      m_loopSync(*this, m_rpc),
       m_placeAddedUnits(QSettings().value(QLatin1String(placeAddedUnitsKey), false).toBool()),
       m_restorePreset(QSettings().value(QLatin1String(restorePresetKey), true).toBool()),
       m_autoSavePreset(QSettings().value(QLatin1String(autoSavePresetKey), true).toBool()) {
     QQmlEngine::setObjectOwnership(&m_tuner, QQmlEngine::CppOwnership);
     QQmlEngine::setObjectOwnership(&m_pluginManager, QQmlEngine::CppOwnership);
     QQmlEngine::setObjectOwnership(&m_presetGenerator, QQmlEngine::CppOwnership);
+    QQmlEngine::setObjectOwnership(&m_loopSync, QQmlEngine::CppOwnership);
     QQmlEngine::setObjectOwnership(&m_midi, QQmlEngine::CppOwnership);
     QQmlEngine::setObjectOwnership(&m_oscilloscope, QQmlEngine::CppOwnership);
     connect(&m_oscilloscope, &Oscilloscope::mulBufferRequested, this, [this](int n) {
@@ -527,6 +529,10 @@ void Machine::onNotification(const QString& method, const QJsonArray& params) {
 }
 
 void Machine::onParameterChangeRequested(Parameter *p) {
+    // a looper recording kept in time with the drums
+    if (m_loopSync.interceptChange(p)) {
+        return;
+    }
     // the server does not echo a change back to the connection it came from
     m_rpc.notify(QStringLiteral("set"), {p->id(), p->toJson()});
     if (p->isSavedInPreset() && !p->isOutput()) {

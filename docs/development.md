@@ -27,6 +27,7 @@ src/machine.*         engine proxy exposed to QML as the singleton "Gx"
 src/uitree.*          rack unit layouts: converts the UiBuilder call list
                       returned by plugin_load_ui into a tree for QML
 src/glade.cpp         the same for the Glade layouts of the units
+src/loopsync.*        looper tapes cut to whole drum beats (Gx.loopSync)
 src/tuner.*           tuner display: note, cents and target string from the
                       engine's frequency (Gx.tuner)
 src/midimap.*         MIDI controller assignments and MIDI learn (Gx.midi)
@@ -97,6 +98,18 @@ in the guitarix sources, which `guitarix -G` uses too. Notes:
   sequencer plays as many steps as its shortest line has and breaks on an
   empty line, which a fresh engine has until a line is edited: guitariqx
   gives every line `seq.asequences` steps.
+- Looper and drums (`LoopSync`, `src/loopsync.h`): both run on the
+  sample clock, so a loop drifts only by its length. A drum step lasts
+  `int(60 * rate / (bpm * tact))` samples (`DrumSequencer::compute`). A
+  tape recorded R samples (`dubber.barN`, the time left, is
+  `(4194304 - R) / rate`, written with 6 significant digits; R + 1 is a
+  whole number of buffers) plays, with `clipsN` 0 and `speedN` 0, samples
+  0 to `int(R * clipN / 100) + 1`, any fraction of `clipN` being used, and
+  when play was on as the recording started it starts again at sample 0
+  two samples after the recording stops. No RPC gives the sample rate: the
+  full tape time (`4194304 / rate`) does. `FloatParameter::set` ignores a
+  change smaller than the parameter's step (1 for `clipN` and `seq.bpm`),
+  without error: send an intermediate value first.
 - Unit presets: `plugin_preset_list_load [unit]` answers
   `[[name, is_set], ...]`, the user's (and LV2) presets, an entry with an
   empty name, then the factory presets; `is_set` is 1 when the unit's
@@ -186,6 +199,7 @@ MIDI device or clicks (comma separated):
 | `unit:UNIT` | adds UNIT at the top of its rack (if missing) and switches it on |
 | `iredit:UNIT` | the IR editor of a convolver (`jconv`, `jconv_mono`) |
 | `sequencer` | the drum sequencer (with `unit:seq`) |
+| `loopsync` | the looper kept in time with the drums (with `unit:dubber,unit:seq`) |
 | `unitpresets:UNIT` | the presets of a rack unit (which must be in the rack) |
 | `rackdrag:UNIT` | a rack unit dragged to the top of its rack (which must be in the rack) |
 | `rackplace:UNIT` | a rack unit being placed by hand, as if just added (which must be in the rack) |

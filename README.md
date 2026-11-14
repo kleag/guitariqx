@@ -83,7 +83,7 @@ tablet. Options:
 | `--size WxH` | initial window size (default: the size, or maximized state, of the last session, else 1280x800) |
 | `--dump` | print connection, preset and rack changes on the terminal |
 | `--screenshot FILE` | save a screenshot after `--screenshot-delay` ms and quit (testing) |
-| `--debug-state LIST` | testing without instrument or MIDI device: `tuner:HZ`, `switcher[:STATE]`, `learnmode`, `learn:PARAM`, `midimap`, `saveas`, `files:UNIT`, `bankload`, `banksave:BANK`, `skins`, `menu`, `unit:UNIT`, `iredit:UNIT`, `sequencer`, `unitpresets:UNIT`, `rackdrag:UNIT`, `rackplace:UNIT`, `plugins[:NAME]`, `generator` |
+| `--debug-state LIST` | testing without instrument or MIDI device: `tuner:HZ`, `switcher[:STATE]`, `learnmode`, `learn:PARAM`, `midimap`, `saveas`, `files:UNIT`, `bankload`, `banksave:BANK`, `skins`, `menu`, `unit:UNIT`, `iredit:UNIT`, `sequencer`, `loopsync`, `unitpresets:UNIT`, `rackdrag:UNIT`, `rackplace:UNIT`, `plugins[:NAME]`, `generator` |
 
 The connection indicator at the right of the top bar opens the connect
 dialog. guitariqx reconnects automatically when the engine restarts.
@@ -184,6 +184,8 @@ Working:
   `GUITARIX_FORM_STACK` for gx_head
 - main amplifier panel
 - special units: the looper's transport with the play head of each tape,
+  loops kept in time with the drum sequencer (cut to whole beats, in
+  phase),
   the oscilloscope, the impulse response editor of the convolvers (level
   in dB, part used, delay, gain line, gain correction) and the drum
   sequencer

@@ -197,7 +197,20 @@ Some units have widgets of their own, as in gx_head:
 
 - **Live Looper**: each tape has record, play, reverse, erase and overdub
   switches, a file button to import a loop, and the play head over the
-  tape, the part between cut and clip lit.
+  tape, the part between cut and clip lit. **In time with the drums**,
+  under the tapes, keeps the loops in time with the drum sequencer when it
+  is in the rack and on: a recording is cut to the nearest whole number of
+  beats, so that it never drifts from the drums, however long it plays.
+  Start recording on a beat while the drums play: guitariqx switches play
+  on with record, and when you stop a little before the end of the last
+  beat the recording goes on until just after it (the status says which
+  beat), then the tape plays from that beat on, in phase with the drums.
+  A recording started or stopped elsewhere (a MIDI controller) is also cut
+  to whole beats, but it keeps the phase only if play was on as it
+  started, and its stop cannot wait for the beat: stopped just before the
+  end of a beat, it loses almost that whole beat. Tap record in guitariqx
+  to have the stop wait for the beat. Leave the tape's speed at 0; changing the tempo afterwards
+  makes the loop drift again (record it again).
 - **Oscilloscope**: the signal at the unit's place in the rack while the
   unit is on; **Buffer** sets how many jack periods are shown, **Zoom**
   the vertical scale.

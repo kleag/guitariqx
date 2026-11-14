@@ -55,6 +55,8 @@ set(GUITARIQX_SOURCES
     src/systemkeyboard.h
     src/pluginmanager.cpp
     src/pluginmanager.h
+    src/loopsync.cpp
+    src/loopsync.h
     src/presetgenerator.cpp
     src/presetgenerator.h
 )
@@ -108,6 +110,7 @@ qt_add_qml_module(guitariqx
         qml/SkinDialog.qml
         qml/OutputWatch.qml
         qml/LoopPosition.qml
+        qml/LoopSyncBar.qml
         qml/ScopeView.qml
         qml/IrEditor.qml
         qml/SequencerDialog.qml
