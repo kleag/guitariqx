@@ -68,6 +68,9 @@ public:
     bool isControllable() const { return m_controllable; }
     // saved in presets (not "do_not_save")
     bool isInPreset() const { return m_inPreset; }
+    // what the engine writes in a preset: neither "do_not_save" nor
+    // "non_preset" (PresetIO::write_parameters)
+    bool isSavedInPreset() const { return m_savedInPreset; }
     // get_updates can poll the parameter: the engine handles float and
     // oscilloscope parameters only (it asserts on the others)
     bool isPollable() const {
@@ -122,6 +125,7 @@ private:
     bool m_maxlevel = false;
     bool m_controllable = true;
     bool m_inPreset = true;
+    bool m_savedInPreset = true;
     int m_ctype = 0;
     QStringList m_valueIds;
     QStringList m_valueLabels;

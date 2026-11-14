@@ -60,6 +60,8 @@ Parameter *Parameter::fromJson(const QString& tag, const QJsonObject& entry, QOb
     // the key, written with the value false (ParameterV::serializeJSON)
     p->m_controllable = !base.contains(QStringLiteral("non_controllable"));
     p->m_inPreset = !base.value(QStringLiteral("do_not_save")).toInt();
+    // like non_controllable, the key is written with the value false
+    p->m_savedInPreset = p->m_inPreset && !base.contains(QStringLiteral("non_preset"));
     const int ctype = base.value(QStringLiteral("c_type")).toInt();
     p->m_ctype = ctype;
 

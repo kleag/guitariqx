@@ -445,3 +445,78 @@ void Machine::restoreLastPreset() {
     }
     setPreset(bank, preset);
 }
+
+// Automatic save of the current preset
+//
+// The engine does not know whether the current preset was changed, so a
+// snapshot of what it saves in a preset (and of the MIDI map when it is
+// saved with presets) is taken once a preset has loaded. The engine sends
+// the loaded values as "set" notifications before preset_changed (they
+// only restart m_autoSaveTimer, which preset_changed stops); the preset is
+// settled when no "set" came for m_presetSettleTimer after preset_changed.
+// Every later change (from this UI,
+// another one, a MIDI controller, a unit preset) starts m_autoSaveTimer,
+// and the preset is saved with save_current if it then differs from the
+// snapshot. save_current saves the engine's state into the engine's
+// current preset, so a save racing with a preset change made elsewhere
+// cannot write one preset's settings into another; changes not yet saved
+// when another client or a MIDI program change loads a preset are lost.
+
+void Machine::onPresetChangedForAutoSave() {
+    // the changes belonged to the previous preset (or to the one just
+    // saved under a new name)
+    m_autoSaveTimer.stop();
+    m_presetSettling = true;
+    m_presetSettleTimer.start();
+}
+
+void Machine::onPresetSettled() {
+    m_presetSettling = false;
+    m_presetSnapshot = presetSnapshot();
+    m_snapshotBank = m_currentBank;
+    m_snapshotPreset = m_currentPreset;
+}
+
+void Machine::presetEdited() {
+    if (m_presetSettling) {
+        // still loading
+        m_presetSettleTimer.start();
+        return;
+    }
+    if (m_autoSavePreset && m_ready) {
+        m_autoSaveTimer.start();
+    }
+}
+
+QHash<QString, QVariant> Machine::presetSnapshot() const {
+    QHash<QString, QVariant> s;
+    for (auto it = m_params.cbegin(); it != m_params.cend(); ++it) {
+        const Parameter *p = it.value();
+        if (p->isSavedInPreset() && !p->isOutput() && p->tag() != QLatin1String("Osc")) {
+            s.insert(it.key(), p->value());
+        }
+    }
+    if (m_midi.inPresets()) {
+        // not a parameter id
+        s.insert(QStringLiteral(" midi"), m_midi.assignments());
+    }
+    return s;
+}
+
+void Machine::autoSaveNow() {
+    m_autoSaveTimer.stop();
+    if (!m_autoSavePreset || !m_ready || m_presetSettling || m_currentPreset.isEmpty()
+        || m_currentBank != m_snapshotBank || m_currentPreset != m_snapshotPreset
+        || !presetExists(m_currentBank, m_currentPreset) || !bankMutable(m_currentBank)) {
+        return;
+    }
+    const QHash<QString, QVariant> s = presetSnapshot();
+    if (s == m_presetSnapshot) {
+        // changed and changed back
+        return;
+    }
+    // not queued with the edits: it must reach the engine before a
+    // setpreset sent next, and does not depend on the bank list
+    m_rpc.notify(QStringLiteral("save_current"));
+    m_presetSnapshot = s;
+}

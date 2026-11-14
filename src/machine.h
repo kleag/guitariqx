@@ -77,6 +77,10 @@ class Machine : public QObject {
     // reload the last preset of this engine on (re)connection, see
     // restoreLastPreset() (UI option, kept in QSettings, on by default)
     Q_PROPERTY(bool restorePreset READ restorePreset WRITE setRestorePreset NOTIFY restorePresetChanged)
+    // the current preset is saved shortly after it was changed, and before
+    // this UI loads another one (UI option, kept in QSettings, on by
+    // default); presets of read only banks are not saved
+    Q_PROPERTY(bool autoSavePreset READ autoSavePreset WRITE setAutoSavePreset NOTIFY autoSavePresetChanged)
 public:
     // no default argument: a default constructible class would be
     // instantiated by the QML engine instead of calling create()
@@ -183,6 +187,8 @@ public:
     void setPlaceAddedUnits(bool on);
     bool restorePreset() const { return m_restorePreset; }
     void setRestorePreset(bool on);
+    bool autoSavePreset() const { return m_autoSavePreset; }
+    void setAutoSavePreset(bool on);
     // file holding the last preset when restorePreset is on
     static QString lastPresetFile();
 
@@ -268,6 +274,7 @@ signals:
     void rackChanged();
     void placeAddedUnitsChanged();
     void restorePresetChanged();
+    void autoSavePresetChanged();
     void pluginsChanged();
     void unitUiReady(const QString& id);
     void filePlacesChanged();
@@ -298,6 +305,12 @@ private:
     void onPresetChangedForSave();
     void restoreLastPreset();
     void saveLastPreset();
+    // automatic save of the current preset (presets.cpp)
+    void onPresetChangedForAutoSave();
+    void onPresetSettled();
+    void presetEdited();
+    void autoSaveNow();
+    QHash<QString, QVariant> presetSnapshot() const;
     void requestFilePlaces();
     // edits run one after the other: a move reads the list, then reorders
     // it, and must not miss an edit sent in between
@@ -366,6 +379,17 @@ private:
     QString m_pendingSavePreset;
     QString m_savedBank;
     QString m_savedPreset;
+    bool m_autoSavePreset = true;
+    // a preset is loading: its parameters arrive as "set" notifications,
+    // which are not edits, until none came for m_presetSettleTimer
+    bool m_presetSettling = false;
+    QTimer m_presetSettleTimer;
+    // changes are saved once none came for m_autoSaveTimer
+    QTimer m_autoSaveTimer;
+    // the preset's values once loaded or saved, to save only changes
+    QHash<QString, QVariant> m_presetSnapshot;
+    QString m_snapshotBank;
+    QString m_snapshotPreset;
     QVariantList m_filePlaces;
     QString m_irFactoryDir;
     QString m_irUserDir;

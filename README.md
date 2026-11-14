@@ -145,7 +145,8 @@ Working:
 
 - connection, engine state (on / bypass / mute), DSP load, output meters
 - preset banks and presets, previous/next preset; the last preset is
-  restored on each connection (after a power cut; can be switched off)
+  restored on each connection (after a power cut; can be switched off);
+  changes are saved into the current preset (can be switched off)
 - preset editing in the preset list: Save, Save as (to any writable bank,
   with an explicit replace), and per preset (⋮) save here, rename, copy to
   bank, move up/down, delete; per bank new, rename, move up/down, delete.

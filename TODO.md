@@ -4,6 +4,12 @@ Roughly in order of importance for live use. See README.md for what works.
 
 ## Next
 
+- [ ] Remove the current global association of one of the buttons with the 
+      on/off switch
+- [ ] Allow to coordinate the looper with the drum effect to be able to play 
+      them together with no drift
+- [ ] Allow to use AI generation for the drum effect to accompany a given
+      song. Use the same method as the preset generator
 - [x] Test on a Raspberry Pi (Bookworm, Qt 6.4, 800x480 touch screen,
       `QT_QPA_PLATFORM=eglfs`), check CPU use of the UI while playing
 - [x] Check the on-screen keyboard (squeekboard, shown over D-Bus) on the

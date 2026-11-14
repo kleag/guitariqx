@@ -555,6 +555,15 @@ QJsonValue FakeEngine::dispatch(QTcpSocket *s, const QString& method, const QJso
         return {};
     }
     if (method == QLatin1String("save_current")) {
+        // the engine throws for no current preset or a read only bank
+        // (an error answer, logged)
+        const QString bank = m_values.value(QStringLiteral("system.current_bank")).toString();
+        const int i = bankIndex(bank);
+        if (i < 0 || m_values.value(QStringLiteral("system.current_preset")).toString().isEmpty()) {
+            violation(QStringLiteral("save_current without a current preset"));
+        } else if (!m_banks.at(i).toObject().value(QStringLiteral("mutable")).toInt()) {
+            violation(QStringLiteral("save_current in read only bank %1").arg(bank));
+        }
         return {};
     }
     if (method == QLatin1String("save_preset")) {

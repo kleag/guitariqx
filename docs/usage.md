@@ -94,6 +94,21 @@ the new one. A preset that no longer exists is not loaded. Changes made
 while guitariqx is not running are not seen: its next start brings its own
 last preset back.
 
+### Saving preset changes
+
+**Save preset changes** in the menu (⋮), on by default, saves the current
+preset by itself: 2 seconds after the last change, and before guitariqx
+loads another preset or quits. Every change counts, whoever makes it (this
+interface, another one, a MIDI controller, a unit preset), including the
+rack's units and, with **MIDI in presets**, the MIDI assignments. A preset
+that is back to its saved settings is not written again, and presets of
+read only banks (the factory ones) are never saved: use Save as. Changes
+made less than 2 seconds before another interface or a MIDI program change
+loads a preset are not saved. To try settings without keeping them, switch
+the option off or work on a copy: with the option on, **Save as** stores
+the changes under the new name, but the original preset already has them
+when they were made more than 2 seconds before.
+
 ### Generating a preset
 
 "Generate a preset" in the ⋮ menu asks a language model for the sound of a

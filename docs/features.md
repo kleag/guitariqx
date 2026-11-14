@@ -17,6 +17,9 @@ Its automated tests run with Qt 6.4 and Qt 6.8 on x86_64 and arm64.
 - restore last preset (menu, on by default): the current preset is saved on every change
   and loaded again on each connection, for a pedalboard that can lose power
   at any time
+- save preset changes (menu, on by default): the current preset is saved
+  2 seconds after a change and before another one is loaded, except in
+  read only banks
 - files: NAM and RTNeural models, convolver impulse responses and looper
   imports, chosen with a single click file chooser, on the engine's computer
 - preset generator (menu): a language model (free by default, or any

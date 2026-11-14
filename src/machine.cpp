@@ -48,6 +48,7 @@ const char *listenTokens[] = {
 
 const char *placeAddedUnitsKey = "ui/placeAddedUnits";
 const char *restorePresetKey = "ui/restorePreset";
+const char *autoSavePresetKey = "ui/autoSavePreset";
 
 } // anonymous namespace
 
@@ -61,7 +62,8 @@ Machine::Machine(QObject *parent)
       m_pluginManager(*this, m_rpc),
       m_presetGenerator(*this),
       m_placeAddedUnits(QSettings().value(QLatin1String(placeAddedUnitsKey), false).toBool()),
-      m_restorePreset(QSettings().value(QLatin1String(restorePresetKey), true).toBool()) {
+      m_restorePreset(QSettings().value(QLatin1String(restorePresetKey), true).toBool()),
+      m_autoSavePreset(QSettings().value(QLatin1String(autoSavePresetKey), true).toBool()) {
     QQmlEngine::setObjectOwnership(&m_tuner, QQmlEngine::CppOwnership);
     QQmlEngine::setObjectOwnership(&m_pluginManager, QQmlEngine::CppOwnership);
     QQmlEngine::setObjectOwnership(&m_presetGenerator, QQmlEngine::CppOwnership);
@@ -100,6 +102,19 @@ Machine::Machine(QObject *parent)
     m_presetSaveTimer.setSingleShot(true);
     connect(&m_presetSaveTimer, &QTimer::timeout, this, &Machine::saveLastPreset);
     connect(this, &Machine::presetChanged, this, &Machine::onPresetChangedForSave);
+    m_presetSettleTimer.setInterval(800);
+    m_presetSettleTimer.setSingleShot(true);
+    connect(&m_presetSettleTimer, &QTimer::timeout, this, &Machine::onPresetSettled);
+    m_autoSaveTimer.setInterval(2000);
+    m_autoSaveTimer.setSingleShot(true);
+    connect(&m_autoSaveTimer, &QTimer::timeout, this, &Machine::autoSaveNow);
+    connect(this, &Machine::presetChanged, this, &Machine::onPresetChangedForAutoSave);
+    // the MIDI map is part of the preset when the engine saves it there
+    connect(&m_midi, &MidiMap::assignmentsChanged, this, [this]() {
+        if (m_midi.inPresets()) {
+            presetEdited();
+        }
+    });
 }
 
 Machine::~Machine() {
@@ -127,6 +142,9 @@ void Machine::connectTo(const QString& host, int port) {
 }
 
 void Machine::shutdown() {
+    if (m_autoSaveTimer.isActive()) {
+        autoSaveNow();
+    }
     if (m_presetSaveTimer.isActive()) {
         saveLastPreset();
     }
@@ -201,6 +219,10 @@ void Machine::onDisconnected() {
         saveLastPreset();
     }
     m_presetSaveOpen = false;
+    // the engine is gone: a pending automatic save is lost
+    m_autoSaveTimer.stop();
+    m_presetSettleTimer.stop();
+    m_presetSettling = false;
     m_pollTimer.stop();
     m_cpuTimer.stop();
     m_presetTimer.stop();
@@ -433,6 +455,7 @@ void Machine::onNotification(const QString& method, const QJsonArray& params) {
     if (method == QLatin1String("set")) {
         // id/value pairs; get_updates answers with one "set" for all ids
         bool rack = false;
+        bool edited = false;
         for (int i = 0; i + 1 < params.size(); i += 2) {
             const QString id = params.at(i).toString();
             Parameter *p = m_params.value(id);
@@ -445,6 +468,7 @@ void Machine::onNotification(const QString& method, const QJsonArray& params) {
                 continue;
             }
             p->updateFromEngine(params.at(i + 1));
+            edited = edited || (p->isSavedInPreset() && !p->isOutput());
             if (id.startsWith(QLatin1String("ui.")) || id.endsWith(QLatin1String(".position"))
                 || id.endsWith(QLatin1String(".pp"))) {
                 rack = true;
@@ -452,6 +476,11 @@ void Machine::onNotification(const QString& method, const QJsonArray& params) {
         }
         if (rack && !m_rackTimer.isActive()) {
             m_rackTimer.start();
+        }
+        if (edited) {
+            // another UI, a MIDI controller or a unit preset; or the
+            // preset being loaded
+            presetEdited();
         }
     } else if (method == QLatin1String("preset_changed")) {
         m_currentBank = params.at(0).toString();
@@ -500,6 +529,9 @@ void Machine::onNotification(const QString& method, const QJsonArray& params) {
 void Machine::onParameterChangeRequested(Parameter *p) {
     // the server does not echo a change back to the connection it came from
     m_rpc.notify(QStringLiteral("set"), {p->id(), p->toJson()});
+    if (p->isSavedInPreset() && !p->isOutput()) {
+        presetEdited();
+    }
     if (p->id().startsWith(QLatin1String("ui."))) {
         m_rackTimer.start();
     }
@@ -605,6 +637,10 @@ void Machine::setPreset(const QString& bank, const QString& preset) {
                            "rename it").arg(preset);
         emit messageReceived(QStringLiteral("error"), m_lastMessage);
         return;
+    }
+    // the changes of the preset being left are saved first
+    if (m_autoSaveTimer.isActive()) {
+        autoSaveNow();
     }
     m_rpc.notify(QStringLiteral("setpreset"), {bank, preset});
     // The engine handles the requests of a connection in order, so this
@@ -716,6 +752,18 @@ void Machine::setPlaceAddedUnits(bool on) {
     m_placeAddedUnits = on;
     QSettings().setValue(QLatin1String(placeAddedUnitsKey), on);
     emit placeAddedUnitsChanged();
+}
+
+void Machine::setAutoSavePreset(bool on) {
+    if (on == m_autoSavePreset) {
+        return;
+    }
+    m_autoSavePreset = on;
+    QSettings().setValue(QLatin1String(autoSavePresetKey), on);
+    if (!on) {
+        m_autoSaveTimer.stop();
+    }
+    emit autoSavePresetChanged();
 }
 
 void Machine::setRestorePreset(bool on) {

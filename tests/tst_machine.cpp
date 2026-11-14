@@ -68,6 +68,9 @@ private slots:
     void midiLearnRefusesOutputs();
     void midiFeedback();
     void midiInPresets();
+    void autoSavePreset();
+    void autoSaveBeforeSwitching();
+    void autoSaveSkipped();
     void midiValues();
 
     void tunerTemperament();
@@ -778,6 +781,107 @@ void TestMachine::midiInPresets() {
     QVERIFY(!m_machine->midi()->inPresets());
     QTest::qWait(200);
     QVERIFY(m_engine->received(QStringLiteral("set")).isEmpty());
+    QSettings().clear();
+}
+
+namespace {
+const QString scratch = QStringLiteral("Scratchpad");
+const QString livebuffer = QStringLiteral("livebuffer1");
+const QString readOnlyBank = QStringLiteral("Musiclab");
+const QString readOnlyPreset = QStringLiteral("Acoustic - Angie");
+} // anonymous namespace
+
+void TestMachine::autoSavePreset() {
+    QSettings().clear();
+    start();
+    QVERIFY(m_machine->autoSavePreset());
+    m_machine->setPreset(scratch, livebuffer);
+    QTRY_COMPARE(m_machine->currentPreset(), livebuffer);
+    // loaded, unchanged: not saved
+    QTest::qWait(3000);
+    QVERIFY(m_engine->received(QStringLiteral("save_current")).isEmpty());
+    // changed in this UI: saved once the changes stop
+    Parameter *level = m_machine->param(QStringLiteral("fumaster.Level"));
+    const double old = level->value().toDouble();
+    level->setValue(0.8);
+    QTest::qWait(500);
+    level->setValue(0.7);
+    QTest::qWait(1000);
+    QVERIFY(m_engine->received(QStringLiteral("save_current")).isEmpty());
+    QTRY_COMPARE(m_engine->received(QStringLiteral("save_current")).size(), 1);
+    // changed by another UI or a MIDI controller
+    const double tone = m_machine->param(QStringLiteral("fumaster.Tone"))->value().toDouble() > 0.5 ? 0.25 : 0.75;
+    m_engine->notifyClients(QStringLiteral("set"), {QStringLiteral("fumaster.Tone"), tone});
+    QTRY_COMPARE(m_engine->received(QStringLiteral("save_current")).size(), 2);
+    // changed and changed back: nothing to save
+    level->setValue(0.1);
+    level->setValue(0.7);
+    QTest::qWait(3000);
+    QCOMPARE(m_engine->received(QStringLiteral("save_current")).size(), 2);
+    // parameters not saved in presets (tuner, MIDI channel) are not changes
+    m_machine->param(QStringLiteral("system.midi_channel"))->setValue(3);
+    m_engine->notifyClients(QStringLiteral("set"), {QStringLiteral("racktuner.tuning"), 2});
+    QTest::qWait(3000);
+    QCOMPARE(m_engine->received(QStringLiteral("save_current")).size(), 2);
+    // switched off: kept in the settings
+    QSignalSpy changed(m_machine.get(), &Machine::autoSavePresetChanged);
+    m_machine->setAutoSavePreset(false);
+    QCOMPARE(changed.size(), 1);
+    QCOMPARE(QSettings().value(QStringLiteral("ui/autoSavePreset")), QVariant(false));
+    level->setValue(old);
+    QTest::qWait(3000);
+    QCOMPARE(m_engine->received(QStringLiteral("save_current")).size(), 2);
+    QSettings().clear();
+}
+
+void TestMachine::autoSaveBeforeSwitching() {
+    QSettings().clear();
+    start();
+    m_machine->setPreset(scratch, livebuffer);
+    QTRY_COMPARE(m_machine->currentPreset(), livebuffer);
+    QTest::qWait(1500);
+    m_engine->clearReceived();
+    // the change is saved into the preset being left, before setpreset
+    m_machine->param(QStringLiteral("fumaster.Level"))->setValue(0.8);
+    m_machine->setPreset(readOnlyBank, readOnlyPreset);
+    QTRY_COMPARE(m_machine->currentPreset(), readOnlyPreset);
+    QStringList order;
+    for (const FakeEngine::Message& m : m_engine->received()) {
+        if (m.method == QLatin1String("save_current") || m.method == QLatin1String("setpreset")) {
+            order << m.method;
+        }
+    }
+    QCOMPARE(order, (QStringList{QStringLiteral("save_current"), QStringLiteral("setpreset")}));
+    // the new preset is in a read only bank: its changes are not saved
+    QTest::qWait(1500);
+    m_machine->param(QStringLiteral("fumaster.Level"))->setValue(0.3);
+    QTest::qWait(3000);
+    QCOMPARE(m_engine->received(QStringLiteral("save_current")).size(), 1);
+    // quitting saves pending changes (of a writable preset)
+    m_machine->setPreset(scratch, livebuffer);
+    QTRY_COMPARE(m_machine->currentPreset(), livebuffer);
+    QTest::qWait(1500);
+    m_machine->param(QStringLiteral("fumaster.Level"))->setValue(0.5);
+    m_machine->shutdown();
+    QTRY_COMPARE(m_engine->received(QStringLiteral("save_current")).size(), 2);
+}
+
+void TestMachine::autoSaveSkipped() {
+    QSettings().clear();
+    start();
+    m_machine->setPreset(scratch, livebuffer);
+    QTRY_COMPARE(m_machine->currentPreset(), livebuffer);
+    QTest::qWait(1500);
+    m_engine->clearReceived();
+    // a preset loaded elsewhere (another UI, a MIDI program change) before
+    // the save: the changes are dropped, never saved into that preset
+    m_machine->param(QStringLiteral("fumaster.Level"))->setValue(0.8);
+    m_engine->notifyClients(QStringLiteral("preset_changed"), {readOnlyBank, readOnlyPreset});
+    QTRY_COMPARE(m_machine->currentPreset(), readOnlyPreset);
+    // the new preset's values arrive while it loads: not changes
+    m_engine->notifyClients(QStringLiteral("set"), {QStringLiteral("fumaster.Level"), 0.4});
+    QTest::qWait(3500);
+    QVERIFY(m_engine->received(QStringLiteral("save_current")).isEmpty());
     QSettings().clear();
 }
 

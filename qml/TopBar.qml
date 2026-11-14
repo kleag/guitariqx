@@ -231,6 +231,13 @@ Rectangle {
                     onToggled: Gx.restorePreset = checked
                 }
                 LiveMenuItem {
+                    // saved shortly after a change, and before loading another
+                    text: qsTr("Save preset changes")
+                    checkable: true
+                    checked: Gx.autoSavePreset
+                    onToggled: Gx.autoSavePreset = checked
+                }
+                LiveMenuItem {
                     text: qsTr("Skin ...")
                     onTriggered: root.skinsRequested()
                 }
