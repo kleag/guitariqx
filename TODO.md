@@ -88,6 +88,14 @@ Roughly in order of importance for live use. See README.md for what works.
       master slider, dry/wet, stereo to mono, factory settings
 - [ ] LV2/LADSPA plugin controls editor (gx_head's port list: order, name,
       display type, default/range, step, enum labels, new row, caption)
+- [ ] Jack insert (`set_jack_insert`): gx_head's button between the mono
+      and stereo racks, which splits them into two Jack clients
+      (`gx_head_amp` / `gx_head_fx`) so that external effects can be
+      inserted between them. `engine.insert` is a parameter of gx_head's
+      GUI (gui/machine.cpp), not of the engine: guitariqx would keep the
+      state itself and call `set_jack_insert`
+- [ ] Display options of gx_head: horizontal rack, show values, animations,
+      tooltips on/off
 
 ## Tuner
 
@@ -97,12 +105,16 @@ Roughly in order of importance for live use. See README.md for what works.
       (the server does not do it when a connection closes); quitting also
       unmutes the engine and leaves MIDI config mode
 - [ ] Strobe display option
+- [ ] Tuner MIDI out (`system.midiout_tuner`, gx_head's Tuner > MIDI out):
+      the engine sends the notes the tuner hears as MIDI
 
 ## MIDI
 
 - [x] MIDI feedback option (get/set_midi_feedback)
 - [x] Show incoming controller values (midi_value_changed notification)
 - [ ] Rename controllers (MidiStandardControllers::replace has no RPC yet)
+- [ ] "Include MIDI in presets" option (`system.midi_in_preset`): the MIDI
+      map is saved with each preset and loaded with it
 
 ## Engine side (needs changes in gx_head/engine)
 
@@ -159,4 +171,11 @@ Roughly in order of importance for live use. See README.md for what works.
 - [x] Debian packages and apt repository (the engine is only suggested)
 - [x] Icon and logo
 - [ ] Translations (qsTr is used everywhere, no .ts files yet)
+- [ ] A log window with the engine's messages (only the last one is shown
+      in the status line)
+- [ ] Find engines on the network like gx_head (Avahi, avahi_discover.cpp);
+      no allowed Qt module does mDNS, so it needs a small DNS-SD
+      implementation over QUdpSocket
+- [ ] Links of gx_head's Help menu: get NAM / RTNeural models (ToneHunt),
+      online help
 - [x] Remember window size, last host/port and "mute while tuning" (QSettings)
