@@ -7,8 +7,10 @@ Roughly in order of importance for live use. See README.md for what works.
 - [x] Allow to coordinate the looper with the drum effect to be able to play 
       them together with no drift (LoopSync: tapes cut to whole beats by
       their clip; tested on a real engine without audio, to check by ear)
-- [ ] Allow to use AI generation for the drum effect to accompany a given
-      song. Use the same method as the preset generator
+- [x] Allow to use AI generation for the drum effect to accompany a given
+      song. Use the same method as the preset generator (menu "Generate
+      drums" or the sequencer's "Generate…"; tried only against a fake
+      model endpoint, the quality of real answers is to check by ear)
 - [x] Test on a Raspberry Pi (Bookworm, Qt 6.4, 800x480 touch screen,
       `QT_QPA_PLATFORM=eglfs`), check CPU use of the UI while playing
 - [x] Check the on-screen keyboard (squeekboard, shown over D-Bus) on the

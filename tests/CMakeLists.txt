@@ -44,6 +44,8 @@ target_compile_definitions(tst_skin PRIVATE GUITARIQX_SKINS="${PROJECT_SOURCE_DI
 guitariqx_add_test(tst_ui)
 target_compile_definitions(tst_ui PRIVATE GUITARIQX_BINARY="$<TARGET_FILE:guitariqx>")
 add_dependencies(tst_ui guitariqx)
+# one run of the application per UI state, about 3 s each
+set_tests_properties(tst_ui PROPERTIES TIMEOUT 300)
 
 # a stand-alone FakeEngine to run guitariqx without guitarix:
 # build/tests/fake-engine -p 7124 & build/guitariqx -p 7124

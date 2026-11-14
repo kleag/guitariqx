@@ -100,7 +100,7 @@ int main(int argc, char *argv[]) {
                                QStringLiteral("Print engine state on the terminal (debugging)."));
     QCommandLineOption debugOpt(QStringLiteral("debug-state"),
                                 QStringLiteral("Comma separated UI states for testing without instrument or "
-                                               "MIDI device: tuner:HZ, switcher[:STATE], learnmode, learn:PARAM, midimap, saveas, files:UNIT (open the file chooser of UNIT), bankload, banksave:BANK, skins, unit:UNIT (add UNIT to the rack), iredit:UNIT (IR editor of a convolver), sequencer (drum sequencer, with unit:seq), loopsync (looper in time with the drums)."),
+                                               "MIDI device: tuner:HZ, switcher[:STATE], learnmode, learn:PARAM, midimap, saveas, files:UNIT (open the file chooser of UNIT), bankload, banksave:BANK, skins, unit:UNIT (add UNIT to the rack), iredit:UNIT (IR editor of a convolver), sequencer (drum sequencer, with unit:seq), loopsync (looper in time with the drums), generator, drums (preset and drum generators)."),
                                 QStringLiteral("states"));
     QCommandLineOption skinOpt(QStringLiteral("skin"),
                                QStringLiteral("gx_head skin NAME for this session, \"\" for the flat look "

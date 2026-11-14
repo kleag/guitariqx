@@ -111,6 +111,7 @@ private slots:
     void presetGenerator();
     void presetGeneratorErrors();
     void presetGeneratorSettings();
+    void drumGenerator();
 
 private:
     void start(int interfaceMinor = 2);
@@ -2148,6 +2149,117 @@ void TestMachine::presetGeneratorErrors() {
     QVERIFY(finished.last().at(4).toString().contains(QStringLiteral("Cannot reach")));
     g.setEndpoint(QStringLiteral("ftp://example.com"));
     QVERIFY(!g.generate(QStringLiteral("x"), bank).isEmpty());
+}
+
+void TestMachine::drumGenerator() {
+    QSettings().clear();
+    start();
+    Machine& m = *m_machine;
+    PresetGenerator& g = *m.presetGenerator();
+    FakeChatServer chat;
+    g.setEndpoint(chat.url());
+    QVERIFY(!m.monoRack().contains(QStringLiteral("seq")));
+    // an existing unit preset of the same name is not overwritten
+    m_engine->setUnitPresets(QStringLiteral("seq"), false, {{QStringLiteral("Numb"), QJsonObject()}});
+    // the model's mistakes: a time signature as subdivision, a tempo out of
+    // range, a short hi-hat figure, a miscounted line, booleans, an unknown
+    // voice, 16 steps (shorter than the sequencer's 24)
+    chat.answer(QStringLiteral(R"(```json
+{"name": "Numb", "bpm": 500, "subdivision": "4/4",
+ "lines": {"kick": "x.......|x.x.....", "Snare": [false, false, false, false, true, false, false, false,
+                                                   false, false, false, false, true, false, false, true],
+           "hi-hat": "x.x.", "tom2": "........x", "cowbell": "x..."},
+ "levels": {"kick": -10, "bongo": 0}, "humanize": true, "notes": "Slow."}
+```)"));
+    QSignalSpy finished(&g, &PresetGenerator::drumsFinished);
+    QSignalSpy presetFinished(&g, &PresetGenerator::finished);
+    QCOMPARE(g.generateDrums(QStringLiteral(" Comfortably  Numb ")), QString());
+    QVERIFY(g.busy());
+    QVERIFY(!g.generate(QStringLiteral("x"), QStringLiteral("Scratchpad")).isEmpty());  // one at a time
+    QVERIFY(finished.wait(5000));
+    QCOMPARE(presetFinished.size(), 0);
+    const QList<QVariant> args = finished.first();
+    QVERIFY2(args.at(0).toBool(), qPrintable(args.at(4).toString()));
+    QCOMPARE(args.at(1).toString(), QStringLiteral("Numb 2"));
+    QCOMPARE(args.at(2).toString(), QStringLiteral("Slow."));
+    const QString warnings = args.at(3).toStringList().join(QLatin1Char('\n'));
+    for (const char *w : {"cowbell", "bongo", "tom2", "500", "played 2 times"}) {
+        QVERIFY2(warnings.contains(QLatin1String(w)), w);
+    }
+    QCOMPARE(chat.request.value(QStringLiteral("messages")).toArray().at(0).toObject()
+                 .value(QStringLiteral("content")).toString(), g.drumPrompt());
+    QCOMPARE(chat.request.value(QStringLiteral("messages")).toArray().at(1).toObject()
+                 .value(QStringLiteral("content")).toString(), QStringLiteral("Comfortably Numb"));
+
+    // the unit added at the end of the mono rack, switched on
+    QTRY_VERIFY(m_engine->rack(false).endsWith(QStringLiteral("seq")));
+    QCOMPARE(m_engine->value(QStringLiteral("seq.on_off")), QJsonValue(1));
+    QCOMPARE(m_engine->value(QStringLiteral("seq.hum")), QJsonValue(1));
+    QCOMPARE(m_engine->value(QStringLiteral("seq.bpm")).toDouble(), 360.0);
+    QCOMPARE(m_engine->value(QStringLiteral("seq.tact")).toDouble(), 4.0);
+    QCOMPARE(m_engine->value(QStringLiteral("seq.kick.dsp.Gain")).toDouble(), -10.0);
+    // 16 steps played twice: every line 32 steps of 0 and 1
+    QCOMPARE(m_engine->value(QStringLiteral("seq.asequences")).toDouble(), 32.0);
+    const auto line = [this](const char *drum) {
+        QString s;
+        for (const QJsonValue& v : m_engine->value(QStringLiteral("seq.sequencer.") + QLatin1String(drum)).toObject()
+                                        .value(QStringLiteral("seq.seqline")).toArray()) {
+            if (v.isBool()) {
+                return QStringLiteral("boolean");
+            }
+            s += v.toInt() ? QLatin1Char('x') : QLatin1Char('.');
+        }
+        return s;
+    };
+    QCOMPARE(line("kick"), QStringLiteral("x.......x.x.....x.......x.x....."));
+    QCOMPARE(line("snare"), QStringLiteral("....x.......x..x....x.......x..x"));
+    QCOMPARE(line("hat"), QStringLiteral("x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x."));
+    QCOMPARE(line("tom2"), QStringLiteral("........x...............x......."));
+    QCOMPARE(line("tom"), QString(32, QLatin1Char('.')));
+    QCOMPARE(line("tom1"), QString(32, QLatin1Char('.')));
+    // saved as a unit preset of seq, after the lines
+    QTRY_COMPARE(m_engine->unitPresets(QStringLiteral("seq"), false).size(), 2);
+    const QJsonObject saved = m_engine->unitPresets(QStringLiteral("seq"), false).at(1).second;
+    QCOMPARE(m_engine->unitPresets(QStringLiteral("seq"), false).at(1).first, QStringLiteral("Numb 2"));
+    QCOMPARE(saved.value(QStringLiteral("seq.sequencer.kick")),
+             m_engine->value(QStringLiteral("seq.sequencer.kick")));
+
+    // a triplet feel of 12 steps: repeated to 24
+    chat.answer(QStringLiteral(R"({"bpm": 90, "subdivision": 3, "kick": "x.....x.....", "snare": "...x.....x.."})"));
+    QCOMPARE(g.generateDrums(QStringLiteral("shuffle")), QString());
+    QVERIFY(finished.wait(5000));
+    QVERIFY2(finished.last().at(0).toBool(), qPrintable(finished.last().at(4).toString()));
+    QCOMPARE(finished.last().at(1).toString(), QStringLiteral("Drums"));
+    QTRY_COMPARE(m_engine->value(QStringLiteral("seq.asequences")).toDouble(), 24.0);
+    QCOMPARE(m_engine->value(QStringLiteral("seq.tact")).toDouble(), 3.0);
+    QCOMPARE(line("snare"), QStringLiteral("...x.....x.....x.....x.."));
+    QCOMPARE(line("hat"), QString(24, QLatin1Char('.')));
+
+    // miscounted by a step: a bar of 17 and a line of 33 steps are cut, the
+    // loop stays 32 steps long with its downbeats in place
+    chat.answer(QStringLiteral(R"({"subdivision": 4, "lines": {"kick": "x.......x.x.....|x.......x........",
+        "snare": "....x.......x...|....x.......x..x", "hat": "x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x"}})"));
+    QCOMPARE(g.generateDrums(QStringLiteral("miscounted")), QString());
+    QVERIFY(finished.wait(5000));
+    QVERIFY2(finished.last().at(0).toBool(), qPrintable(finished.last().at(4).toString()));
+    QVERIFY(finished.last().at(3).toStringList().join(QLatin1Char('\n')).contains(QStringLiteral("Bars of \"kick\"")));
+    QTRY_COMPARE(m_engine->value(QStringLiteral("seq.asequences")).toDouble(), 32.0);
+    QCOMPARE(line("kick"), QStringLiteral("x.......x.x.....x.......x......."));
+    QCOMPARE(line("snare"), QStringLiteral("....x.......x.......x.......x..x"));
+    QCOMPARE(line("hat"), QStringLiteral("x.x.x.x.x.x.x.x.x.x.x.x.x.x.x.x."));
+
+    // no steps: nothing sent
+    QTest::qWait(100);
+    m_engine->clearReceived();
+    chat.answer(QStringLiteral(R"({"name": "x", "lines": {"kick": "....", "bongo": "xxxx"}})"));
+    QCOMPARE(g.generateDrums(QStringLiteral("silence")), QString());
+    QVERIFY(finished.wait(5000));
+    QVERIFY(!finished.last().at(0).toBool());
+    QVERIFY(!finished.last().at(4).toString().isEmpty());
+    QTest::qWait(100);
+    QVERIFY(m_engine->received(QStringLiteral("set")).isEmpty());
+    QVERIFY(m_engine->received(QStringLiteral("plugin_preset_list_save")).isEmpty());
+    QVERIFY(!g.generateDrums(QStringLiteral("  ")).isEmpty());
 }
 
 void TestMachine::presetGeneratorSettings() {

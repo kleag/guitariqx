@@ -28,6 +28,7 @@ Rectangle {
     signal skinsRequested()
     signal pluginsRequested()
     signal generatorRequested()
+    signal drumsRequested()
     property bool compact: false
     property bool fullScreen: false
     property bool canToggleFullScreen: true
@@ -212,6 +213,11 @@ Rectangle {
                     text: qsTr("Generate a preset ...")
                     enabled: Gx.ready
                     onTriggered: root.generatorRequested()
+                }
+                LiveMenuItem {
+                    text: qsTr("Generate drums ...")
+                    enabled: Gx.ready && Gx.hasParam("seq.asequences")
+                    onTriggered: root.drumsRequested()
                 }
                 LiveMenuItem {
                     text: qsTr("MIDI controllers ...")

@@ -83,7 +83,7 @@ tablet. Options:
 | `--size WxH` | initial window size (default: the size, or maximized state, of the last session, else 1280x800) |
 | `--dump` | print connection, preset and rack changes on the terminal |
 | `--screenshot FILE` | save a screenshot after `--screenshot-delay` ms and quit (testing) |
-| `--debug-state LIST` | testing without instrument or MIDI device: `tuner:HZ`, `switcher[:STATE]`, `learnmode`, `learn:PARAM`, `midimap`, `saveas`, `files:UNIT`, `bankload`, `banksave:BANK`, `skins`, `menu`, `unit:UNIT`, `iredit:UNIT`, `sequencer`, `loopsync`, `unitpresets:UNIT`, `rackdrag:UNIT`, `rackplace:UNIT`, `plugins[:NAME]`, `generator` |
+| `--debug-state LIST` | testing without instrument or MIDI device: `tuner:HZ`, `switcher[:STATE]`, `learnmode`, `learn:PARAM`, `midimap`, `saveas`, `files:UNIT`, `bankload`, `banksave:BANK`, `skins`, `menu`, `unit:UNIT`, `iredit:UNIT`, `sequencer`, `loopsync`, `unitpresets:UNIT`, `rackdrag:UNIT`, `rackplace:UNIT`, `plugins[:NAME]`, `generator`, `drums` |
 
 The connection indicator at the right of the top bar opens the connect
 dialog. guitariqx reconnects automatically when the engine restarts.
@@ -169,6 +169,11 @@ Working:
   chosen bank (the loaded preset is left untouched). A free model
   (Pollinations) is the default; any OpenAI compatible chat completions
   service can be set with its API key
+- drum generator (menu, "Generate drums", or "Generate…" in the drum
+  sequencer): name a song (the current preset's name to start with), the
+  same model writes its drum part (tempo, subdivision, steps) for the drum
+  sequencer of the current preset, added to the rack if needed, and saved
+  as a preset of the sequencer
 - unit presets: load, save and remove the settings of one rack unit
 - LADSPA/LV2 plugins (menu): choose which plugins of the engine's computer
   are rack units, with their name, category, master slider, dry/wet

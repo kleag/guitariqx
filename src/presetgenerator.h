@@ -42,6 +42,12 @@ class QNetworkReply;
  * Everything the model answers is checked against the catalog it was sent
  * (the units that can be added, their parameters, the amplifier's): the
  * engine crashes on unknown ids, so nothing else reaches it.
+ *
+ * It also writes drum patterns for the drum sequencer (seq) to accompany
+ * a song (generateDrums(), drumgenerator.cpp): the pattern is applied to
+ * the seq unit of the current preset, added to the rack if needed, and
+ * saved as a unit preset of seq. Both share the settings and a single
+ * request at a time (the default endpoint's rate limit).
  */
 class PresetGenerator : public QObject {
     Q_OBJECT
@@ -73,6 +79,10 @@ public:
     // empty string when the request was sent.
     Q_INVOKABLE QString generate(const QString& description, const QString& bank);
     Q_INVOKABLE void cancel();
+    // Asks for a drum pattern accompanying the song described; the result
+    // comes with drumsFinished(). Returns an error text, or an empty
+    // string when the request was sent.
+    Q_INVOKABLE QString generateDrums(const QString& description);
 
     // What the model is told (the instructions and the catalog of units
     // and parameters of the connected engine)
@@ -87,6 +97,14 @@ public:
     // prose around it are skipped); empty if there is none
     static QJsonObject extractJson(const QString& text);
 
+    // the instructions for drum patterns
+    QString drumPrompt() const;
+    // Applies a drum pattern of the model to the seq unit (added to the
+    // mono rack if missing, switched on): tempo, subdivision, steps and the
+    // six lines, all made seq.asequences long. Returns what was fixed or
+    // skipped; error is set when there is no pattern.
+    QStringList applyDrums(const QJsonObject& pattern, QString *error = nullptr);
+
 signals:
     void settingsChanged();
     void busyChanged();
@@ -95,6 +113,9 @@ signals:
     // model's explanation, warnings what was skipped
     void finished(bool ok, const QString& name, const QString& notes, const QStringList& warnings,
                   const QString& error);
+    // ok: the pattern was applied and saved as the seq unit preset name
+    void drumsFinished(bool ok, const QString& name, const QString& notes, const QStringList& warnings,
+                       const QString& error);
 
 private:
     struct Unit {
@@ -106,8 +127,16 @@ private:
     QList<Unit> catalog() const;
     QList<Parameter*> unitParameters(const QString& unit, const QSet<QString>& unitIds) const;
     QStringList ampParameters() const;
+    enum class Request { Preset, Drums };
+    // sends a chat completion request; returns an error text or empty
+    QString send(Request kind, const QString& system, const QString& user);
     void onReply(QNetworkReply *reply);
+    void finishPreset(const QJsonObject& preset);
+    void finishDrums(const QJsonObject& pattern);
+    // the result signal of the request in flight
+    void fail(const QString& error, const QString& notes = QString(), const QStringList& warnings = QStringList());
     void save();
+    static QString asciiName(const QString& name);
 
     Machine& m_machine;
     QNetworkAccessManager m_nam;
@@ -115,6 +144,7 @@ private:
     QString m_endpoint;
     QString m_model;
     QString m_apiKey;
+    Request m_request = Request::Preset;
     // where the preset is saved
     QString m_bank;
 };

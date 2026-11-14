@@ -58,6 +58,7 @@ set(GUITARIQX_SOURCES
     src/loopsync.cpp
     src/loopsync.h
     src/presetgenerator.cpp
+    src/drumgenerator.cpp
     src/presetgenerator.h
 )
 
@@ -116,6 +117,8 @@ qt_add_qml_module(guitariqx
         qml/SequencerDialog.qml
         qml/PluginManagerDialog.qml
         qml/PresetGeneratorDialog.qml
+        qml/GeneratorSettings.qml
+        qml/DrumGeneratorDialog.qml
 )
 
 # the gx_head "Guitarix" skin and the libgxw icons (skins/README.md)

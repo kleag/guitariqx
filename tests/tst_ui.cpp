@@ -103,6 +103,8 @@ void TestUi::states_data() {
                                    << QString();
     QTest::newRow("generator") << QStringLiteral("generator") << QStringLiteral("1280x800") << 2 << false << QString();
     QTest::newRow("generator-small") << QStringLiteral("generator") << QStringLiteral("800x480") << 2 << false << QString();
+    QTest::newRow("drums") << QStringLiteral("drums") << QStringLiteral("1280x800") << 2 << false << QString();
+    QTest::newRow("drums-small") << QStringLiteral("drums") << QStringLiteral("800x480") << 2 << false << QString();
     QTest::newRow("files-remote-old-engine") << QStringLiteral("files:nam") << QStringLiteral("800x480") << 1 << true << QString();
 }
 

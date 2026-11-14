@@ -73,28 +73,6 @@ Answer with one JSON object only, no other text:
 Parameters are written name=range(default): numbers take a value in the range, 0|1 are switches, ["a", "b"] take one of the quoted labels.
 )";
 
-// The engine stops on presets whose name is not ASCII (see the known
-// problems in docs/features.md): accents are dropped, dashes and quotes
-// replaced, other characters removed
-QString asciiName(const QString& name) {
-    QString out;
-    for (const QChar c : name.normalized(QString::NormalizationForm_KD)) {
-        const char16_t u = c.unicode();
-        if (u >= 0x20 && u < 0x7f) {
-            out += c;
-        } else if ((u >= 0x2010 && u <= 0x2015) || u == 0x2212) {
-            out += QLatin1Char('-');
-        } else if (u == 0x2018 || u == 0x2019) {
-            out += QLatin1Char('\'');
-        } else if (u == 0x201c || u == 0x201d) {
-            out += QLatin1Char('"');
-        } else if (c.isSpace()) {
-            out += QLatin1Char(' ');
-        }
-    }
-    return out.simplified().left(60).trimmed();
-}
-
 QString number(double v) {
     return QString::number(v, 'g', 6);
 }
@@ -200,6 +178,28 @@ PresetGenerator::PresetGenerator(Machine& machine, QObject *parent) : QObject(pa
 
 QString PresetGenerator::defaultEndpoint() {
     return QString::fromLatin1(kDefaultEndpoint);
+}
+
+// The engine stops on presets whose name is not ASCII (see the known
+// problems in docs/features.md): accents are dropped, dashes and quotes
+// replaced, other characters removed
+QString PresetGenerator::asciiName(const QString& name) {
+    QString out;
+    for (const QChar c : name.normalized(QString::NormalizationForm_KD)) {
+        const char16_t u = c.unicode();
+        if (u >= 0x20 && u < 0x7f) {
+            out += c;
+        } else if ((u >= 0x2010 && u <= 0x2015) || u == 0x2212) {
+            out += QLatin1Char('-');
+        } else if (u == 0x2018 || u == 0x2019) {
+            out += QLatin1Char('\'');
+        } else if (u == 0x201c || u == 0x201d) {
+            out += QLatin1Char('"');
+        } else if (c.isSpace()) {
+            out += QLatin1Char(' ');
+        }
+    }
+    return out.simplified().left(60).trimmed();
 }
 
 bool PresetGenerator::usingDefault() const {
@@ -365,6 +365,14 @@ QString PresetGenerator::generate(const QString& description, const QString& ban
         return m_machine.bank(bank).isEmpty() ? tr("Choose the bank of the new preset")
                                               : tr("Bank \"%1\" is read only").arg(bank);
     }
+    const QString error = send(Request::Preset, systemPrompt(), d);
+    if (error.isEmpty()) {
+        m_bank = bank;
+    }
+    return error;
+}
+
+QString PresetGenerator::send(Request kind, const QString& system, const QString& user) {
     const QUrl url(m_endpoint);
     if (!url.isValid() || (url.scheme() != QLatin1String("http") && url.scheme() != QLatin1String("https"))) {
         return tr("The address of the model is not a http or https URL");
@@ -385,8 +393,8 @@ QString PresetGenerator::generate(const QString& description, const QString& ban
         {QStringLiteral("model"), m_model},
         {QStringLiteral("messages"),
          QJsonArray{
-             QJsonObject{{QStringLiteral("role"), QStringLiteral("system")}, {QStringLiteral("content"), systemPrompt()}},
-             QJsonObject{{QStringLiteral("role"), QStringLiteral("user")}, {QStringLiteral("content"), d}},
+             QJsonObject{{QStringLiteral("role"), QStringLiteral("system")}, {QStringLiteral("content"), system}},
+             QJsonObject{{QStringLiteral("role"), QStringLiteral("user")}, {QStringLiteral("content"), user}},
          }},
     };
     // the default model reasons and runs out of its output limit otherwise;
@@ -410,20 +418,24 @@ QString PresetGenerator::generate(const QString& description, const QString& ban
     req.setTransferTimeout(kTimeout);
     QNetworkReply *reply = m_nam.post(req, QJsonDocument(body).toJson(QJsonDocument::Compact));
     m_reply = reply;
-    m_bank = bank;
+    m_request = kind;
     connect(reply, &QNetworkReply::finished, this, [this, reply]() { onReply(reply); });
     emit busyChanged();
 
     // Add trace output for debugging
     qDebug() << "Preset Generator: Sending prompt to LLM:";
-    qDebug() << "System prompt:";
-    qDebug() << systemPrompt();
+    qDebug().noquote() << system;
     qDebug() << "User prompt:";
-    qDebug() << d;
-    qDebug() << "Full JSON body:";
-    qDebug().noquote() << systemPrompt();
-    qDebug().noquote() << description;
+    qDebug().noquote() << user;
     return QString();
+}
+
+void PresetGenerator::fail(const QString& error, const QString& notes, const QStringList& warnings) {
+    if (m_request == Request::Drums) {
+        emit drumsFinished(false, QString(), notes, warnings, error);
+    } else {
+        emit finished(false, QString(), notes, warnings, error);
+    }
 }
 
 void PresetGenerator::cancel() {
@@ -466,7 +478,7 @@ void PresetGenerator::onReply(QNetworkReply *reply) {
         if (status == 401 || status == 403) {
             text += QLatin1Char(' ') + tr("Check the API key in the settings.");
         }
-        emit finished(false, QString(), QString(), QStringList(), text);
+        fail(text);
         return;
     }
 
@@ -485,17 +497,26 @@ void PresetGenerator::onReply(QNetworkReply *reply) {
     } else {
         text = content.toString();
     }
-    const QJsonObject preset = extractJson(text);
-    if (preset.isEmpty()) {
-        emit finished(false, QString(), QString(), QStringList(),
-                      text.trimmed().isEmpty() ? tr("The model gave an empty answer")
-                                               : tr("The model's answer holds no preset: %1").arg(text.simplified().left(200)));
+    const QJsonObject result = extractJson(text);
+    if (result.isEmpty()) {
+        fail(text.trimmed().isEmpty() ? tr("The model gave an empty answer")
+                                      : (m_request == Request::Drums ? tr("The model's answer holds no drum pattern: %1")
+                                                                     : tr("The model's answer holds no preset: %1"))
+                                            .arg(text.simplified().left(200)));
         return;
     }
     if (!m_machine.ready()) {
-        emit finished(false, QString(), QString(), QStringList(), tr("Not connected to the engine"));
+        fail(tr("Not connected to the engine"));
         return;
     }
+    if (m_request == Request::Drums) {
+        finishDrums(result);
+    } else {
+        finishPreset(result);
+    }
+}
+
+void PresetGenerator::finishPreset(const QJsonObject& preset) {
     QString error;
     const QStringList warnings = apply(preset, &error);
     const QString notes = preset.value(QStringLiteral("notes")).toString().trimmed();

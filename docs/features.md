@@ -26,6 +26,9 @@ Its automated tests run with Qt 6.4 and Qt 6.8 on x86_64 and arm64.
   OpenAI compatible service with the user's API key) chooses the units and
   settings for a described sound, applied to the racks and saved as a new
   preset of the chosen bank
+- drum generator (menu, or the drum sequencer): the same model writes the
+  drum part of a song (the current preset's name to start with) for the
+  drum sequencer of the current preset, also saved as a sequencer preset
 - mono and stereo racks: on/off, add (at the top, or placed by hand),
   remove, reorder (by drag and drop or up/down buttons), collapse
 - LADSPA/LV2 plugins: choose which plugins of the engine's computer are

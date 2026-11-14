@@ -61,6 +61,7 @@ Dialog {
     readonly property real cell: Theme.touch + 2
 
     UnitPresetDialog { id: presetDialog; unitId: "seq" }
+    DrumGeneratorDialog { id: drumDialog; debugOpen: false }
     OutputWatch { paramId: "seq.pos"; active: root.opened && root.running }
     OutputWatch { paramId: "seq.step"; active: root.opened && root.running }
     OutputWatch { paramId: "seq.step_orig"; active: root.opened && root.running }
@@ -162,6 +163,12 @@ Dialog {
                             onClicked: Gx.stepUnitPreset("seq", 1)
                             ToolTip.visible: hovered
                             ToolTip.text: qsTr("Next preset")
+                        }
+                        Button {
+                            // a pattern written by a language model
+                            text: qsTr("Generate…")
+                            flat: true
+                            onClicked: drumDialog.open()
                         }
                     }
                 }

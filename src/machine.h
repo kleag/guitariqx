@@ -217,6 +217,9 @@ public:
     // listed are sent. Saving and removing return an error text or an
     // empty string, and the list is sent again afterwards.
     Q_INVOKABLE void requestUnitPresets(const QString& unit);
+    // the same list, to handler (not called when not connected)
+    using PresetsHandler = std::function<void(const QVariantList& presets)>;
+    void loadUnitPresets(const QString& unit, PresetsHandler handler);
     Q_INVOKABLE void setUnitPreset(const QString& unit, const QString& name, bool factory);
     Q_INVOKABLE QString saveUnitPreset(const QString& unit, const QString& name);
     Q_INVOKABLE QString removeUnitPreset(const QString& unit, const QString& name);
@@ -331,8 +334,6 @@ private:
     QList<Parameter*> unitParameters(const QString& id) const;
     void finishUnitUi(const QString& id, QVariantMap ui);
     void fixSequencerLines(int n);
-    using PresetsHandler = std::function<void(const QVariantList& presets)>;
-    void loadUnitPresets(const QString& unit, PresetsHandler handler);
     void onSequencerPresetStep(Parameter *p, int delta);
 
     static Machine *s_instance;

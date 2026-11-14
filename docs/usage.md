@@ -140,6 +140,27 @@ engine's units are sent to that service; nothing is sent before
 **Generate** is tapped. The API key is stored unencrypted in guitariqx's
 settings file (`~/.config/guitarix/guitariqx.conf`).
 
+### Generating drums
+
+"Generate drums" in the ⋮ menu, or **Generate…** in the drum sequencer,
+asks the same model (same settings) for the drum part of a song to play
+along with. The text starts as the name of the current preset, so that a
+preset named after a song gets its drums in one tap; it can be changed to
+any song or style. The model chooses the tempo, the steps per beat
+(sixteenths, eighths, triplets for a shuffle) and the steps of each drum.
+The pattern goes to the drum sequencer of the current preset: the
+sequencer is added at the end of the mono rack if it is not there, and
+switched on. Patterns shorter than the sequencer's minimum of 24 steps are
+repeated, a short figure (a bar of hi-hat) repeated along the others, and
+a bar or a voice miscounted by the model cut or completed with rests so
+that the beats stay in place; these fixes are listed. The pattern is also saved as a preset of
+the sequencer, named by the model (with a number added if that name is
+taken), so that it can be loaded in other presets and stepped through
+with ◀ and ▶. The drum lines are part of the preset: with "Save preset
+changes" on, the current preset keeps them; otherwise save it. Generating
+a preset afterwards removes the sequencer from the new preset, as it does
+with every unit the model does not choose.
+
 ## Racks
 
 **+ Add effect** adds a unit at the top of the mono or stereo rack. Each unit has its
@@ -227,7 +248,8 @@ Some units have widgets of their own, as in gx_head:
   steps, the level of each drum, humanize, follow (keeps the play head in
   view), and buttons to move the stepper (to the start, a beat back, back
   on the beat, a beat forward). ◀ and ▶ load the previous or next of your
-  presets of the sequencer, **Presets…** lists them. guitariqx also follows
+  presets of the sequencer, **Presets…** lists them, **Generate…** asks a
+  language model for a pattern (see [Generating drums](#generating-drums)). guitariqx also follows
   the sequencer's "Load next/previous unit preset" controls when another
   client (or a MIDI controller assigned to them in gx_head) sets them.
 

@@ -205,6 +205,7 @@ MIDI device or clicks (comma separated):
 | `rackplace:UNIT` | a rack unit being placed by hand, as if just added (which must be in the rack) |
 | `plugins[:NAME]` | the LADSPA/LV2 plugins dialog, or the settings of the plugin NAME |
 | `generator` | the preset generator, with its model settings shown |
+| `drums` | the drum generator, its text taken from the current preset's name |
 
 ### Without guitarix
 
